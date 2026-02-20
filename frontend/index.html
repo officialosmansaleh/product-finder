@@ -1,0 +1,1747 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Product Finder</title>
+  <style>
+    :root{
+      --bg:#f6f7f9; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e5e7eb;
+      --pri:#ff9900; --pri2:#ff9900; --chip:#eef2ff; --chipInk:#3730a3;
+      --ok:#16a34a; --warn:#f59e0b; --bad:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
+    header{position:sticky;top:0;z-index:5;background:#ffffff;color:#010101;font-size: 20px;padding:14px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+    header .title{font-weight:900;letter-spacing:.2px}
+    header .sub{color:#010101;font-size:12px}
+    header .right{display:flex;gap:10px;align-items:center}
+    .btn{padding:10px 12px;border:0;border-radius:12px;background:var(--pri);color:#fff;cursor:pointer}
+    .btn:hover{background:var(--pri2)}
+    .btn.secondary{background:#111827}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    main{display:grid;grid-template-columns:380px 1fr;gap:14px;padding:14px}
+    @media (max-width: 980px){main{grid-template-columns:1fr}}
+    .card{background:var(--card);border-radius:14px;box-shadow:0 1px 10px rgba(0,0,0,.06);padding:12px}
+    .h{font-weight:800;margin:2px 0 10px}
+    .small{font-size:12px;color:var(--muted)}
+    .row{display:flex;gap:10px;align-items:center}
+    .row.wrap{flex-wrap:wrap}
+    input[type="text"], input[type="number"]{width:100%;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff}
+    .hr{height:1px;background:#eef2f7;margin:12px 0}
+    .chip{display:inline-flex;gap:6px;align-items:center;font-size:12px;background:var(--chip);color:var(--chipInk);padding:4px 10px;border-radius:999px;cursor:pointer;user-select:none}
+    .chip b{font-weight:800}
+    .facetSearch{margin:8px 0 10px}
+    .facet-list{max-height:210px;overflow:auto;padding-right:6px;border:1px solid #f1f5f9;border-radius:12px;padding:6px 10px}
+    .facet-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f1f5f9}
+    .facet-item:last-child{border-bottom:0}
+    .count{font-size:12px;color:var(--muted)}
+    .k{display:flex;gap:8px;align-items:center}
+    .toggle{accent-color: var(--pri)}
+    .pill{display:inline-block;font-size:12px;background:#f1f5f9;color:#0f172a;padding:3px 8px;border-radius:999px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width: 980px){.grid2{grid-template-columns:1fr}}
+    .groupNav{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+    .groupBtn{border:1px solid #e2e8f0;background:#fff;color:#0f172a;padding:6px 10px;border-radius:999px;font-size:12px;cursor:pointer}
+    .groupBtn.active{background:#111827;color:#fff;border-color:#111827}
+    .filterGroup{display:block}
+    .filterGroup.hidden{display:none}
+    .toast{position:fixed;right:16px;bottom:16px;background:#0b1220;color:#fff;padding:10px 12px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:none;max-width:420px;font-size:13px}
+    .resultsTop{display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .select{padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff}
+    .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width: 1200px){.cards{grid-template-columns:1fr}}
+    .hit{border:1px solid #eef2f7;border-radius:14px;padding:12px}
+    .hitHead{display:flex;justify-content:space-between;gap:10px}
+    .hitMain{display:flex;gap:10px;align-items:flex-start;min-width:0}
+    .hitThumb{width:76px;height:76px;object-fit:cover;border:1px solid #e5e7eb;border-radius:10px;background:#f8fafc;flex:0 0 76px}
+    .hitText{min-width:0}
+    .hitActions{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+    .code{font-weight:900}
+    .name{color:var(--muted);font-size:12px;margin-top:2px}
+    .webLink{display:inline-flex;align-items:center;gap:6px;color:#6b7280;text-decoration:none;font-size:12px}
+    .webLink:hover{color:#4b5563}
+    .badge{font-size:12px;padding:4px 8px;border-radius:999px;background:#eef2f7;color:#0f172a;white-space:nowrap}
+    .badge.ok{background:#dcfce7;color:#166534}
+    .badge.warn{background:#fef3c7;color:#92400e}
+    .specs{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+    .pager{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+    .pagerInfo{font-size:12px;color:var(--muted)}
+    .quoteBox{border:1px solid #e2e8f0;border-radius:12px;padding:10px;background:#fcfcfd}
+    .quoteTop{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+    .quoteTable{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+    .quoteTable th,.quoteTable td{border-bottom:1px solid #e5e7eb;padding:6px;vertical-align:top;text-align:left}
+    .quoteTable input[type="number"], .quoteTable input[type="text"]{padding:6px 8px;border-radius:8px}
+    .quoteTable .qty{width:72px}
+    .quoteMeta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    @media (max-width: 980px){.quoteMeta{grid-template-columns:1fr}}
+    .quoteTableWrap{overflow:auto}
+    .mobileOnly{display:none}
+    .filtersBackdrop{display:none}
+    @media (max-width: 980px){
+      .mobileOnly{display:inline-flex}
+      .groupNav{overflow:auto;white-space:nowrap;flex-wrap:nowrap;padding-bottom:4px}
+      .btn,.select,input[type="text"], input[type="number"]{min-height:44px}
+      .filterPanel{
+        position:fixed;
+        top:0;
+        left:0;
+        bottom:0;
+        width:min(92vw,420px);
+        z-index:30;
+        margin:0;
+        border-radius:0;
+        overflow:auto;
+        transform:translateX(-102%);
+        transition:transform .18s ease-out;
+      }
+      .filterPanel.open{transform:translateX(0)}
+      .filtersBackdrop{
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.28);
+        z-index:25;
+      }
+      .filtersBackdrop.show{display:block}
+    }
+    .presetRow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .presetBtn{border:1px solid #e2e8f0;background:#fff;color:#0f172a;padding:7px 10px;border-radius:999px;font-size:12px;cursor:pointer}
+    .presetBtn:hover{border-color:#cbd5e1;background:#f8fafc}
+    .metric{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:#f8fafc;border:1px solid #e2e8f0;font-size:12px;color:#334155}
+    .recovery{display:none;margin:0 0 12px 0;padding:10px;border:1px solid #fde68a;background:#fffbeb;border-radius:12px}
+    .recoveryTitle{font-weight:700;font-size:13px;color:#92400e;margin-bottom:8px}
+    .recoveryActions{display:flex;flex-wrap:wrap;gap:8px}
+    .recoveryBtn{border:1px solid #fcd34d;background:#fff;color:#78350f;padding:7px 10px;border-radius:999px;font-size:12px;cursor:pointer}
+    .recoveryBtn:hover{background:#fef3c7}
+    .emptyState{border:1px dashed #dbeafe;background:#f8fbff;border-radius:12px;padding:16px}
+    .emptyTitle{font-weight:700;font-size:14px;color:#1e3a8a;margin:0 0 4px}
+    .emptyText{font-size:12px;color:#475569;margin:0}
+    .skeleton{position:relative;overflow:hidden}
+    .skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg, transparent 0%, rgba(255,255,255,.65) 50%, transparent 100%);transform:translateX(-100%);animation:shimmer 1.3s infinite}
+    .skLine{height:10px;background:#e2e8f0;border-radius:999px;margin-bottom:8px}
+    .skLine.w60{width:60%}
+    .skLine.w35{width:35%}
+    .skLine.w90{width:90%}
+    @keyframes shimmer{100%{transform:translateX(100%)}}
+    pre{white-space:pre-wrap;font-size:12px;color:#111827}
+  </style>
+</head>
+<body>
+  <header>
+
+      <div style="display:flex;align-items:center;gap:15px;">
+    
+    <img src="/frontend/logo-disano.png" 
+         alt="Logo"
+         style="height:auto; width:auto;" />
+    <div>
+      <div class="title">SMART FINDER</div>
+      <div class="sub" id="buildLabel">extactly what you are look for</div>
+    </div>
+    <div class="right">
+      <button id="btnOpenFilters" class="btn secondary mobileOnly" title="Open filters">Filters</button>
+      <button id="btnClearAll" class="btn secondary" title="Clear query + filters">Reset</button>
+      <button id="btnRun" class="btn">Search</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- LEFT -->
+    <section class="card filterPanel" id="filterPanel">
+      <div class="h">Query</div>
+      <input id="q" type="text" placeholder="e.g. downlight for office, UGR<19, 4000K, DALI, IP54" />
+      <div class="small" style="margin-top:8px">
+        Tip: you can search by application or specs. Filters below refine results.
+      </div>
+      <div class="small" style="margin-top:10px">Demo presets</div>
+      <div id="presetRow" class="presetRow"></div>
+
+      <div class="hr"></div>
+
+      <div class="h">Selected filters</div>
+      <div id="selected" class="row wrap"></div>
+      <div class="small" style="margin-top:8px">Click a chip to remove it. Search auto-runs.</div>
+
+      <div class="hr"></div>
+      <div class="groupNav" id="groupNav">
+        <button class="groupBtn" data-group="families">Families</button>
+        <button class="groupBtn" data-group="light">Light</button>
+        <button class="groupBtn" data-group="electrical">Electrical</button>
+        <button class="groupBtn" data-group="mechanical">Mechanical</button>
+        <button class="groupBtn" data-group="quality">Quality</button>
+        <button class="groupBtn" data-group="all">All</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="filterGroup" data-group="families">
+      <div class="h">Families</div>
+      <div class="grid2">
+        <div>
+          <input id="famSearch" class="facetSearch" type="text" placeholder="Search families..." />
+          <div id="families" class="facet-list"></div>
+        </div>
+        <div>
+          <input id="simSearch" class="facetSearch" type="text" placeholder="Similar (first word)..." />
+          <div id="name_prefix" class="facet-list"></div>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <input id="manSearch" class="facetSearch" type="text" placeholder="Search manufacturer..." />
+        <div id="manufacturer" class="facet-list"></div>
+      </div>
+
+      <div class="hr"></div>
+      </div>
+
+
+      <div class="filterGroup" data-group="light">
+      <div class="h">Quick ranges</div>
+      <div class="grid2">
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div style="font-weight:800;font-size:13px">Lumen output</div>
+          <div class="small">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="lumMin" type="number" placeholder="min" />
+            <input id="lumMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="lumApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="lumReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div style="font-weight:800;font-size:13px">Power max (W)</div>
+          <div class="small">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="pwrMin" type="number" placeholder="min" />
+            <input id="pwrMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="pwrApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="pwrReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="box-shadow:none;border:1px solid #eef2f7;margin-top:10px">
+        <div style="font-weight:800;font-size:13px">Lumen efficacy (lm/W)</div>
+        <div class="small">Minimum value (equal or better)</div>
+        <div class="row" style="margin-top:8px">
+          <input id="effMin" type="number" placeholder="e.g. 120" />
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="effApply" class="btn" style="padding:8px 10px">Apply</button>
+          <button id="effReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+        </div>
+      </div>
+
+      
+      <div class="h">Photometrics</div>
+      <div class="grid2">
+        <div>
+          <div class="small">CCT</div>
+          <input id="cctSearch" class="facetSearch" type="text" placeholder="Search CCT..." />
+          <div id="cct_k" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="small">CRI</div>
+          <input id="criSearch" class="facetSearch" type="text" placeholder="Search CRI..." />
+          <div id="cri" class="facet-list"></div>
+          <div class="row" style="margin-top:8px">
+            <input id="criExact" type="number" placeholder="Exact CRI (e.g. 9)" />
+            <button id="criExactApply" class="btn" style="padding:8px 10px">Exact</button>
+            <button id="criExactReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <div class="small">UGR</div>
+          <input id="ugrSearch" class="facetSearch" type="text" placeholder="Search UGR..." />
+          <div id="ugr" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="small">Beam angle</div>
+          <input id="beamSearch" class="facetSearch" type="text" placeholder="Search beam angle..." />
+          <div id="beam_angle_deg" class="facet-list"></div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      </div>
+
+      <div class="filterGroup" data-group="mechanical">
+      <div class="h">Optics & Finish</div>
+        <div class="grid2">
+          <div>
+            <div class="small">Housing color</div>
+            <input id="colSearch" class="facetSearch" type="text" placeholder="Search color..." />
+            <div id="housing_color" class="facet-list"></div>
+          </div>
+      </div>
+      <div class="hr"></div>
+
+      <div class="h">Protection</div>
+      <div class="grid2">
+        <div>
+          <div class="small">IP rating</div>
+          <input id="ipSearch" class="facetSearch" type="text" placeholder="Search IP..." />
+          <div id="ip_rating" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="small">IK rating</div>
+          <input id="ikSearch" class="facetSearch" type="text" placeholder="Search IK..." />
+          <div id="ik_rating" class="facet-list"></div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      </div>
+
+      <div class="filterGroup" data-group="quality">
+      <div class="h">Regulations</div>
+      <div class="grid2">
+        <div>
+          <div class="small">LED Rated Life (h)</div>
+          <input id="ledLifeSearch" class="facetSearch" type="text" placeholder="Search LED life..." />
+          <div id="led_rated_life_h" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="small">Warranty</div>
+          <input id="warrSearch" class="facetSearch" type="text" placeholder="Search warranty..." />
+          <div id="warranty_years" class="facet-list"></div>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <div class="small">Lumen maintenance Ta 25deg (L)</div>
+        <input id="lumMaintSearch" class="facetSearch" type="text" placeholder="Search lumen maintenance..." />
+        <div id="lumen_maintenance_pct" class="facet-list"></div>
+      </div>
+
+      <div class="hr"></div>
+      </div>
+
+      <div class="filterGroup" data-group="electrical">
+      <div class="h">Power & Control</div>
+      <div class="grid2">
+        <div>
+          <div class="small">Control protocol</div>
+          <input id="ctrlSearch" class="facetSearch" type="text" placeholder="Search protocol..." />
+          <div id="control_protocol" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="small">Emergency</div>
+          <div id="emergency_present" class="facet-list"></div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      </div>
+
+      <div class="filterGroup" data-group="mechanical">
+      <div class="h">Dimensions</div>
+      <div class="grid2">
+      <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div style="font-weight:800;font-size:13px">Diameter</div>
+          <div class="small">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="diaMin" type="number" placeholder="min" />
+            <input id="diaMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="diaApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="diaReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div style="font-weight:800;font-size:13px">Luminaire height</div>
+          <div class="small">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="hMin" type="number" placeholder="min" />
+            <input id="hMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="hApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="hReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div style="font-weight:800;font-size:13px">Luminaire length</div>
+          <div class="small">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="lMin" type="number" placeholder="min" />
+            <input id="lMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="lApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="lReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div style="font-weight:800;font-size:13px">Luminaire width</div>
+          <div class="small">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="wMin" type="number" placeholder="min" />
+            <input id="wMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="wApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="wReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="card">
+      <div class="resultsTop">
+        <div>
+          <div class="h" style="margin-bottom:2px">Results count</div>
+          <div id="stats" class="small">-</div>
+          <div id="interpretedInfo" class="small"></div>
+          <div id="metrics" class="row wrap" style="margin-top:8px"></div>
+        </div>
+        <div class="row">
+          <label class="small">Sort</label>
+          <select id="sortSel" class="select">
+            <option value="score_desc">Score desc</option>
+            <option value="score_asc">Score asc</option>
+            <option value="code_asc">Code A-Z</option>
+            <option value="code_desc">Code Z-A</option>
+            <option value="price_asc">Price low-high</option>
+            <option value="price_desc">Price high-low</option>
+          </select>
+          <label class="small row" style="gap:6px">
+            <input id="chkDebug" type="checkbox" class="toggle" />
+            debug
+          </label>
+        </div>
+      </div>
+      <div id="recovery" class="recovery">
+        <div class="recoveryTitle">No exact matches. Try one of these:</div>
+        <div id="recoveryActions" class="recoveryActions"></div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="h">Exact match</div>
+      <div id="exact" class="cards"></div>
+
+      <div class="hr"></div>
+
+      <div class="h">Similar</div>
+      <div id="similar" class="cards"></div>
+
+      <div class="hr"></div>
+      <div class="pager">
+        <button id="btnPrevPage" class="btn secondary" style="padding:8px 10px">Prev</button>
+        <span id="pagerInfo" class="pagerInfo">Page 1/1</span>
+        <button id="btnNextPage" class="btn secondary" style="padding:8px 10px">Next</button>
+      </div>
+      <div class="hr"></div>
+      <div class="quoteBox">
+        <div class="quoteTop">
+          <div>
+            <div class="h" style="margin:0">Quote Cart</div>
+            <div id="quoteStats" class="small">0 selected</div>
+          </div>
+          <div class="row">
+            <button id="btnQuoteExport" class="btn" style="padding:8px 10px">Export CSV</button>
+            <button id="btnQuoteExportPdf" class="btn" style="padding:8px 10px">Export PDF</button>
+            <button id="btnQuoteClear" class="btn secondary" style="padding:8px 10px">Clear</button>
+          </div>
+        </div>
+        <div class="quoteMeta">
+          <input id="quoteCompany" type="text" placeholder="Company name (required for export)" />
+          <input id="quoteProject" type="text" placeholder="Project name (required for export)" />
+        </div>
+        <div id="quoteTableWrap" class="small quoteTableWrap" style="margin-top:8px">No products selected.</div>
+      </div>
+      <div id="debugPanel" style="display:none">
+        <div class="hr"></div>
+        <div class="h">Debug</div>
+        <pre id="raw"></pre>
+      </div>
+    </section>
+  </main>
+  <div id="filtersBackdrop" class="filtersBackdrop"></div>
+
+  <div id="toast" class="toast"></div>
+
+<script>
+  // ---------------- State ----------------
+  const UI_BUILD = "2026-02-15-db-query-1";
+  const selectedFilters = {}; // { key: Set(values as strings) }
+  const $ = (id) => document.getElementById(id);
+  let lastSimilarNameFacet = [];
+  let similarFacetReqSeq = 0;
+  let lastSimilarFacetSignature = "";
+  const PAGE_SIZE = 20;
+  let currentPage = 1;
+  let allExactResults = [];
+  let allSimilarResults = [];
+  const quoteCart = new Map(); // key: product_code
+  const DEMO_PRESETS = [
+    {
+      label: "Office UGR<=19",
+      text: "downlight for office UGR<19 4000K DALI",
+      filters: { product_family: "downlight", ugr: "<=19", cct_k: "4000", control_protocol: "dali" }
+    },
+    {
+      label: "Outdoor IP65",
+      text: "waterproof outdoor IP65 IK08 4000K",
+      filters: { product_family: "waterproof", ip_rating: ">=IP65", ik_rating: ">=IK08" }
+    },
+    {
+      label: "Warehouse Highbay",
+      text: "highbay warehouse >=150 lm/W >=20000 lm",
+      filters: { product_family: "highbay", efficacy_lm_w: ">=150", lumen_output: ">=20000" }
+    }
+  ];
+
+  function toast(msg){
+    const el = $("toast");
+    el.textContent = msg;
+    el.style.display = "block";
+    clearTimeout(window.__toastT);
+    window.__toastT = setTimeout(()=> el.style.display="none", 2600);
+  }
+
+  function setBusy(b){
+    $("btnRun").disabled = b;
+    $("btnRun").textContent = b ? "Searching..." : "Search";
+  }
+
+  function escapeHtml(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function resetRangeInputs(){
+    ["lumMin","lumMax","pwrMin","pwrMax","effMin","diaMin","diaMax","hMin","hMax","lMin","lMax","wMin","wMax","criExact"].forEach(id => $(id).value="");
+  }
+
+  function setFiltersFromObject(filtersObj){
+    for (const k of Object.keys(selectedFilters)) delete selectedFilters[k];
+    for (const [k, v] of Object.entries(filtersObj || {})){
+      const vals = Array.isArray(v) ? v : [v];
+      selectedFilters[k] = new Set(vals.map(x => String(x)));
+    }
+    renderSelected();
+  }
+
+  function renderPresetButtons(){
+    const box = $("presetRow");
+    if (!box) return;
+    box.innerHTML = DEMO_PRESETS.map((p, idx) => `<button class="presetBtn" data-idx="${idx}">${escapeHtml(p.label)}</button>`).join("");
+    Array.from(box.querySelectorAll("button")).forEach(btn => {
+      btn.addEventListener("click", () => {
+        const preset = DEMO_PRESETS[Number(btn.dataset.idx)];
+        if (!preset) return;
+        clearAll();
+        $("q").value = preset.text;
+        setFiltersFromObject(preset.filters);
+        runSearch();
+      });
+    });
+  }
+
+  function renderMetrics(ms, exactCount, similarCount, filterCount){
+    const box = $("metrics");
+    if (!box) return;
+    box.innerHTML = [
+      `<span class="metric">Latency: ${Number.isFinite(ms) ? `${ms} ms` : "-"}</span>`,
+      `<span class="metric">Exact: ${exactCount ?? 0}</span>`,
+      `<span class="metric">Similar: ${similarCount ?? 0}</span>`,
+      `<span class="metric">Filters: ${filterCount ?? 0}</span>`
+    ].join(" ");
+  }
+
+  function pageCountFromTotals(){
+    const total = (allExactResults.length || 0) + (allSimilarResults.length || 0);
+    return Math.max(1, Math.ceil(total / PAGE_SIZE));
+  }
+
+  function escapeCsv(v){
+    const s = String(v ?? "");
+    if (/[",\n]/.test(s)) return `"${s.replaceAll('"','""')}"`;
+    return s;
+  }
+
+  function renderQuoteCart(){
+    const wrap = $("quoteTableWrap");
+    const stats = $("quoteStats");
+    if (!wrap || !stats) return;
+    const rows = Array.from(quoteCart.values()).sort((a,b)=> String(a.product_code).localeCompare(String(b.product_code)));
+    stats.textContent = `${rows.length} selected`;
+    if (!rows.length){
+      wrap.innerHTML = `<span class="small">No products selected.</span>`;
+      return;
+    }
+    wrap.innerHTML = `
+      <table class="quoteTable">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Qty</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td>${escapeHtml(r.product_code)}</td>
+              <td>${escapeHtml(r.product_name || "")}</td>
+              <td><input class="qty" type="number" min="1" step="1" data-quote-code="${escapeHtml(r.product_code)}" data-field="qty" value="${escapeHtml(r.qty)}" /></td>
+              <td><input type="text" data-quote-code="${escapeHtml(r.product_code)}" data-field="notes" value="${escapeHtml(r.notes || "")}" placeholder="Optional note" /></td>
+              <td><button class="btn secondary" style="padding:6px 8px" data-quote-remove="${escapeHtml(r.product_code)}">Remove</button></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+    Array.from(wrap.querySelectorAll("input[data-quote-code]")).forEach(el => {
+      el.addEventListener("input", ()=>{
+        const code = el.dataset.quoteCode;
+        const field = el.dataset.field;
+        const row = quoteCart.get(code);
+        if (!row) return;
+        if (field === "qty"){
+          const q = Math.max(1, Math.round(Number(el.value) || 1));
+          row.qty = q;
+        } else if (field === "notes"){
+          row.notes = String(el.value || "");
+        }
+      });
+    });
+    Array.from(wrap.querySelectorAll("button[data-quote-remove]")).forEach(btn => {
+      btn.addEventListener("click", ()=>{
+        const code = btn.dataset.quoteRemove;
+        quoteCart.delete(code);
+        renderQuoteCart();
+        renderPage();
+      });
+    });
+  }
+
+  function toggleQuoteItem(hit, kind){
+    const code = String(hit?.product_code || "").trim();
+    if (!code) return;
+    if (quoteCart.has(code)){
+      quoteCart.delete(code);
+    } else {
+      quoteCart.set(code, {
+        product_code: code,
+        product_name: String(hit?.product_name || ""),
+        qty: 1,
+        notes: "",
+        source: kind || "",
+      });
+    }
+    renderQuoteCart();
+    renderPage();
+  }
+
+  function exportQuoteCsv(){
+    const rows = Array.from(quoteCart.values());
+    if (!rows.length){ toast("Quote cart is empty"); return; }
+    const company = String(($("quoteCompany")?.value || "")).trim();
+    const project = String(($("quoteProject")?.value || "")).trim();
+    if (!company || !project){
+      toast("Set company and project name before export");
+      return;
+    }
+    const header = ["product_code","product_name","qty","notes","source"];
+    const lines = [
+      `company,${escapeCsv(company)}`,
+      `project,${escapeCsv(project)}`,
+      `exported_at,${escapeCsv(new Date().toISOString())}`,
+      "",
+      header.join(",")
+    ];
+    for (const r of rows){
+      lines.push([
+        escapeCsv(r.product_code),
+        escapeCsv(r.product_name),
+        escapeCsv(r.qty),
+        escapeCsv(r.notes || ""),
+        escapeCsv(r.source || ""),
+      ].join(","));
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `quote_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  let __jspdfPromise = null;
+  function ensureJsPdfLoaded(){
+    if (window.jspdf?.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+    if (__jspdfPromise) return __jspdfPromise;
+    __jspdfPromise = new Promise((resolve, reject) => {
+      const urls = [
+        "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js",
+        "https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"
+      ];
+      let i = 0;
+      const next = () => {
+        if (window.jspdf?.jsPDF) return resolve(window.jspdf.jsPDF);
+        if (i >= urls.length) return reject(new Error("jsPDF load failed"));
+        const s = document.createElement("script");
+        s.src = urls[i++];
+        s.async = true;
+        s.onload = () => {
+          if (window.jspdf?.jsPDF) resolve(window.jspdf.jsPDF);
+          else next();
+        };
+        s.onerror = () => next();
+        document.head.appendChild(s);
+      };
+      next();
+    });
+    return __jspdfPromise;
+  }
+
+  async function exportQuotePdf(){
+    const rows = Array.from(quoteCart.values()).sort((a,b)=> String(a.product_code).localeCompare(String(b.product_code)));
+    if (!rows.length){ toast("Quote cart is empty"); return; }
+    const company = String(($("quoteCompany")?.value || "")).trim();
+    const project = String(($("quoteProject")?.value || "")).trim();
+    if (!company || !project){
+      toast("Set company and project name before export");
+      return;
+    }
+
+    try{
+      const jsPDFCtor = await ensureJsPdfLoaded();
+      const doc = new jsPDFCtor({ unit: "pt", format: "a4" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const left = 40;
+      const top = 46;
+      const rowH = 18;
+      let y = top;
+
+      const addHeader = () => {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("Quote Request", left, y);
+        y += 20;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.text(`Company: ${company}`, left, y); y += 14;
+        doc.text(`Project: ${project}`, left, y); y += 14;
+        doc.text(`Exported: ${new Date().toLocaleString()}`, left, y); y += 18;
+        doc.setFont("helvetica", "bold");
+        doc.text("Code", left, y);
+        doc.text("Name", left + 90, y);
+        doc.text("Qty", pageW - 160, y);
+        doc.text("Notes", pageW - 120, y);
+        y += 10;
+        doc.setLineWidth(0.5);
+        doc.line(left, y, pageW - left, y);
+        y += 14;
+        doc.setFont("helvetica", "normal");
+      };
+
+      addHeader();
+      for (const r of rows){
+        if (y > pageH - 56){
+          doc.addPage();
+          y = top;
+          addHeader();
+        }
+        const code = String(r.product_code || "");
+        const name = String(r.product_name || "");
+        const qty = String(r.qty || 1);
+        const notes = String(r.notes || "");
+        const nameLines = doc.splitTextToSize(name, pageW - 290);
+        const noteLines = doc.splitTextToSize(notes, 100);
+        const lines = Math.max(1, nameLines.length, noteLines.length);
+        doc.text(code, left, y);
+        doc.text(nameLines, left + 90, y);
+        doc.text(qty, pageW - 160, y);
+        if (notes) doc.text(noteLines, pageW - 120, y);
+        y += rowH * lines;
+      }
+
+      const safe = (s) => String(s || "").replace(/[^\w\-]+/g, "_").slice(0, 40);
+      doc.save(`quote_${safe(company)}_${safe(project)}.pdf`);
+    }catch(e){
+      console.error(e);
+      toast("PDF export failed. Check internet connection for PDF library.");
+    }
+  }
+
+  function getCurrentPageSlice(){
+    const merged = sortHits([
+      ...allExactResults.map(h => ({ ...h, __kind: "exact" })),
+      ...allSimilarResults.map(h => ({ ...h, __kind: "similar" }))
+    ]);
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+    const pageItems = merged.slice(start, end);
+    return {
+      exact: pageItems.filter(x => x.__kind === "exact"),
+      similar: pageItems.filter(x => x.__kind === "similar")
+    };
+  }
+
+  function renderPage(){
+    const pages = pageCountFromTotals();
+    if (currentPage > pages) currentPage = pages;
+    if (currentPage < 1) currentPage = 1;
+    const { exact, similar } = getCurrentPageSlice();
+    renderHits("exact", exact, "exact");
+    renderHits("similar", similar, "similar");
+    $("pagerInfo").textContent = `Page ${currentPage}/${pages}`;
+    $("btnPrevPage").disabled = currentPage <= 1;
+    $("btnNextPage").disabled = currentPage >= pages;
+  }
+
+  function showRecovery(actions){
+    const wrap = $("recovery");
+    const box = $("recoveryActions");
+    if (!wrap || !box) return;
+    if (!actions || !actions.length){
+      wrap.style.display = "none";
+      box.innerHTML = "";
+      return;
+    }
+    box.innerHTML = actions.map(a => `<button class="recoveryBtn" data-action="${escapeHtml(a.id)}">${escapeHtml(a.label)}</button>`).join("");
+    wrap.style.display = "block";
+    Array.from(box.querySelectorAll("button")).forEach(btn => {
+      btn.addEventListener("click", () => applyRecoveryAction(btn.dataset.action));
+    });
+  }
+
+  function currentSingleFilter(key){
+    const set = selectedFilters[key];
+    if (!set || !set.size) return null;
+    return Array.from(set)[0];
+  }
+
+  function toRounded(n){
+    return Math.round(Number(n));
+  }
+
+  function buildRecoveryActions(){
+    const out = [];
+    if (currentSingleFilter("ugr")) out.push({ id: "relax_ugr", label: "Relax UGR (+3)" });
+    if (currentSingleFilter("ip_rating")) out.push({ id: "relax_ip", label: "Lower IP requirement" });
+    if (currentSingleFilter("ik_rating")) out.push({ id: "relax_ik", label: "Lower IK requirement" });
+    if (currentSingleFilter("power_max_w")) out.push({ id: "widen_power", label: "Widen power range" });
+    if (Object.keys(selectedFilters).length) out.push({ id: "clear_filters", label: "Clear filters (keep query)" });
+    return out.slice(0, 4);
+  }
+
+  function applyRecoveryAction(action){
+    if (action === "relax_ugr"){
+      const v = currentSingleFilter("ugr") || "<=19";
+      const m = String(v).match(/(\d+(?:\.\d+)?)/);
+      const next = m ? Number(m[1]) + 3 : 22;
+      setSingleFilter("ugr", `<=${next}`);
+      return runSearch();
+    }
+    if (action === "relax_ip"){
+      const v = currentSingleFilter("ip_rating") || ">=IP65";
+      const m = String(v).toUpperCase().match(/(\d{2})/);
+      if (m){
+        const next = Math.max(20, Number(m[1]) - 10);
+        setSingleFilter("ip_rating", `>=IP${String(next).padStart(2, "0")}`);
+      }
+      return runSearch();
+    }
+    if (action === "relax_ik"){
+      const v = currentSingleFilter("ik_rating") || ">=IK08";
+      const m = String(v).toUpperCase().match(/(\d{1,2})/);
+      if (m){
+        const next = Math.max(0, Number(m[1]) - 2);
+        setSingleFilter("ik_rating", `>=IK${String(next).padStart(2, "0")}`);
+      }
+      return runSearch();
+    }
+    if (action === "widen_power"){
+      const raw = currentSingleFilter("power_max_w");
+      if (!raw) return runSearch();
+      const s = String(raw).replace(/\s+/g, "");
+      const range = s.match(/^(-?\d+(?:\.\d+)?)\-(-?\d+(?:\.\d+)?)$/);
+      if (range){
+        let lo = Number(range[1]);
+        let hi = Number(range[2]);
+        if (lo > hi) [lo, hi] = [hi, lo];
+        lo = Math.max(0, lo * 0.8);
+        hi = hi * 1.2;
+        setSingleFilter("power_max_w", `${toRounded(lo)}-${toRounded(hi)}`);
+      } else {
+        const cmp = s.match(/^(>=|<=|>|<)(-?\d+(?:\.\d+)?)$/);
+        if (cmp){
+          const op = cmp[1];
+          const num = Number(cmp[2]);
+          const next = (op.includes("<")) ? num * 1.2 : num * 0.8;
+          setSingleFilter("power_max_w", `${op}${toRounded(Math.max(0, next))}`);
+        }
+      }
+      return runSearch();
+    }
+    if (action === "clear_filters"){
+      const qText = $("q").value;
+      clearAll();
+      $("q").value = qText;
+      return runSearch();
+    }
+  }
+
+  function skeletonCard(){
+    return `
+      <div class="hit skeleton">
+        <div class="skLine w35"></div>
+        <div class="skLine w60"></div>
+        <div class="skLine w90"></div>
+        <div class="skLine w60"></div>
+      </div>
+    `;
+  }
+
+  function renderLoadingState(){
+    $("stats").textContent = "Searching...";
+    renderMetrics(NaN, 0, 0, Object.keys(buildFiltersPayload()).length);
+    $("exact").innerHTML = skeletonCard() + skeletonCard();
+    $("similar").innerHTML = skeletonCard() + skeletonCard();
+    $("pagerInfo").textContent = "Page ...";
+    $("btnPrevPage").disabled = true;
+    $("btnNextPage").disabled = true;
+    showRecovery([]);
+  }
+
+  function applyRange(key, minId, maxId){
+  const a = $(minId).value.trim();
+  const b = $(maxId).value.trim();
+
+  // remove old key values first
+  if (selectedFilters[key]) selectedFilters[key].clear();
+
+  if (a && b) addFilter(key, `${a}-${b}`);
+  else if (a) addFilter(key, `>=${a}`);
+  else if (b) addFilter(key, `<=${b}`);
+  else toast("Set min or max");
+}
+function resetRange(key, minId, maxId){
+  $(minId).value = "";
+  $(maxId).value = "";
+  if (selectedFilters[key]) { selectedFilters[key].clear(); delete selectedFilters[key]; }
+}
+
+
+  function buildFiltersPayload(){
+    const out = {};
+    for (const [k,set] of Object.entries(selectedFilters)){
+      const arr = Array.from(set);
+      out[k] = (arr.length===1) ? arr[0] : arr;
+    }
+    return out;
+  }
+
+  function addFilter(key, value){
+    const v = String(value);
+    if (!selectedFilters[key]) selectedFilters[key] = new Set();
+    selectedFilters[key].add(v);
+    renderSelected();
+  }
+  function removeFilter(key, value){
+    if (!selectedFilters[key]) return;
+    selectedFilters[key].delete(String(value));
+    if (selectedFilters[key].size===0) delete selectedFilters[key];
+    renderSelected();
+  }
+  function setSingleFilter(key, expr){
+    // for range inputs: single string expression, overwrite
+    selectedFilters[key] = new Set([String(expr)]);
+    renderSelected();
+  }
+  function clearFilterKey(key){
+    delete selectedFilters[key];
+    renderSelected();
+  }
+  function clearAll(){
+    for (const k of Object.keys(selectedFilters)) delete selectedFilters[k];
+    $("q").value = "";
+    resetRangeInputs();
+    renderSelected();
+  }
+
+  function renderSelected(){
+    const box = $("selected");
+    const chips = [];
+    for (const [k,set] of Object.entries(selectedFilters)){
+      for (const v of set){
+        chips.push(`<span class="chip" data-k="${escapeHtml(k)}" data-v="${escapeHtml(v)}"><b>${escapeHtml(k)}</b>: ${escapeHtml(v)} x</span>`);
+      }
+    }
+    box.innerHTML = chips.join(" ") || `<span class="small">No filters selected</span>`;
+    Array.from(box.querySelectorAll(".chip")).forEach(el=>{
+      el.addEventListener("click", ()=>{
+        removeFilter(el.dataset.k, el.dataset.v);
+        runSearch(); // auto
+      });
+    });
+  }
+
+  function setFilterGroup(group){
+    const blocks = Array.from(document.querySelectorAll(".filterGroup"));
+    const buttons = Array.from(document.querySelectorAll(".groupBtn"));
+    const g = String(group || "all").toLowerCase();
+    blocks.forEach(el => {
+      const mine = String(el.dataset.group || "").toLowerCase();
+      const show = (g === "all" || mine === g);
+      el.classList.toggle("hidden", !show);
+    });
+    buttons.forEach(btn => {
+      btn.classList.toggle("active", String(btn.dataset.group || "").toLowerCase() === g);
+    });
+  }
+
+  function wireGroupNav(){
+    Array.from(document.querySelectorAll(".groupBtn")).forEach(btn => {
+      btn.addEventListener("click", () => {
+        setFilterGroup(btn.dataset.group || "all");
+      });
+    });
+    setFilterGroup("light");
+  }
+
+  // --------------- Range helpers ----------------
+  function buildRangeExpr(minVal, maxVal){
+    const a = Number(minVal);
+    const b = Number(maxVal);
+    const hasA = Number.isFinite(a) && String(minVal).trim() !== "";
+    const hasB = Number.isFinite(b) && String(maxVal).trim() !== "";
+    if (!hasA && !hasB) return null;
+    if (hasA && hasB){
+      const lo = Math.min(a,b);
+      const hi = Math.max(a,b);
+      return `${lo}-${hi}`;
+    }
+    if (hasA) return `>=${a}`;
+    return `<=${b}`;
+  }
+
+  function wireRanges(){
+    $("lumApply").addEventListener("click", ()=>{
+      const expr = buildRangeExpr($("lumMin").value, $("lumMax").value);
+      if (!expr){ toast("Set lumen min/max first"); return; }
+      setSingleFilter("lumen_output", expr);
+      runSearch();
+    });
+    $("lumReset").addEventListener("click", ()=>{
+      $("lumMin").value=""; $("lumMax").value="";
+      clearFilterKey("lumen_output");
+      runSearch();
+    });
+
+    $("pwrApply").addEventListener("click", ()=>{
+      const expr = buildRangeExpr($("pwrMin").value, $("pwrMax").value);
+      if (!expr){ toast("Set power min/max first"); return; }
+      setSingleFilter("power_max_w", expr);
+      runSearch();
+    });
+    $("pwrReset").addEventListener("click", ()=>{
+      $("pwrMin").value=""; $("pwrMax").value="";
+      clearFilterKey("power_max_w");
+      runSearch();
+    });
+    $("effApply").addEventListener("click", ()=>{
+      const raw = $("effMin").value;
+      const n = Number(raw);
+      if (!Number.isFinite(n) || String(raw).trim()===""){ toast("Set efficacy min first"); return; }
+      setSingleFilter("efficacy_lm_w", `>=${n}`);
+      runSearch();
+    });
+    $("effReset").addEventListener("click", ()=>{
+      $("effMin").value="";
+      clearFilterKey("efficacy_lm_w");
+      runSearch();
+    });
+    $("criExactApply").addEventListener("click", ()=>{
+      const raw = $("criExact").value;
+      const n = Number(raw);
+      if (!Number.isFinite(n) || String(raw).trim()===""){ toast("Set exact CRI first"); return; }
+      setSingleFilter("cri", `=${Math.round(n)}`);
+      runSearch();
+    });
+    $("criExactReset").addEventListener("click", ()=>{
+      $("criExact").value="";
+      clearFilterKey("cri");
+      runSearch();
+    });
+        $("diaApply").addEventListener("click", ()=>{
+      const expr = buildRangeExpr($("diaMin").value, $("diaMax").value);
+      if (!expr){ toast("Set diameter min/max first"); return; }
+      setSingleFilter("diameter", expr);
+      runSearch();
+    });
+    $("diaReset").addEventListener("click", ()=>{
+      $("diaMin").value=""; $("diaMax").value="";
+      clearFilterKey("diameter");
+      runSearch();
+    });
+
+    $("hApply").addEventListener("click", ()=>{
+      const expr = buildRangeExpr($("hMin").value, $("hMax").value);
+      if (!expr){ toast("Set luminaire height min/max first"); return; }
+      setSingleFilter("luminaire_height", expr);
+      runSearch();
+    });
+    $("hReset").addEventListener("click", ()=>{
+      $("hMin").value=""; $("hMax").value="";
+      clearFilterKey("luminaire_height");
+      runSearch();
+    });
+        $("lApply").addEventListener("click", ()=>{
+      const expr = buildRangeExpr($("lMin").value, $("lMax").value);
+      if (!expr){ toast("Set luminaire length min/max first"); return; }
+      setSingleFilter("luminaire_length", expr);
+      runSearch();
+    });
+    $("lReset").addEventListener("click", ()=>{
+      $("lMin").value=""; $("lMax").value="";
+      clearFilterKey("luminaire_length");
+      runSearch();
+    });
+        $("wApply").addEventListener("click", ()=>{
+      const expr = buildRangeExpr($("wMin").value, $("wMax").value);
+      if (!expr){ toast("Set luminaire width min/max first"); return; }
+      setSingleFilter("luminaire_width", expr);
+      runSearch();
+    });
+    $("wReset").addEventListener("click", ()=>{
+      $("wMin").value=""; $("wMax").value="";
+      clearFilterKey("luminaire_width");
+      runSearch();
+    });
+
+  }
+
+  // --------------- Facets UI ----------------
+  function facetFilter(items, needle){
+    const n = (needle||"").trim().toLowerCase();
+    if (!n) return items;
+    return (items||[]).filter(it => String(it.value ?? it.raw ?? "").toLowerCase().includes(n));
+  }
+
+  function extractFirstNumber(v){
+    const m = String(v ?? "").replace(",", ".").match(/-?\d+(?:\.\d+)?/);
+    return m ? Number(m[0]) : null;
+  }
+
+  function trimZeroDecimals(s){
+    const t = String(s ?? "");
+    return t
+      .replace(/(\d+)\.0+\b/g, "$1")
+      .replace(/(\d+\.\d*?[1-9])0+\b/g, "$1");
+  }
+
+  function isZeroLike(v){
+    const n = extractFirstNumber(v);
+    return Number.isFinite(n) && Math.abs(Number(n)) < 1e-9;
+  }
+
+  function normalizeFacetItems(key, items){
+    const aggregated = new Map();
+    const list = Array.isArray(items) ? items : [];
+
+    for (const it of list){
+      const src = String(it?.raw ?? it?.value ?? "").trim();
+      if (!src) continue;
+      if (isZeroLike(src)) continue;
+      let value = String(it?.value ?? src).trim();
+      let raw = src || value;
+      let sortNum = null;
+
+      if (key === "ugr"){
+        const n = extractFirstNumber(src || value);
+        if (Number.isFinite(n)){
+          const v = String(Math.round(n));
+          value = v;
+          raw = v;
+          sortNum = Number(v);
+        } else {
+          continue;
+        }
+      } else if (key === "ip_rating"){
+        const n = extractFirstNumber(src || value);
+        if (Number.isFinite(n)){
+          const v = String(Math.round(n)).padStart(2, "0");
+          value = `IP${v}`;
+          raw = `IP${v}`;
+          sortNum = Number(v);
+        } else {
+          continue;
+        }
+      } else if (key === "ik_rating"){
+        const n = extractFirstNumber(src || value);
+        if (Number.isFinite(n)){
+          const v = String(Math.round(n)).padStart(2, "0");
+          value = `IK${v}`;
+          raw = `IK${v}`;
+          sortNum = Number(v);
+        } else {
+          continue;
+        }
+      } else if (key === "cct_k"){
+        const n = extractFirstNumber(src || value);
+        if (Number.isFinite(n)){
+          const v = String(Math.round(n));
+          value = `${v}K`;
+          raw = v;
+          sortNum = Number(v);
+        } else {
+          continue;
+        }
+      } else if (["cri", "beam_angle_deg", "warranty_years", "lifetime_hours", "led_rated_life_h", "lumen_maintenance_pct"].includes(key)){
+        const n = extractFirstNumber(src || value);
+        if (Number.isFinite(n)){
+          const v = String(Math.round(n));
+          value = v;
+          raw = v;
+          sortNum = Number(v);
+        } else if (key === "cri") {
+          continue;
+        }
+      }
+
+      value = trimZeroDecimals(value);
+      raw = trimZeroDecimals(raw);
+
+      const mapKey = String(raw).toLowerCase();
+      const prev = aggregated.get(mapKey);
+      if (prev){
+        prev.count += Number(it?.count ?? 0);
+      } else {
+        aggregated.set(mapKey, {
+          value,
+          raw,
+          count: Number(it?.count ?? 0),
+          __sortNum: sortNum
+        });
+      }
+    }
+
+    const out = Array.from(aggregated.values());
+    out.sort((a, b) => {
+      const aNum = a.__sortNum;
+      const bNum = b.__sortNum;
+      if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
+      if (Number.isFinite(aNum)) return -1;
+      if (Number.isFinite(bNum)) return 1;
+      return String(a.value).localeCompare(String(b.value));
+    });
+    return out.map(({ __sortNum, ...rest }) => rest);
+  }
+
+  function facetValueToFilterExpr(key, rawValue){
+    const n = extractFirstNumber(rawValue);
+    if (key === "ik_rating" && Number.isFinite(n)) return `>=IK${String(Math.round(n)).padStart(2, "0")}`;
+    if (key === "ip_rating" && Number.isFinite(n)) return `>=IP${String(Math.round(n)).padStart(2, "0")}`;
+    if (key === "cri" && Number.isFinite(n)) return `>=${Math.round(n)}`;
+    if (key === "ugr" && Number.isFinite(n)) return `<=${Math.round(n)}`;
+    if (["warranty_years", "lifetime_hours", "led_rated_life_h", "lumen_maintenance_pct"].includes(key) && Number.isFinite(n)) return `>=${Math.round(n)}`;
+    return String(rawValue ?? "");
+  }
+
+  function renderFacetList(containerId, key, items, searchNeedle){
+    const box = $(containerId);
+    if (!box) return;
+    const normalized = normalizeFacetItems(key, items);
+    const filtered = facetFilter(normalized, searchNeedle);
+    if (!filtered || !filtered.length){
+      box.innerHTML = `<div class="small"></div>`;
+      return;
+    }
+    box.innerHTML = filtered.map(it=>{
+      const raw = it.raw ?? it.value;
+      const val = facetValueToFilterExpr(key, raw);
+      const checked = selectedFilters[key]?.has(String(val)) ? "checked" : "";
+      return `
+        <div class="facet-item">
+          <div class="k">
+            <input class="toggle" type="checkbox" data-k="${escapeHtml(key)}" data-v="${escapeHtml(val)}" ${checked}/>
+            <div>${escapeHtml(it.value ?? val)}</div>
+          </div>
+          <div class="count">${it.count ?? ""}</div>
+        </div>
+      `;
+    }).join("");
+
+    Array.from(box.querySelectorAll("input[type=checkbox]")).forEach(cb=>{
+      cb.addEventListener("change", ()=>{
+        const k = cb.dataset.k;
+        const v = cb.dataset.v;
+        if (cb.checked) addFilter(k,v); else removeFilter(k,v);
+        runSearch(); // auto refresh
+      });
+    });
+  }
+
+  // --------------- API calls ----------------
+  async function postJSON(url, payload){
+    const res = await fetch(url, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok){
+      const t = await res.text().catch(()=> "");
+      throw new Error(`${res.status} ${res.statusText} ${t}`.trim());
+    }
+    return res.json();
+  }
+
+  function sortHits(hits){
+    const mode = $("sortSel").value;
+    const arr = Array.isArray(hits) ? [...hits] : [];
+    const priceNum = (h) => {
+      const raw = h?.preview?.price_value ?? h?.preview?.price ?? h?.raw?.price_value ?? h?.raw?.price;
+      if (raw === undefined || raw === null || String(raw).trim() === "") return null;
+      const n = Number(String(raw).replace(",", "."));
+      return Number.isFinite(n) ? n : null;
+    };
+    if (mode === "score_asc") arr.sort((a,b)=> (a.score??0)-(b.score??0));
+    if (mode === "score_desc") arr.sort((a,b)=> (b.score??0)-(a.score??0));
+    if (mode === "code_asc") arr.sort((a,b)=> String(a.product_code||"").localeCompare(String(b.product_code||"")));
+    if (mode === "code_desc") arr.sort((a,b)=> String(b.product_code||"").localeCompare(String(a.product_code||"")));
+    if (mode === "price_asc") arr.sort((a,b)=> {
+      const ap = priceNum(a), bp = priceNum(b);
+      if (ap === null && bp === null) return String(a.product_code||"").localeCompare(String(b.product_code||""));
+      if (ap === null) return 1;
+      if (bp === null) return -1;
+      return ap - bp || String(a.product_code||"").localeCompare(String(b.product_code||""));
+    });
+    if (mode === "price_desc") arr.sort((a,b)=> {
+      const ap = priceNum(a), bp = priceNum(b);
+      if (ap === null && bp === null) return String(a.product_code||"").localeCompare(String(b.product_code||""));
+      if (ap === null) return 1;
+      if (bp === null) return -1;
+      return bp - ap || String(a.product_code||"").localeCompare(String(b.product_code||""));
+    });
+    return arr;
+  }
+
+  function buildNamePrefixFacetFromHits(hits){
+    const counts = new Map();
+    const arr = Array.isArray(hits) ? hits : [];
+    for (const h of arr){
+      const name = String(h?.product_name || "").trim().toLowerCase();
+      if (!name) continue;
+      const first = name.split(/\s+/)[0];
+      if (!first) continue;
+      counts.set(first, (counts.get(first) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0]))
+      .slice(0, 30)
+      .map(([value, count]) => ({ value, raw: value, count }));
+  }
+
+  function applyClientNamePrefixFilter(hits){
+    const wanted = selectedFilters["name_prefix"];
+    if (!wanted || !wanted.size) return Array.isArray(hits) ? hits : [];
+    const allow = new Set(Array.from(wanted).map(v => String(v).trim().toLowerCase()));
+    const arr = Array.isArray(hits) ? hits : [];
+    return arr.filter(h => {
+      const name = String(h?.product_name || "").trim().toLowerCase();
+      if (!name) return false;
+      const first = name.split(/\s+/)[0];
+      return allow.has(first);
+    });
+  }
+
+  function getSimilarFacetSignature(){
+    return JSON.stringify({
+      text: $("q").value || "",
+      filters: buildFiltersPayload()
+    });
+  }
+
+  async function hydrateSimilarFacetFromSearch(){
+    const signature = getSimilarFacetSignature();
+    const reqId = ++similarFacetReqSeq;
+    try{
+      const payload = {
+        text: $("q").value || "",
+        filters: buildFiltersPayload(),
+        limit: 10000,
+        include_similar: true,
+        debug: false
+      };
+      const data = await postJSON("/search", payload);
+      if (reqId !== similarFacetReqSeq) return; // stale response
+      const fromSearch = buildNamePrefixFacetFromHits([...(data.exact || []), ...(data.similar || [])]);
+      if (fromSearch.length){
+        // apply only if query/filters are still the same
+        if (signature !== getSimilarFacetSignature()) return;
+        lastSimilarNameFacet = fromSearch;
+        lastSimilarFacetSignature = signature;
+        renderFacetList("name_prefix","name_prefix", lastSimilarNameFacet, $("simSearch").value);
+      }
+    }catch(_e){
+      // silent fallback
+    }
+  }
+
+  function getPreviewPills(hit){
+    // Try from preview, then from raw
+    const p = hit.preview || hit.raw || {};
+    const pills = [];
+    const add = (label, value) => {
+      if (value===undefined || value===null || String(value).trim()==="") return;
+      pills.push(`<span class="pill">${escapeHtml(label)}: ${escapeHtml(value)}</span>`);
+    };
+    add("IP", p.ip_rating);
+    add("IK", p.ik_rating);
+    add("CCT", p.cct_k);
+    add("CRI", p.cri);
+    add("UGR", p.ugr);
+    add("W", p.power_max_w ?? p.power_max_value ?? p.power);
+    add("lm", p.lumen_output ?? p.lumen_output_value);
+    add("lm/W", p.efficacy_lm_w ?? p.efficacy_value);
+    add("CTRL", p.control_protocol);
+    add("EM", p.emergency_present);
+    add("Beam", p.beam_angle_deg);
+    add("Color", p.housing_color);
+    add("Warranty", p.warranty_years);
+    add("Life(h)", p.led_rated_life_h ?? p.lifetime_hours);
+    add("L maint %", p.lumen_maintenance_pct);
+    return pills.slice(0,12).join("");
+  }
+
+function renderHits(containerId, hits, kind){
+  const box = $(containerId);
+  if (!hits || !hits.length){
+    const title = kind === "exact" ? "No exact matches" : "No similar products";
+    const text = kind === "exact"
+      ? "Try one of the recovery suggestions to broaden the search."
+      : "Use a broader query to show alternatives.";
+    box.innerHTML = `
+      <div class="emptyState">
+        <p class="emptyTitle">${title}</p>
+        <p class="emptyText">${text}</p>
+      </div>
+    `;
+    return;
+  }
+  const arr = sortHits(hits);
+
+  box.innerHTML = arr.map(h=>{
+    const score = (h.score ?? 0);
+    const badgeClass = kind==="exact" ? "ok" : "warn";
+    const badgeText = kind==="exact" ? "Exact" : "Similar";
+
+    const orderCode = h.product_code || "";
+    const inQuote = quoteCart.has(String(orderCode));
+    const productUrl = `https://www.disano.it/download/mediafiles/-1_${encodeURIComponent(orderCode)}.pdf/EN_${encodeURIComponent(orderCode)}.pdf`;
+    const websiteUrl = `https://www.disano.it/en/search/?q=${encodeURIComponent(orderCode)}`;
+    // https://www.disano.it/download/mediafiles/-1_112600-31.pdf/EN_112600-31.pdf
+   
+
+    const manufacturerRaw = String(h?.preview?.manufacturer || h?.raw?.manufacturer || "").trim().toLowerCase();
+    const websiteLabel = manufacturerRaw.includes("fosnova")
+      ? "Fosnova"
+      : (manufacturerRaw.includes("disano") ? "Disano illuminazione" : "Disano illuminazione");
+
+    return `
+      <div class="hit">
+        <div class="hitHead">
+          <div class="hitMain">
+            ${h?.preview?.image_url ? `<img class="hitThumb" loading="lazy" src="${escapeHtml(h.preview.image_url)}" alt="${escapeHtml(h.product_name || orderCode)}" />` : ``}
+            <div class="hitText">
+              <div class="code">
+                <a href="${productUrl}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; color:inherit;">
+                  ${escapeHtml(orderCode)}
+                </a>
+              </div>
+              <div class="name">${escapeHtml(h.product_name || "")}</div>
+              <div class="small" style="margin-top:4px">
+                <a class="webLink" href="${websiteUrl}" target="_blank" rel="noopener noreferrer" title="Go to website" aria-label="Go to website">
+                  <span class="webLabel">${escapeHtml(websiteLabel)}</span>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="hitActions">
+            <div class="badge ${badgeClass}">${badgeText} | ${score.toFixed(2)}</div>
+            <button class="btn ${inQuote ? "secondary" : ""}" style="padding:6px 8px" data-quote-toggle="${escapeHtml(orderCode)}">${inQuote ? "Remove" : "Add to quote"}</button>
+          </div>
+        </div>
+        <div class="specs">${getPreviewPills(h)}</div>
+        ${kind!=="exact" ? `
+          <div class="small" style="margin-top:10px">
+            ${(h.deviations && h.deviations.length) ? `Warning: ${escapeHtml(h.deviations.slice(0,2).join(" | "))}` : ""}
+            ${(h.missing && h.missing.length) ? `<br>Missing: ${escapeHtml(h.missing.slice(0,2).join(" | "))}` : ""}
+          </div>
+        ` : ``}
+      </div>
+    `;
+  }).join("");
+
+  Array.from(box.querySelectorAll("button[data-quote-toggle]")).forEach(btn => {
+    btn.addEventListener("click", ()=>{
+      const code = btn.dataset.quoteToggle;
+      const hit = arr.find(x => String(x.product_code || "") === String(code || ""));
+      if (!hit) return;
+      toggleQuoteItem(hit, kind);
+    });
+  });
+}
+
+
+  async function loadFacets(){
+    const payload = { text: $("q").value || "", filters: buildFiltersPayload(), debug: true };
+    // /facets endpoint expected by your original UI
+    // If backend doesn't have /facets, this call will fail gracefully.
+    try{
+      const data = await postJSON("/facets", payload);
+      // Families
+      renderFacetList("families","product_family", data.families || [], $("famSearch").value);
+      renderFacetList("manufacturer","manufacturer", data.manufacturers || [], $("manSearch").value);
+      const backendSimilar = data.similar_names || [];
+      const signature = getSimilarFacetSignature();
+      const canReuseLocal = lastSimilarFacetSignature === signature && lastSimilarNameFacet.length;
+      const similarItems = backendSimilar.length ? backendSimilar : (canReuseLocal ? lastSimilarNameFacet : []);
+      renderFacetList("name_prefix","name_prefix", similarItems, $("simSearch").value);
+      if (!similarItems.length){
+        hydrateSimilarFacetFromSearch();
+      } else if (backendSimilar.length){
+        lastSimilarNameFacet = backendSimilar;
+        lastSimilarFacetSignature = signature;
+      }
+
+      // Photometrics
+      renderFacetList("cct_k","cct_k", data.photometrics?.cct_k || [], $("cctSearch").value);
+      renderFacetList("cri","cri", data.photometrics?.cri || [], $("criSearch").value);
+      renderFacetList("ugr","ugr", data.photometrics?.ugr || [], $("ugrSearch").value);
+
+      // Optics & Finish
+      renderFacetList(
+        "beam_angle_deg",
+        "beam_angle_deg",
+        data.dimensions_options?.options?.beam_angle_deg || [],
+        $("beamSearch").value
+      );
+
+      renderFacetList(
+        "housing_color",
+        "housing_color",
+        data.dimensions_options?.options?.housing_color || [],
+        $("colSearch").value
+      );
+
+
+      // Power & Control
+      renderFacetList("control_protocol","control_protocol", data.power_voltage?.control_protocol || [], $("ctrlSearch").value);
+      renderFacetList("emergency_present","emergency_present", data.power_voltage?.emergency_present || [], "");
+
+      // Protection (if backend returns them in dimensions_options, adapt; otherwise attempt common keys)
+      renderFacetList("ip_rating","ip_rating", data.dimensions_options?.ip_rating || data.power_voltage?.ip_rating || [], $("ipSearch").value);
+      renderFacetList("ik_rating","ik_rating", data.dimensions_options?.ik_rating || data.power_voltage?.ik_rating || [], $("ikSearch").value);
+
+      // Regulations
+      renderFacetList("led_rated_life_h","led_rated_life_h", data.warranty_lifetime?.led_rated_life_h || data.warranty_lifetime?.lifetime_hours || [], $("ledLifeSearch").value);
+      renderFacetList("warranty_years","warranty_years", data.warranty_lifetime?.warranty_years || [], $("warrSearch").value);
+      renderFacetList("lumen_maintenance_pct","lumen_maintenance_pct", data.warranty_lifetime?.lumen_maintenance_pct || [], $("lumMaintSearch").value);
+
+    }catch(e){
+      // It's ok if /facets not implemented in backend version
+      // Keep UI usable via search only.
+      console.debug("Facets load failed:", e);
+      toast("Facets load failed: check backend console/logs");
+    }
+  }
+
+  async function runSearch(){
+    const startedAt = performance.now();
+    setBusy(true);
+    renderLoadingState();
+    const rawFilters = buildFiltersPayload();
+    const hasNamePrefixFilter = !!rawFilters.name_prefix;
+    const effectiveFilters = { ...rawFilters };
+    if (hasNamePrefixFilter) delete effectiveFilters.name_prefix;
+    const payload = {
+      text: $("q").value || "",
+      filters: effectiveFilters,
+      limit: 10000,
+      include_similar: true,
+      debug: $("chkDebug").checked
+    };
+
+    try{
+      const data = await postJSON("/search", payload);
+      const elapsedMs = Math.round(performance.now() - startedAt);
+      let exact = data.exact || [];
+      let similar = data.similar || [];
+      lastSimilarNameFacet = buildNamePrefixFacetFromHits([...exact, ...similar]);
+      exact = applyClientNamePrefixFilter(exact);
+      similar = applyClientNamePrefixFilter(similar);
+      allExactResults = exact;
+      allSimilarResults = similar;
+      currentPage = 1;
+      const filterCount = Object.keys(rawFilters || {}).length;
+      $("stats").textContent = `${exact.length} exact | ${similar.length} similar`;
+      const interpretedSize = data?.interpreted?.size_mm;
+      $("interpretedInfo").textContent = interpretedSize ? `Interpreted size: ${interpretedSize}` : "";
+      renderMetrics(elapsedMs, exact.length, similar.length, filterCount);
+      renderPage();
+      showRecovery(exact.length === 0 ? buildRecoveryActions() : []);
+      const dbgOn = $("chkDebug").checked;
+      const dbgPanel = $("debugPanel");
+      if (dbgPanel) dbgPanel.style.display = dbgOn ? "block" : "none";
+      $("raw").textContent = dbgOn ? JSON.stringify(data, null, 2) : "";
+      loadFacets();
+    }catch(e){
+      console.error(e);
+      toast("Search error. Check backend is running and endpoints are reachable.");
+      $("stats").textContent = "Search failed";
+      $("interpretedInfo").textContent = "";
+      renderMetrics(NaN, 0, 0, Object.keys(payload.filters || {}).length);
+      showRecovery([]);
+      const dbgOn = $("chkDebug").checked;
+      const dbgPanel = $("debugPanel");
+      if (dbgPanel) dbgPanel.style.display = dbgOn ? "block" : "none";
+      $("raw").textContent = dbgOn ? String(e) : "";
+    }finally{
+      setBusy(false);
+    }
+  }
+
+  // --------------- Events ----------------
+  function wireFacetSearch(){
+    let facetTimer = null;
+    const ids = ["famSearch","simSearch","manSearch","cctSearch","criSearch","ugrSearch","beamSearch","colSearch","ctrlSearch","ipSearch","ikSearch","ledLifeSearch","warrSearch","lumMaintSearch"];
+    ids.forEach(id=>{
+      const el = $(id);
+      if (!el) return;
+      el.addEventListener("input", ()=>{
+        clearTimeout(facetTimer);
+        facetTimer = setTimeout(()=> loadFacets(), 250);
+      });
+    });
+  }
+
+  function isMobileViewport(){
+    return window.matchMedia("(max-width: 980px)").matches;
+  }
+
+  function openFiltersPanel(){
+    const panel = $("filterPanel");
+    const backdrop = $("filtersBackdrop");
+    if (!panel || !backdrop || !isMobileViewport()) return;
+    panel.classList.add("open");
+    backdrop.classList.add("show");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeFiltersPanel(){
+    const panel = $("filterPanel");
+    const backdrop = $("filtersBackdrop");
+    if (!panel || !backdrop) return;
+    panel.classList.remove("open");
+    backdrop.classList.remove("show");
+    document.body.style.overflow = "";
+  }
+
+  function wireMobileFilters(){
+    const openBtn = $("btnOpenFilters");
+    const backdrop = $("filtersBackdrop");
+    if (openBtn){
+      openBtn.addEventListener("click", ()=> openFiltersPanel());
+    }
+    if (backdrop){
+      backdrop.addEventListener("click", ()=> closeFiltersPanel());
+    }
+    window.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape") closeFiltersPanel();
+    });
+    window.addEventListener("resize", ()=>{
+      if (!isMobileViewport()) closeFiltersPanel();
+    });
+  }
+
+  function wireTopButtons(){
+    $("btnRun").addEventListener("click", ()=>{
+      runSearch();
+      if (isMobileViewport()) closeFiltersPanel();
+    });
+    $("btnClearAll").addEventListener("click", ()=>{
+      clearAll();
+      runSearch();
+      if (isMobileViewport()) closeFiltersPanel();
+    });
+    $("sortSel").addEventListener("change", ()=> runSearch());
+    $("chkDebug").addEventListener("change", ()=>{
+      const dbgPanel = $("debugPanel");
+      if (dbgPanel) dbgPanel.style.display = $("chkDebug").checked ? "block" : "none";
+      runSearch();
+    });
+    $("btnPrevPage").addEventListener("click", ()=>{
+      currentPage = Math.max(1, currentPage - 1);
+      renderPage();
+    });
+    $("btnNextPage").addEventListener("click", ()=>{
+      currentPage = Math.min(pageCountFromTotals(), currentPage + 1);
+      renderPage();
+    });
+    $("btnQuoteExport").addEventListener("click", ()=> exportQuoteCsv());
+    $("btnQuoteExportPdf").addEventListener("click", ()=> exportQuotePdf());
+    $("btnQuoteClear").addEventListener("click", ()=>{
+      quoteCart.clear();
+      renderQuoteCart();
+      renderPage();
+    });
+    $("q").addEventListener("keydown", (e)=>{
+      if (e.key==="Enter"){
+        runSearch();
+        if (isMobileViewport()) closeFiltersPanel();
+      }
+    });
+  }
+
+  // init
+  const buildEl = $("buildLabel");
+  if (buildEl) buildEl.textContent = `exactly what you are looking for | build ${UI_BUILD}`;
+  console.log("UI build:", UI_BUILD);
+  renderSelected();
+  renderPresetButtons();
+  renderMetrics(NaN, 0, 0, 0);
+  renderPage();
+  renderQuoteCart();
+  wireGroupNav();
+  const dbgPanelInit = $("debugPanel");
+  if (dbgPanelInit) dbgPanelInit.style.display = "none";
+  wireRanges();
+  wireFacetSearch();
+  wireMobileFilters();
+  wireTopButtons();
+  loadFacets();
+</script>
+</body>
+</html>
+
+
+
+
+
+

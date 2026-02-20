@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Product Finder – Facets</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 0; background:#f6f7f9; }
+    header { padding: 14px 18px; background: #111827; color: #fff; }
+    main { display: grid; grid-template-columns: 360px 1fr; gap: 14px; padding: 14px; }
+    .card { background: #fff; border-radius: 10px; padding: 12px; box-shadow: 0 1px 8px rgba(0,0,0,.06); }
+    .group-title { font-weight: 700; margin: 6px 0 10px; }
+    .sub { color:#6b7280; font-size: 12px; }
+    input[type="text"] { width: 100%; padding: 10px; border:1px solid #d1d5db; border-radius: 10px; }
+    button { padding: 10px 12px; border:0; border-radius: 10px; background:#2563eb; color:#fff; cursor:pointer; }
+    button:disabled{opacity:.6; cursor:not-allowed;}
+    .row { display:flex; gap:10px; margin-top:10px; }
+    .facet-list { max-height: 240px; overflow:auto; padding-right: 6px; }
+    .facet-item { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0; border-bottom: 1px solid #f1f5f9; }
+    .facet-item:last-child{border-bottom:0;}
+    .count { color:#6b7280; font-size: 12px; }
+    .pill { display:inline-block; font-size: 12px; background:#eef2ff; color:#3730a3; padding: 3px 8px; border-radius: 999px; }
+    .kv { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .mini { font-size: 12px; color:#6b7280; }
+    .muted { color:#6b7280; }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .hr { height:1px; background:#eef2f7; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="font-weight:800;">Product Finder – Facets UI</div>
+    <div class="sub">HTML + JS, driven by POST /facets</div>
+  </header>
+
+  <main>
+    <!-- LEFT: Filters -->
+    <section class="card">
+      <div class="group-title">Query</div>
+      <input id="q" type="text" value="" />
+      <div class="row">
+        <button id="btnRun">Load facets</button>
+        <button id="btnClear" style="background:#111827;">Clear filters</button>
+      </div>
+
+      <div class="hr"></div>
+      <div class="group-title">Selected filters</div>
+      <div id="selected" class="kv"></div>
+      <div class="mini" style="margin-top:8px;">Click a checkbox to add/remove. Facets auto-refresh.</div>
+
+      <div class="hr"></div>
+
+      <!-- Families -->
+      <div class="group-title">Families</div>
+      <div id="families" class="facet-list"></div>
+
+      <div class="hr"></div>
+
+      <!-- Warranty & Lifespan -->
+      <div class="group-title">Warranty & Lifespan</div>
+      <div class="grid2">
+        <div>
+          <div class="sub">Warranty</div>
+          <div id="warranty_years" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="sub">Lifetime</div>
+          <div id="lifetime_hours" class="facet-list"></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="sub">Certifications</div>
+        <div id="certifications" class="facet-list"></div>
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- Photometrics -->
+      <div class="group-title">Photometrics</div>
+      <div class="mini">Lumen output (min/max): <span id="lumen_minmax" class="pill">—</span></div>
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <div class="sub">CCT</div>
+          <div id="cct_k" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="sub">CRI</div>
+          <div id="cri" class="facet-list"></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="sub">UGR</div>
+        <div id="ugr" class="facet-list"></div>
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- Power & Voltage -->
+      <div class="group-title">Power & Voltage</div>
+      <div class="mini">Power max (min/max): <span id="pwr_minmax" class="pill">—</span></div>
+      <div style="margin-top:10px;">
+        <div class="sub">Power buckets</div>
+        <div id="power_max_w_buckets" class="facet-list"></div>
+      </div>
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <div class="sub">Control protocol</div>
+          <div id="control_protocol" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="sub">Emergency</div>
+          <div id="emergency_present" class="facet-list"></div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- Dimensions & Options -->
+      <div class="group-title">Dimensions & Options</div>
+      <div class="grid2">
+        <div>
+          <div class="sub">IP rating</div>
+          <div id="ip_rating" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="sub">IK rating</div>
+          <div id="ik_rating" class="facet-list"></div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- Price & Consumption -->
+      <div class="group-title">Price & Consumption</div>
+      <div class="mini">Efficacy (min/max): <span id="eff_minmax" class="pill">—</span></div>
+    </section>
+
+    <!-- RIGHT: placeholder -->
+    <section class="card">
+      <div class="group-title">Results</div>
+    <div class="muted">Results from <code>/search</code> (Order code + Product name)</div>
+    <div class="hr"></div>
+
+    <div class="group-title">Exact match</div>
+    <div id="exact" class="facet-list"></div>
+
+    <div class="hr"></div>
+
+    <div class="group-title">Similar</div>
+    <div id="similar" class="facet-list"></div>
+
+    <div class="hr"></div>
+    <div class="group-title">Debug</div>
+    <pre id="raw" style="white-space:pre-wrap; font-size:12px; color:#111827;"></pre>
+
+    </section>
+  </main>
+
+  <script>
+    // Selected filters state (simple)
+    // We send these back as req.filters to /facets (and later /search)
+    const selectedFilters = {};  // { key: Set(values) }
+
+    const $ = (id) => document.getElementById(id);
+
+    function setBusy(busy) {
+      $("btnRun").disabled = busy;
+      $("btnRun").textContent = busy ? "Loading..." : "Load facets";
+    }
+
+    function addFilter(key, value) {
+      if (!selectedFilters[key]) selectedFilters[key] = new Set();
+      selectedFilters[key].add(value);
+      renderSelected();
+    }
+    function removeFilter(key, value) {
+      if (!selectedFilters[key]) return;
+      selectedFilters[key].delete(value);
+      if (selectedFilters[key].size === 0) delete selectedFilters[key];
+      renderSelected();
+    }
+    function clearFilters() {
+      for (const k of Object.keys(selectedFilters)) delete selectedFilters[k];
+      renderSelected();
+    }
+
+    function buildFiltersPayload() {
+      // Pydantic expects a dict; if multiple values selected, we send array.
+      const out = {};
+      for (const [k, set] of Object.entries(selectedFilters)) {
+        const arr = Array.from(set);
+        out[k] = (arr.length === 1) ? arr[0] : arr;
+      }
+      return out;
+    }
+
+    function renderSelected() {
+      const box = $("selected");
+      const chips = [];
+      for (const [k, set] of Object.entries(selectedFilters)) {
+        for (const v of set) {
+          chips.push(
+            `<span class="pill" title="${k}">${k}: ${escapeHtml(v)} ✕</span>`
+          );
+        }
+      }
+      box.innerHTML = chips.join(" ") || `<span class="muted">No filters selected</span>`;
+
+      // add click-to-remove
+      Array.from(box.querySelectorAll(".pill")).forEach((el) => {
+        el.addEventListener("click", () => {
+          const txt = el.textContent.replace(" ✕", "");
+          const [k, ...rest] = txt.split(":");
+          const v = rest.join(":").trim();
+          removeFilter(k.trim(), v);
+          loadFacets(); // auto refresh
+        });
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderFacetList(containerId, key, items) {
+      const box = $(containerId);
+      if (!box) return;
+
+      if (!items || !items.length) {
+        box.innerHTML = `<div class="muted">—</div>`;
+        return;
+      }
+
+      function renderHits(containerId, hits) {
+        const box = document.getElementById(containerId);
+        if (!hits || !hits.length) {
+            box.innerHTML = `<div class="muted">—</div>`;
+            return;
+        }
+
+        box.innerHTML = hits.map(h => `
+            <div class="facet-item">
+            <div>
+                <div style="font-weight:700">${escapeHtml(h.product_code || "")}</div>
+                <div class="mini">${escapeHtml(h.product_name || "")}</div>
+            </div>
+            <div class="count">${(h.score ?? 0).toFixed(2)}</div>
+            </div>
+        `).join("");
+        }
+
+
+
+      box.innerHTML = items.map(it => {
+        const val = it.raw ?? it.value;
+        const checked = selectedFilters[key]?.has(String(it.value)) || selectedFilters[key]?.has(String(val));
+        const id = `${containerId}__${btoa(unescape(encodeURIComponent(String(val)))).slice(0,12)}`;
+        return `
+          <div class="facet-item">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="${id}" ${checked ? "checked" : ""} />
+              <span>${escapeHtml(it.value)}</span>
+            </label>
+            <span class="count">${it.count ?? ""}</span>
+          </div>
+        `;
+      }).join("");
+
+      // bind events
+      items.forEach(it => {
+        const valRaw = it.raw ?? it.value;
+        const id = `${containerId}__${btoa(unescape(encodeURIComponent(String(valRaw)))).slice(0,12)}`;
+        const cb = $(id);
+        if (!cb) return;
+        cb.addEventListener("change", (e) => {
+          const v = String(it.value); // keep displayed value as selection
+          if (e.target.checked) addFilter(key, v);
+          else removeFilter(key, v);
+          loadFacets(); // auto refresh
+        });
+      });
+    }
+
+async function runQuery() {
+  await loadFacets();
+  await loadSearch();
+}
+
+function renderHits(containerId, hits) {
+  const box = document.getElementById(containerId);
+  if (!hits || !hits.length) {
+    box.innerHTML = `<div class="muted">—</div>`;
+    return;
+  }
+
+  box.innerHTML = hits.map(h => {
+    const code = String(h.product_code || "").trim();
+    const name = String(h.product_name || "").trim();
+    const url = `https://www.disano.it/en/search/?q=${encodeURIComponent(code)}`;
+
+    return `
+      <div class="facet-item">
+        <div>
+          <div style="font-weight:700">
+            <a href="${url}" target="_blank" rel="noopener noreferrer">
+              ${escapeHtml(code)}
+            </a>
+          </div>
+          <div class="mini">${escapeHtml(name)}</div>
+        </div>
+        <div class="count">${(h.score ?? 0).toFixed(2)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+
+async function loadSearch() {
+    document.getElementById("exact").innerHTML = "<div class='muted'>Calling /search...</div>";
+    document.getElementById("similar").innerHTML = "";
+  const text = document.getElementById("q").value || "";
+  const payload = {
+    text,
+    filters: buildFiltersPayload(),
+    limit: 20,
+    debug: true
+  };
+
+    document.getElementById("raw").textContent = "Calling /search...\n" + JSON.stringify(payload, null, 2);
+
+  const res = await fetch("/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const t = await res.text();
+    document.getElementById("raw").textContent = "SEARCH ERROR:\n" + t;
+    renderHits("exact", []);
+    renderHits("similar", []);
+    return;
+  }
+
+  const data = await res.json();
+
+// --- Debug panel ---
+const firstHit =
+  (data.exact && data.exact.length ? data.exact[0] : null) ||
+  (data.similar && data.similar.length ? data.similar[0] : null);
+
+const debugPanel = {
+  request_payload: payload,
+  response_counts: {
+    exact: (data.exact || []).length,
+    similar: (data.similar || []).length
+  },
+  backend_debug_filters: firstHit ? {
+  hard_filters: firstHit.debug_filters?.hard_filters,
+  soft_filters: firstHit.debug_filters?.soft_filters,
+  used_sqlite: firstHit.debug_filters?.used_sqlite,
+  sql_filters: firstHit.debug_filters?.sql_filters
+} : null
+
+};
+
+$("raw").textContent = JSON.stringify(debugPanel, null, 2);
+
+
+  document.getElementById("exact").innerHTML =
+  "<div class='muted'>/search returned exact=" + (data.exact?.length || 0) + " similar=" + (data.similar?.length || 0) + "</div>";
+  renderHits("exact", data.exact || []);
+  renderHits("similar", data.similar || []);
+}
+
+
+async function loadFacets() {
+  setBusy(true);
+
+  try {
+    const text = $("q").value || "";
+
+    const payload = {
+      text: text,
+      filters: buildFiltersPayload()
+    };
+
+    const res = await fetch("/facets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const t = await res.text();
+      $("raw").textContent = "FACETS ERROR:\n" + t;
+      renderHits("exact", []);
+      renderHits("similar", []);
+      return;
+    }
+
+    const data = await res.json();
+    document.getElementById("raw").textContent = "SEARCH OK:\n" + JSON.stringify(data, null, 2);
+
+    $("raw").textContent = JSON.stringify(data, null, 2);
+
+    // Families
+    renderFacetList("families", "product_family", data.families);
+
+    // Warranty
+    renderFacetList("warranty_years", "warranty_years", data.warranty_lifetime?.warranty_years);
+    renderFacetList("lifetime_hours", "lifetime_hours", data.warranty_lifetime?.lifetime_hours);
+    renderFacetList("certifications", "certifications", data.warranty_lifetime?.certifications);
+
+    // Photometrics
+    const lum = data.photometrics?.lumen_output;
+    $("lumen_minmax").textContent =
+      lum && lum.min != null
+        ? `${lum.min.toFixed(1)} – ${lum.max.toFixed(1)} lm`
+        : "—";
+
+    renderFacetList("cct_k", "cct_k", data.photometrics?.cct_k);
+    renderFacetList("cri", "cri", data.photometrics?.cri);
+    renderFacetList("ugr", "ugr", data.photometrics?.ugr);
+
+    // Power & Voltage
+    const pwr = data.power_voltage?.power_max_w;
+    $("pwr_minmax").textContent =
+      pwr && pwr.min != null
+        ? `${pwr.min} – ${pwr.max} W`
+        : "—";
+
+    renderFacetList("power_max_w_buckets", "power_max_w", data.power_voltage?.power_max_w_buckets);
+    renderFacetList("control_protocol", "control_protocol", data.power_voltage?.control_protocol);
+    renderFacetList("emergency_present", "emergency_present", data.power_voltage?.emergency_present);
+
+    // Dimensions
+    renderFacetList("ip_rating", "ip_rating", data.dimensions_options?.ip_rating);
+    renderFacetList("ik_rating", "ik_rating", data.dimensions_options?.ik_rating);
+
+    // Price & Consumption
+    const eff = data.price_consumption?.efficacy_lm_w;
+    $("eff_minmax").textContent =
+      eff && eff.min != null
+        ? `${eff.min} – ${eff.max} lm/W`
+        : "—";
+
+    // Search call
+    try {
+      await loadSearch();
+    } catch (e) {
+      $("raw").textContent =
+        "SEARCH JS ERROR:\n" + String(e) + "\n\n" + $("raw").textContent;
+      renderHits("exact", []);
+      renderHits("similar", []);
+    }
+
+  } catch (e) {
+    $("raw").textContent =
+      "JS ERROR in loadFacets():\n" + String(e);
+    renderHits("exact", []);
+    renderHits("similar", []);
+  } finally {
+    setBusy(false);
+  }
+}
+
+
+    $("btnRun").addEventListener("click", runQuery);
+    $("btnClear").addEventListener("click", () => { clearFilters(); runQuery(); });
+
+    // initial load
+    renderSelected();
+    runQuery();
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ProductFinder</string>
+    <string name="title_activity_main">ProductFinder</string>
+    <string name="package_name">com.productfinder.mobile</string>
+    <string name="custom_url_scheme">com.productfinder.mobile</string>
+</resources>
