@@ -1,0 +1,12 @@
+{
+  "appId": "com.productfinder.mobile",
+  "appName": "ProductFinder",
+  "webDir": "www",
+  "server": {
+    "url": "https://YOUR-BACKEND-URL",
+    "cleartext": true,
+    "allowNavigation": [
+      "*"
+    ]
+  }
+}
