@@ -1,0 +1,4 @@
+cd C:\Users\Osman.saleh\OneDrive\Cartella progetto\product-finder\Backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+
