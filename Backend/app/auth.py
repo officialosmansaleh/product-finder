@@ -309,7 +309,20 @@ class AnalyticsEventRequest(BaseModel):
 class AuthService:
     def __init__(self, db_path: str | None = None, database_url: str | None = None) -> None:
         self.db_path = db_path or os.getenv("AUTH_DB_PATH", "data/auth.db")
-        self.database_url = str(database_url or os.getenv("AUTH_DATABASE_URL", "")).strip()
+        _pg_user = os.getenv("PGUSER", "")
+        _pg_password = os.getenv("PGPASSWORD", "")
+        _pg_host = os.getenv("PGHOST", "postgres.railway.internal")
+        _pg_port = os.getenv("PGPORT", "5432")
+        _pg_database = os.getenv("PGDATABASE", "")
+        if database_url:
+            self.database_url = str(database_url).strip()
+        elif _pg_user and _pg_password and _pg_database:
+            self.database_url = (
+                f"postgresql://{_pg_user}:{_pg_password}"
+                f"@{_pg_host}:{_pg_port}/{_pg_database}?sslmode=disable"
+            )
+        else:
+            self.database_url = str(os.getenv("AUTH_DATABASE_URL", "")).strip()
         self.backend = "postgres" if self.database_url.startswith(("postgres://", "postgresql://")) else "sqlite"
         self.jwt_secret = str(os.getenv("AUTH_JWT_SECRET", "dev-insecure-change-me")).strip() or "dev-insecure-change-me"
         self.jwt_algorithm = "HS256"
