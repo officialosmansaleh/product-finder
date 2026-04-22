@@ -7,8 +7,8 @@ This repository can be deployed to Railway directly from the repo root.
 Use the Railway CLI from the local workspace if you want to deploy the latest local code immediately.
 
 Why:
-- the current Git remote is still a placeholder
-- your local workspace contains newer files that are not connected to a real GitHub repo yet
+- the local repo can be pushed and versioned through GitHub
+- you may still want CLI deploys when testing local, not-yet-pushed changes
 
 ## What Railway should run
 
@@ -55,9 +55,9 @@ Add a Railway PostgreSQL service and set:
 - `RATE_LIMIT_DATABASE_URL=${{Postgres.DATABASE_URL}}`
 - `AUTH_COOKIE_SECURE=true`
 
-If you expose the app on a Railway domain, also set:
+If you expose the app on your production domain, also set:
 
-- `CORS_ALLOWED_ORIGINS=https://your-app.up.railway.app`
+- `CORS_ALLOWED_ORIGINS=https://laiting.disano.it`
 
 ## Optional variables
 
@@ -96,11 +96,11 @@ railway init
 railway up
 ```
 
-6. Generate a public domain in Railway and test:
+6. Add the public domain in Railway and test:
 
 ```text
-https://<your-domain>/health
-https://<your-domain>/frontend/
+https://laiting.disano.it/health
+https://laiting.disano.it/frontend/
 ```
 
 ## First checks after deploy
