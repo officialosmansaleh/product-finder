@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY Backend/app ./app
 COPY Backend/config ./config
 COPY Backend/frontend ./frontend
-COPY Backend/data ./data
+RUN mkdir -p /app/data
 COPY Backend/.env.example ./.env.example
 
 EXPOSE 8000
