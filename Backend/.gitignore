@@ -1,0 +1,55 @@
+
+.env
+.env.*
+!.env.example
+!.env.docker.example
+!.env.prod.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# JavaScript / frontend
+node_modules/
+playwright-report/
+test-results/
+
+# Android / IDE
+.idea/
+.vscode/
+mobile/android/.idea/
+mobile/android/.gradle/
+mobile/android/local.properties
+captures/
+
+# Local runtime data
+*.db
+*.sqlite
+*.sqlite3
+backups/
+data/*.xlsx
+data/old/
+
+# Local scratch files
+sk.txt
+sk(1).txt
+*.log
+.lighthouse-performance*.json
+ngrok*.txt
+.gitignore(1)
+incontro IT post porposta Easynet.txt
+sito temp.txt
+Thumbs.db
+.DS_Store

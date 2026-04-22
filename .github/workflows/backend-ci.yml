@@ -1,0 +1,67 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - ".github/workflows/backend-ci.yml"
+      - "Backend/app/**"
+      - "Backend/frontend/**"
+      - "Backend/tests/**"
+      - "Backend/Dockerfile"
+      - "Backend/docker-compose.yml"
+      - "Backend/docker-compose.prod.yml"
+      - "Backend/requirements.txt"
+      - "Backend/.env.example"
+      - "Backend/.env.docker.example"
+      - "Backend/.env.prod.example"
+  pull_request:
+    paths:
+      - ".github/workflows/backend-ci.yml"
+      - "Backend/app/**"
+      - "Backend/frontend/**"
+      - "Backend/tests/**"
+      - "Backend/Dockerfile"
+      - "Backend/docker-compose.yml"
+      - "Backend/docker-compose.prod.yml"
+      - "Backend/requirements.txt"
+      - "Backend/.env.example"
+      - "Backend/.env.docker.example"
+      - "Backend/.env.prod.example"
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: Backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      - name: Compile backend
+        run: python -m compileall app
+
+      - name: Run backend tests
+        env:
+          AUTH_JWT_SECRET: ci-test-secret-0123456789abcdefghijklmnopqrstuvwxyz
+        run: python -m pytest -q tests
+
+      - name: Build Docker image
+        run: docker build -t productfinder-backend-ci .

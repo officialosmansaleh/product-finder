@@ -1,0 +1,1573 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Laiting Compare Workspace</title>
+  <style>
+    body{margin:0;font-family:Aptos,"Segoe UI Variable","Segoe UI",sans-serif;background:
+      radial-gradient(circle at top left, rgba(255,255,255,.94) 0%, rgba(255,255,255,0) 28%),
+      linear-gradient(180deg, #f9fbfd 0%, #eef2f6 56%, #e8edf3 100%);color:#111827}
+    .wrap{max-width:1280px;margin:0 auto;padding:18px}
+    .card{background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:1px solid #e6edf5;border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 10px 24px rgba(15,23,42,.05)}
+    .topBar{display:grid;grid-template-columns:minmax(240px,1.1fr) minmax(320px,1fr) auto;align-items:start;gap:14px;margin-bottom:14px}
+    .topBarBrand{display:flex;align-items:center;gap:12px;min-width:0}
+    .topBarBrand img{height:34px;width:auto;display:block}
+    .topBarCopy{display:flex;flex-direction:column;gap:3px;min-width:0}
+    .topBarTitle{font-size:20px;font-weight:800;color:#0f172a;line-height:1.1}
+    .topBarSub{font-size:12px;color:#6b7280;line-height:1.35}
+    .topBarNav{display:flex;justify-content:center;gap:8px;align-items:center;flex-wrap:wrap}
+    .topBarUtility{display:flex;justify-content:flex-end;gap:10px;align-items:center;flex-wrap:wrap}
+    .navCluster,.utilityCluster{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:11px 13px;border:1px solid #dfe7f0;border-radius:16px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);box-shadow:0 10px 22px rgba(15,23,42,.05)}
+    .utilityCluster{justify-content:flex-end}
+    .utilityCluster #authMount{min-width:220px;max-width:100%}
+    .workspaceIntro{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:14px;margin:0 0 14px}
+    .workspaceIntroCard{background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:1px solid #e6edf5;border-radius:18px;padding:16px;box-shadow:0 10px 22px rgba(15,23,42,.05)}
+    .workspaceIntroTitle{font-size:15px;font-weight:800;color:#0f172a;margin:0 0 4px}
+    .workspaceIntroText{font-size:12px;color:#6b7280;line-height:1.5}
+    .workspaceIntroPills{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .workspaceIntroPill{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:700;color:#475569}
+    .h{font-weight:800;margin:0 0 10px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    input,textarea{padding:10px 12px;border:1px solid #d7e0ea;border-radius:12px;min-width:220px;max-width:100%;box-sizing:border-box;box-shadow:inset 0 1px 2px rgba(15,23,42,.03)}
+    button{padding:10px 13px;border:1px solid transparent;border-radius:12px;background:linear-gradient(180deg, #d47b18 0%, #c96e10 100%);color:#fff;cursor:pointer;font-weight:700;letter-spacing:.01em;box-shadow:0 10px 20px rgba(201,110,16,.18)}
+    button.secondary{background:linear-gradient(180deg, #1f2937 0%, #111827 100%);box-shadow:0 10px 18px rgba(17,24,39,.16)}
+    select{max-width:100%;box-sizing:border-box}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{border-bottom:1px solid #e5e7eb;padding:8px;text-align:left;vertical-align:top}
+    .small{font-size:12px;color:#6b7280}
+    .mono{font-family:Consolas,Monaco,monospace}
+    .thumb{width:76px;height:76px;object-fit:contain;border:1px solid #e5e7eb;border-radius:8px;background:#fff}
+    .solActions{display:flex;gap:6px;align-items:center;flex-wrap:nowrap}
+    .solActions button{white-space:nowrap;padding:5px 7px;font-size:11px}
+    .solTableLink{color:#0f172a;text-decoration:none;font-size:12px;font-weight:600}
+    .solTableLink:hover{text-decoration:underline;color:#0f172a}
+    .solutionsTableWrap{max-width:100%;overflow-x:auto;overflow-y:hidden;border:1px solid #eef2f7;border-radius:10px}
+    .solutionsTable{min-width:980px}
+    .solutionsTable th,.solutionsTable td{white-space:nowrap}
+    .solutionsTable td:nth-child(3){white-space:normal;min-width:220px}
+    .compareDiffTable{width:100%;table-layout:fixed;min-width:0}
+    .compareDiffTable th,.compareDiffTable td{text-align:left;white-space:normal;word-break:break-word}
+    .compareDiffTable th:first-child,.compareDiffTable td:first-child{width:210px}
+    .solutionsResultsTable{min-width:760px;table-layout:fixed}
+    .solutionsResultsTable th,.solutionsResultsTable td{padding:6px;white-space:nowrap}
+    .solutionsResultsTable th:nth-child(1), .solutionsResultsTable td:nth-child(1){width:74px}
+    .solutionsResultsTable th:nth-child(2), .solutionsResultsTable td:nth-child(2){width:96px}
+    .solutionsResultsTable th:nth-child(4), .solutionsResultsTable td:nth-child(4){width:86px}
+    .solutionsResultsTable th:nth-child(5), .solutionsResultsTable td:nth-child(5){width:96px}
+    .solutionsResultsTable th:nth-child(6), .solutionsResultsTable td:nth-child(6){width:72px}
+    .solutionsResultsTable th:nth-child(7), .solutionsResultsTable td:nth-child(7){width:86px}
+    .solutionsResultsTable th:nth-child(8), .solutionsResultsTable td:nth-child(8){width:148px}
+    .solutionsResultsTable th:nth-child(3), .solutionsResultsTable td:nth-child(3){white-space:normal;word-break:break-word}
+    .solutionsResultsTable thead input{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+    .cmpGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:10px 0}
+    .cmpCard{border:1px solid #e5edf5;border-radius:14px;padding:12px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)}
+    .cmpMetaRow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .cmpRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+    .cmpRow > input{flex:1 1 220px;min-width:0}
+    .cmpRow > button{flex:0 0 auto}
+    .cmpImgWrap{display:flex;align-items:center;justify-content:center;min-height:140px;margin-top:8px}
+    .cmpImg{width:auto;height:auto;max-width:100%;max-height:180px;object-fit:contain;display:block}
+    .pageLayout{display:grid;grid-template-columns:minmax(280px,340px) 1fr;gap:14px;align-items:start}
+    .sidebarCol{position:sticky;top:12px}
+    .mainCol{min-width:0}
+    .mainCol .row{min-width:0}
+    .mainCol .row > input,
+    .mainCol .row > select{min-width:0;flex:1 1 180px}
+    .mainCol .row > button{flex:0 0 auto}
+    .filterPanelCard{padding:0;overflow:hidden;border-color:#dbe2ea;box-shadow:0 6px 18px rgba(15,23,42,.05)}
+    .filterPanelHead{position:sticky;top:0;z-index:2;background:#f8fafc;border-bottom:1px solid #e5e7eb;padding:10px 12px}
+    .filterPanelHead .h{margin:0 0 4px}
+    .filterPanelBody{padding:10px 12px;max-height:calc(100vh - 110px);overflow:auto}
+    .idealFilters{display:flex;flex-direction:column;gap:10px}
+    .idealGroup{border:1px solid #e5e7eb;border-radius:10px;background:#fbfdff;padding:8px}
+    .idealGroupTitle{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#475569;margin:0 0 8px}
+    .idealGroupFields{display:flex;flex-direction:column;gap:6px}
+    .idealField{display:grid;grid-template-columns:92px 1fr;gap:6px;align-items:center}
+    .idealFieldLabel{font-size:11px;color:#4b5563;line-height:1.2;font-weight:600}
+    .idealFilters input,.idealFilters select{width:100%;min-width:0;padding:8px 9px;border-radius:8px;font-size:12px}
+    .idealMain .row input{min-width:0}
+    .idealQueryRow{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;min-width:0}
+    .idealQueryRow textarea{
+      flex:1 1 auto;
+      min-width:0;
+      width:auto;
+      min-height:56px;
+      padding:14px 14px;
+      font-size:15px;
+      line-height:1.25;
+      resize:vertical;
+      overflow-wrap:anywhere;
+      white-space:pre-wrap;
+    }
+    .idealQueryRow button{flex:0 0 auto}
+    .sourceCodeRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0;margin-top:8px}
+    .sourceCodeRow input{flex:1 1 240px;min-width:0}
+    .idealActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .idealActions input[type="number"]{max-width:100px;min-width:100px}
+    .solPager{display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:nowrap;margin:6px 0 8px 0}
+    .solPager .pagerInfo{white-space:nowrap}
+    .thumb{cursor:zoom-in}
+    .cmpImg{cursor:zoom-in}
+    .authTriggerGroup{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .authCompactTrigger{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid #dbe3ec;border-radius:999px;background:#fff;cursor:pointer;box-shadow:0 6px 16px rgba(15,23,42,.05)}
+    .authCompactBadge{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#111827;color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em}
+    .authCompactMeta{display:flex;flex-direction:column;align-items:flex-start;line-height:1.1}
+    .authCompactName{font-size:12px;font-weight:700;color:#111827;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .authCompactRole{font-size:11px;color:#64748b}
+    .authModal{position:fixed;inset:0;display:none;z-index:90}
+    .authModal.show{display:block}
+    .authModalBackdrop{position:absolute;inset:0;background:rgba(15,23,42,.62)}
+    .authModalDialog{position:relative;z-index:1;width:min(92vw,620px);margin:8vh auto;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:16px;box-shadow:0 24px 60px rgba(15,23,42,.18)}
+    .authModalClose{display:inline-flex;align-items:center;justify-content:center;margin-left:auto;margin-bottom:10px;border:1px solid #dbe3ec;background:#fff;color:#111827;border-radius:999px;padding:7px 12px;cursor:pointer}
+    .authBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid #dbe3ec;border-radius:16px;background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);box-shadow:0 8px 20px rgba(15,23,42,.05);min-width:min(100%,380px)}
+    .authBoxExpanded{align-items:flex-start}
+    .authAccountCard{display:flex;flex-direction:column;gap:14px}
+    .authAccountHead{display:flex;gap:12px;align-items:center}
+    .authAccountInfo{display:grid;gap:8px}
+    .authInfoRow{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}
+    .authInfoRow span{font-size:12px;color:#64748b}
+    .authInfoRow strong{font-size:12px;color:#111827}
+    .authHeader{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;width:100%}
+    .authTitle{font-size:12px;font-weight:800;color:#0f172a;letter-spacing:.02em;text-transform:uppercase}
+    .authSubtitle{font-size:12px;color:#64748b;max-width:360px;line-height:1.35;margin-top:3px}
+    .authTabs{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:#e9eef5;border:1px solid #d7e0ea}
+    .authTab{border:0;background:transparent;color:#526173;padding:7px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+    .authTab.active{background:#111827;color:#fff}
+    .authFields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+    .authBox input,.authBox select{min-width:0;flex:1 1 160px}
+    .authHidden{display:none}
+    .authActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%}
+    .authHelper{font-size:12px;color:#64748b;line-height:1.35}
+    .authStatus{font-size:12px;flex:1 1 100%;padding:9px 10px;border-radius:12px;background:#eef6ff;color:#355070;border:1px solid #cfe1f7}
+    .authStatus.isError{color:#9f1239;background:#fff1f2;border-color:#fecdd3}
+    .authStatus.isWarn{color:#92400e;background:#fffbeb;border-color:#fde68a}
+    .authStatus.isInfo{color:#355070;background:#eef6ff;border-color:#cfe1f7}
+    .authBoxLoggedIn{justify-content:flex-end;min-width:auto;background:#fff}
+    .authIdentityBadge{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#111827;color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em}
+    .authUserMeta{display:flex;flex-direction:column;gap:3px;min-width:0}
+    .authUserName{font-size:12px;font-weight:700;color:#111827}
+    .authUserRole{font-size:11px;color:#64748b;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .authRolePill{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:#fff1e6;color:#9a3412;border:1px solid #fdba74;font-weight:700}
+    .cookieConsentBanner{position:fixed;left:16px;right:16px;bottom:16px;z-index:1200;display:none}
+    .cookieConsentBanner.show{display:block}
+    .cookieConsentCard{max-width:760px;margin:0 auto;background:#0f172a;color:#fff;border-radius:18px;padding:18px 18px 16px;box-shadow:0 26px 60px rgba(15,23,42,.28)}
+    .cookieConsentTitle{font-size:16px;font-weight:800;margin-bottom:6px}
+    .cookieConsentText{font-size:13px;line-height:1.55;color:#dbe7f3}
+    .cookieConsentActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+    .cookiePrefsBtn{position:fixed;right:16px;bottom:16px;z-index:1190;border:1px solid #cbd5e1;background:#fff;color:#0f172a;border-radius:999px;padding:10px 14px;font-weight:700;box-shadow:0 10px 24px rgba(15,23,42,.14);display:none}
+    .cookiePrefsModal{position:fixed;inset:0;z-index:1250;display:none}
+    .cookiePrefsModal.show{display:block}
+    .cookiePrefsBackdrop{position:absolute;inset:0;background:rgba(15,23,42,.62)}
+    .cookiePrefsDialog{position:relative;z-index:1;width:min(92vw,620px);margin:8vh auto;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:16px;box-shadow:0 24px 60px rgba(15,23,42,.18)}
+    .cookiePrefsRows{display:grid;gap:10px;margin-top:16px}
+    .cookiePrefRow{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:14px 16px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc}
+    .cookiePrefLabel{font-size:13px;font-weight:800;color:#0f172a}
+    .cookiePrefHint{font-size:12px;color:#64748b;line-height:1.45;margin-top:4px}
+    .cookiePrefBadge{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#111827;color:#fff;font-size:12px;font-weight:700}
+    .cookiePrefsLegal{font-size:12px;color:#64748b;line-height:1.5;margin-top:14px}
+    .imgLightbox{position:fixed;inset:0;z-index:70;display:none}
+    .imgLightbox.show{display:block}
+    .imgLightboxBackdrop{position:absolute;inset:0;background:rgba(15,23,42,.72)}
+    .imgLightboxDialog{position:relative;z-index:1;width:min(92vw,1080px);max-height:92vh;margin:4vh auto;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}
+    .imgLightboxClose{align-self:flex-end;border:0;border-radius:10px;background:#111827;color:#fff;padding:6px 10px;cursor:pointer}
+    .imgLightboxPreview{width:100%;height:auto;max-height:78vh;object-fit:contain;background:#fff;border:1px solid #eef2f7;border-radius:10px}
+    body.finderOnly .sidebarCol{display:none}
+    body.finderOnly .pageLayout{grid-template-columns:1fr}
+    @media (max-width: 900px){
+      .topBar{grid-template-columns:1fr;align-items:stretch}
+      .topBarNav{justify-content:flex-start}
+      .topBarUtility{justify-content:flex-start}
+      .navCluster,.utilityCluster{width:100%;justify-content:flex-start}
+      .workspaceIntro{grid-template-columns:1fr}
+      .pageLayout{grid-template-columns:1fr}
+      .sidebarCol{position:static}
+      .filterPanelBody{max-height:none;overflow:visible}
+      .idealField{grid-template-columns:1fr}
+      .idealQueryRow{flex-wrap:wrap}
+      .solPager{flex-wrap:wrap}
+      .authFields{grid-template-columns:1fr}
+      .authBox{min-width:100%}
+      .authModalDialog{width:min(94vw,620px);margin:4vh auto;padding:14px}
+      .authCompactName{max-width:110px}
+      .authAccountHead{align-items:flex-start}
+      .authInfoRow{flex-direction:column;align-items:flex-start}
+      .cookieConsentBanner{left:10px;right:10px;bottom:10px}
+      .cookieConsentCard{padding:16px}
+      .cookiePrefsBtn{top:auto;bottom:10px;right:10px}
+      .cookiePrefRow{flex-direction:column}
+    }
+  </style>
+</head>
+<body data-page="tools">
+  <div class="wrap">
+    <div class="topBar">
+      <div class="topBarBrand">
+        <img src="/frontend/laiting-logo-ai.png" alt="Laiting logo" />
+        <div class="topBarCopy">
+          <div class="topBarTitle">Compare Workspace</div>
+          <div class="topBarSub">Build a project requirement, compare options, and move the best fit into your quote flow.</div>
+        </div>
+      </div>
+      <div class="topBarNav">
+        <div class="navCluster">
+          <button id="btnFinder" class="secondary" type="button">Finder</button>
+          <button id="btnQuote" class="secondary" type="button">Quote cart</button>
+          <button id="btnResetFilters" class="secondary" type="button">Reset</button>
+        </div>
+      </div>
+      <div class="topBarUtility">
+        <div class="utilityCluster">
+          <label class="small row" id="toolsLangWrap" style="gap:6px">
+            <span id="toolsLangLabel">Language</span>
+            <select id="toolsLang" style="padding:8px;border:1px solid #d1d5db;border-radius:10px;background:#fff"></select>
+          </label>
+          <div id="authMount"></div>
+        </div>
+      </div>
+    </div>
+    <div class="workspaceIntro">
+      <section class="workspaceIntroCard">
+        <div class="workspaceIntroTitle">Use this page as a technical workspace</div>
+        <div class="workspaceIntroText">Start from a project requirement or a known source code, compare only the shortlisted options, and move the winning products into the quote cart without losing context.</div>
+        <div class="workspaceIntroPills">
+          <span class="workspaceIntroPill">Requirement-driven</span>
+          <span class="workspaceIntroPill">Comparison-ready</span>
+          <span class="workspaceIntroPill">Quote-connected</span>
+        </div>
+      </section>
+      <section class="workspaceIntroCard">
+        <div class="workspaceIntroTitle">Recommended flow</div>
+        <div class="workspaceIntroText">1. Apply a code or requirement. 2. Review recommended matches. 3. Compare finalists. 4. Push the best fit to the quote cart.</div>
+      </section>
+    </div>
+    <div class="pageLayout">
+<div class="mainCol">
+        <div class="card">
+          <div class="h">Project requirement</div>
+          <div class="small">Seed the comparison brief from one of your product codes.</div>
+          <div class="sourceCodeRow">
+            <input id="idealSourceCode" type="text" placeholder="Or enter your product code (e.g. 156415-00)" />
+            <button id="btnIdealFromCode" class="secondary" type="button">Apply Code</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="h">COMPARE OPTIONS</div>
+          <div class="cmpRow">
+            <input id="cmpA" type="text" placeholder="Reference / Project requirement" />
+            <input id="cmpB" type="text" placeholder="Option 1 (e.g. 112600-31)" />
+            <input id="cmpC" type="text" placeholder="Option 2 (optional)" />
+            <button id="btnCompare">Compare</button>
+            <button id="btnComparePdf" type="button">PDF</button>
+            <button id="btnClearC" class="secondary" type="button">Clear</button>
+          </div>
+          <div id="cmpOut" style="margin-top:10px"></div>
+        </div>
+
+        <div class="card">
+          <div class="h">Recommended matches</div>
+          <div class="idealActions" style="margin-top:8px">
+            <input id="idealLimit" type="number" min="1" max="5000" value="" placeholder="All" style="display:none" />
+            <select id="idealSort" style="padding:10px;border:1px solid #d1d5db;border-radius:10px">
+              <option value="score_desc">Score high-low</option>
+              <option value="score_asc">Score low-high</option>
+              <option value="price_asc">Price low-high</option>
+              <option value="price_desc">Price high-low</option>
+            </select>
+            <button id="btnIdealAlt" type="button" style="display:none">Show alternatives</button>
+          </div>
+          <div id="idealAltOut" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="imgLightbox" class="imgLightbox" aria-hidden="true">
+    <div class="imgLightboxBackdrop" data-img-close="1"></div>
+    <div class="imgLightboxDialog" role="dialog" aria-modal="true" aria-label="Image preview">
+      <button id="btnImgLightboxClose" class="imgLightboxClose" type="button" aria-label="Close image preview">Close</button>
+      <img id="imgLightboxPreview" class="imgLightboxPreview" alt="Preview" />
+    </div>
+  </div>
+
+  <script src="/frontend/assets/countries.js?v=2026-03-25-country-list-1"></script>
+  <script src="/frontend/assets/auth.js?v=2026-03-25-auth-roles-country-1"></script>
+  <script src="/frontend/assets/consent.js?v=2026-03-31-consent-analytics-1"></script>
+  <script src="/frontend/assets/quote-utils.js?v=2026-03-25-quote-modal-labels-1"></script>
+  <script>
+    const $ = (id)=>document.getElementById(id);
+    async function postJSON(url,payload){
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(!r.ok){ throw new Error(await r.text()); }
+      return r.json();
+    }
+    function esc(s){ return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
+    function openImageLightbox(src, altText){
+      const box = $("imgLightbox");
+      const img = $("imgLightboxPreview");
+      if (!box || !img || !src) return;
+      img.src = String(src);
+      img.alt = String(altText || "Preview");
+      box.classList.add("show");
+      box.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+    function closeImageLightbox(){
+      const box = $("imgLightbox");
+      const img = $("imgLightboxPreview");
+      if (!box) return;
+      box.classList.remove("show");
+      box.setAttribute("aria-hidden", "true");
+      if (img){
+        img.removeAttribute("src");
+        img.alt = "Preview";
+      }
+      document.body.style.overflow = "";
+    }
+    function scorePct(v){
+      const n = Number(v);
+      if (!Number.isFinite(n)) return "";
+      const p = Math.max(0, Math.min(1, n)) * 100;
+      return `${(Math.round(p * 10) / 10).toFixed(1)}%`;
+    }
+    function priceText(v){
+      if (v === null || v === undefined) return "";
+      const n = numPrice(v);
+      if (n === null) return String(v || "");
+      return n.toFixed(2);
+    }
+    function toolsWebsiteUrl(code){
+      const c = String(code || "").trim();
+      if (!c) return "";
+      return `https://www.disano.it/it/search/?q=${encodeURIComponent(c)}`;
+    }
+    function manufacturerLogoCell(manufacturer, code){
+      const m = String(manufacturer || "").trim();
+      const isFosnova = /fosnova/i.test(m);
+      const label = isFosnova ? "Fosnova" : "Disano";
+      const src = isFosnova
+        ? "https://www.disano.it/_next/image/?url=%2F_next%2Fstatic%2Fmedia%2Flogo-fosnova.4f4c2c36.png&w=256&q=75"
+        : "https://www.disano.it/_next/image/?url=%2F_next%2Fstatic%2Fmedia%2Flogo-disano.2572c913.png&w=256&q=75";
+      return `<a href="${esc(toolsWebsiteUrl(code))}" target="_blank" rel="noopener" title="${esc(label)} item search"><img src="${esc(src)}" alt="${esc(label)}" style="height:16px;width:auto;display:block" /></a>`;
+    }
+    function prettyLabel(key){
+      return ({
+        housing_color: "Color",
+        beam_angle_deg: "Beam",
+        shape: "Shape",
+        warranty_years: "Warranty",
+        lifetime_hours: "Lifetime",
+        led_rated_life_h: "LED rated life",
+        lumen_maintenance_pct: "Lumen maint. %",
+        failure_rate_pct: "Failure rate %",
+        ambient_temp_min_c: "Min temp (Â°C)",
+        ambient_temp_max_c: "Max temp (Â°C)",
+      })[key] || key;
+    }
+    function fmtVal(v){
+      if (v === null || v === undefined) return "\u2014";
+      const s = String(v).trim();
+      return s ? s : "\u2014";
+    }
+    function _cmpNorm(v){
+      return String(v ?? "").trim().toLowerCase();
+    }
+    function compareMetaBlock(p, other){
+      const rows = [
+        ["Color", p?.housing_color, other?.housing_color],
+        ["Beam", p?.beam_angle_deg, other?.beam_angle_deg],
+        ["Warranty", p?.warranty_years, other?.warranty_years],
+        ["Lifetime", p?.lifetime_hours, other?.lifetime_hours],
+        ["LED rated life", p?.led_rated_life_h, other?.led_rated_life_h],
+        ["Lumen maint. %", p?.lumen_maintenance_pct, other?.lumen_maintenance_pct],
+        ["Failure rate %", p?.failure_rate_pct, other?.failure_rate_pct],
+        ["Min temp (Â°C)", p?.ambient_temp_min_c, other?.ambient_temp_min_c],
+        ["Max temp (Â°C)", p?.ambient_temp_max_c, other?.ambient_temp_max_c],
+      ].filter(([, v, ov]) => _cmpNorm(v) !== _cmpNorm(ov));
+      if (!rows.length) return "";
+      return `
+        <div class="small" style="margin-top:8px"><b>Comparison specs</b></div>
+        <table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:12px">
+          <tbody>
+            ${rows.map(([k,v]) => `<tr><td style="padding:4px 6px 4px 0;border-bottom:1px solid #eef2f7;color:#6b7280">${esc(k)}</td><td style="padding:4px 0;border-bottom:1px solid #eef2f7">${esc(fmtVal(v))}</td></tr>`).join("")}
+          </tbody>
+        </table>`;
+    }
+    let lastAltData = null;
+    let lastIdealSpec = null;
+    let finderSeedSpec = null;
+    let lastIdealAltData = null;
+    let restoredToolsStateMeta = null;
+    let hadToolsDeepLink = false;
+    let solutionsSortOverride = "";
+    let solutionsPage = 1;
+    const SOLUTIONS_PAGE_SIZE = 20;
+    const SOLUTIONS_MIN_SCORE = 0.6;
+    const QUOTE_STORAGE_KEY = "productFinderQuoteCartV1";
+    const UI_LANG_KEY = "productFinderUiLangV1";
+    const TOOLS_STATE_KEY = "productFinderToolsStateV1";
+    const COMPARE_REF_IMAGE_KEY = "productFinderCompareRefImageV1";
+    const TOOLS_STATE_TTL_MS = 30 * 60 * 1000;
+    const FINDER_ONLY_TOOLS = true;
+    const TOOLS_LANGS = [["en","English"],["it","Italiano"],["fr","Francais"],["es","Espanol"],["pt","Portugues"],["ru","\u0420\u0443\u0441\u0441\u043a\u0438\u0439"],["ar","\u0627\u0644\u0639\u0631\u0628\u064a\u0629"],["pl","Polski"],["cs","Cestina"],["hr","Hrvatski"],["sl","Slovenscina"]];
+    const TI18N = {
+      en:{title:"Compare Workspace",language:"Language",finder:"Finder",quote:"Quote cart",apply_filters:"Apply filters",reset:"Reset",requirements:"Requirements",req_panel_hint:"Requirement panel for matching and comparison.",tender_spec:"Project requirement",apply_code:"Apply code",comparison:"COMPARE OPTIONS",compare:"Compare",clear:"Clear",solutions:"Recommended matches",close:"Close"},
+      it:{title:"Workspace Confronto",language:"Lingua",finder:"Finder",quote:"Carrello offerta",apply_filters:"Applica filtri",reset:"Reset",requirements:"Requisiti",req_panel_hint:"Pannello requisiti per confronti e alternative.",tender_spec:"Requisito progetto",apply_code:"Applica codice",comparison:"CONFRONTA OPZIONI",compare:"Confronta",clear:"Pulisci",solutions:"Abbinamenti consigliati",close:"Chiudi"},
+      fr:{title:"Outils Produits",language:"Langue",finder:"Finder",quote:"Devis",apply_filters:"Appliquer filtres",reset:"Reinit.",requirements:"Exigences",req_panel_hint:"Panneau des exigences pour alternatives + comparaison.",tender_spec:"Specification d'appel d'offres",apply_code:"Appliquer code",comparison:"FICHE DE COMPARAISON",compare:"Comparer",clear:"Effacer",solutions:"Solutions",close:"Fermer"},
+      es:{title:"Herramientas de Producto",language:"Idioma",finder:"Finder",quote:"Cotizacion",apply_filters:"Aplicar filtros",reset:"Reset",requirements:"Requisitos",req_panel_hint:"Panel de requisitos para alternativas + comparacion.",tender_spec:"Especificacion del pliego",apply_code:"Aplicar codigo",comparison:"HOJA DE COMPARACION",compare:"Comparar",clear:"Limpiar",solutions:"Soluciones",close:"Cerrar"},
+      pt:{title:"Ferramentas de Produto",language:"Idioma",finder:"Finder",quote:"Cotacao",apply_filters:"Aplicar filtros",reset:"Reset",requirements:"Requisitos",req_panel_hint:"Painel de requisitos para alternativas + comparacao.",tender_spec:"Especificacao da licitacao",apply_code:"Aplicar codigo",comparison:"FICHA DE COMPARACAO",compare:"Comparar",clear:"Limpar",solutions:"Solucoes",close:"Fechar"},
+      ru:{title:"\u0418\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b",language:"\u042f\u0437\u044b\u043a",finder:"Finder",quote:"\u0421\u043c\u0435\u0442\u0430",apply_filters:"\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c \u0444\u0438\u043b\u044c\u0442\u0440\u044b",reset:"\u0421\u0431\u0440\u043e\u0441",requirements:"\u0422\u0440\u0435\u0431\u043e\u0432\u0430\u043d\u0438\u044f",req_panel_hint:"\u041f\u0430\u043d\u0435\u043b\u044c \u0442\u0440\u0435\u0431\u043e\u0432\u0430\u043d\u0438\u0439 \u0434\u043b\u044f \u0430\u043b\u044c\u0442\u0435\u0440\u043d\u0430\u0442\u0438\u0432 \u0438 \u0441\u0440\u0430\u0432\u043d\u0435\u043d\u0438\u044f.",tender_spec:"\u0421\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f \u0442\u0435\u043d\u0434\u0435\u0440\u0430",apply_code:"\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c \u043a\u043e\u0434",comparison:"\u041b\u0418\u0421\u0422 \u0421\u0420\u0410\u0412\u041d\u0415\u041d\u0418\u042f",compare:"\u0421\u0440\u0430\u0432\u043d\u0438\u0442\u044c",clear:"\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c",solutions:"\u0420\u0435\u0448\u0435\u043d\u0438\u044f",close:"\u0417\u0430\u043a\u0440\u044b\u0442\u044c"},
+      ar:{title:"\u0623\u062f\u0648\u0627\u062a \u0627\u0644\u0645\u0646\u062a\u062c",language:"\u0627\u0644\u0644\u063a\u0629",finder:"Finder",quote:"\u0639\u0631\u0636 \u0633\u0639\u0631",apply_filters:"\u062a\u0637\u0628\u064a\u0642 \u0627\u0644\u0641\u0644\u0627\u062a\u0631",reset:"\u0625\u0639\u0627\u062f\u0629 \u0636\u0628\u0637",requirements:"\u0627\u0644\u0645\u062a\u0637\u0644\u0628\u0627\u062a",req_panel_hint:"\u0644\u0648\u062d\u0629 \u0627\u0644\u0645\u062a\u0637\u0644\u0628\u0627\u062a \u0644\u0644\u0628\u062f\u0627\u0626\u0644 \u0648\u0627\u0644\u0645\u0642\u0627\u0631\u0646\u0629.",tender_spec:"\u0645\u0648\u0627\u0635\u0641\u0627\u062a \u0627\u0644\u0628\u0646\u062f",apply_code:"\u062a\u0637\u0628\u064a\u0642 \u0627\u0644\u0643\u0648\u062f",comparison:"\u0648\u0631\u0642\u0629 \u0627\u0644\u0645\u0642\u0627\u0631\u0646\u0629",compare:"\u0645\u0642\u0627\u0631\u0646\u0629",clear:"\u0645\u0633\u062d",solutions:"\u0627\u0644\u062d\u0644\u0648\u0644",close:"\u0625\u063a\u0644\u0627\u0642"},
+      pl:{title:"Narzedzia Produktu",language:"Jezyk",finder:"Finder",quote:"Oferta",apply_filters:"Zastosuj filtry",reset:"Reset",requirements:"Wymagania",req_panel_hint:"Panel wymagan dla alternatyw i porownania.",tender_spec:"Specyfikacja pozycji",apply_code:"Zastosuj kod",comparison:"ARKUSZ POROWNANIA",compare:"Porownaj",clear:"Wyczysc",solutions:"Rozwiazania",close:"Zamknij"},
+      cs:{title:"Nastroje Produktu",language:"Jazyk",finder:"Finder",quote:"Nabidka",apply_filters:"Pouzit filtry",reset:"Reset",requirements:"Pozadavky",req_panel_hint:"Panel pozadavku pro alternativy a porovnani.",tender_spec:"Specifikace polozky",apply_code:"Pouzit kod",comparison:"SROVNAVACI LIST",compare:"Porovnat",clear:"Vymazat",solutions:"Reseni",close:"Zavrit"},
+      hr:{title:"Alati Proizvoda",language:"Jezik",finder:"Finder",quote:"Ponuda",apply_filters:"Primijeni filtre",reset:"Reset",requirements:"Zahtjevi",req_panel_hint:"Panel zahtjeva za alternative i usporedbu.",tender_spec:"Specifikacija stavke",apply_code:"Primijeni sifru",comparison:"LIST USPOREDBE",compare:"Usporedi",clear:"Ocisti",solutions:"Rjesenja",close:"Zatvori"},
+      sl:{title:"Orodja Izdelka",language:"Jezik",finder:"Finder",quote:"Ponudba",apply_filters:"Uporabi filtre",reset:"Ponastavi",requirements:"Zahteve",req_panel_hint:"Panel zahtev za alternative in primerjavo.",tender_spec:"Specifikacija postavke",apply_code:"Uporabi kodo",comparison:"PRIMERJALNI LIST",compare:"Primerjaj",clear:"Pocisti",solutions:"Resitve",close:"Zapri"}
+    };
+    let toolsLang = "en";
+    function tt(k){ return (TI18N[toolsLang]||TI18N.en)[k] || TI18N.en[k] || k; }
+    function detectToolsLang(){ try{ const v=String(localStorage.getItem(UI_LANG_KEY)||"").toLowerCase(); if(TOOLS_LANGS.some(x=>x[0]===v)) return v; }catch(_e){} const b=String(navigator.language||"en").toLowerCase().split("-")[0]; return TOOLS_LANGS.some(x=>x[0]===b)?b:"en"; }
+    function applyToolsI18n(){
+      document.documentElement.lang = toolsLang;
+      document.documentElement.dir = toolsLang === "ar" ? "rtl" : "ltr";
+      document.title = tt("title");
+      $("toolsLangLabel") && ($("toolsLangLabel").textContent = tt("language"));
+      $("btnFinder") && ($("btnFinder").textContent = tt("finder"));
+      $("btnQuote") && ($("btnQuote").textContent = tt("quote"));
+      $("btnResetFilters") && ($("btnResetFilters").textContent = tt("reset"));
+      $("btnIdealFromCode") && ($("btnIdealFromCode").textContent = tt("apply_code"));
+      $("btnCompare") && ($("btnCompare").textContent = tt("compare"));
+      $("btnClearC") && ($("btnClearC").textContent = tt("clear"));
+      $("btnImgLightboxClose") && ($("btnImgLightboxClose").textContent = tt("close"));
+      const hs = Array.from(document.querySelectorAll(".mainCol > .card > .h"));
+      if (hs[0]) hs[0].textContent = tt("tender_spec");
+      if (hs[1]) hs[1].textContent = tt("comparison");
+      if (hs[2]) hs[2].textContent = tt("solutions");
+      const reqHead = document.querySelector(".filterPanelHead .h");
+      if (reqHead) reqHead.textContent = tt("requirements");
+      const reqHint = document.querySelector(".filterPanelHead .small");
+      if (reqHint) reqHint.textContent = tt("req_panel_hint");
+      const tenderHint = document.querySelector(".mainCol > .card .small");
+      if (tenderHint) {
+        tenderHint.textContent = toolsLang === "it"
+          ? "Imposta il brief di confronto partendo da uno dei tuoi codici prodotto."
+          : "Seed the comparison brief from one of your product codes.";
+      }
+      refreshToolsQuoteButton();
+    }
+    let altColumnFilters = {
+      code: "",
+      name: "",
+      manufacturer: "",
+      family: "",
+      minScorePct: ""
+    };
+    function numPrice(v){
+      if (v === null || v === undefined) return null;
+      if (typeof v === "number"){
+        return Number.isFinite(v) ? v : null;
+      }
+      let s = String(v).trim();
+      if (!s) return null;
+      s = s.replace(/[^\d,.-]/g, "");
+      if (s.includes(",") && s.includes(".")){
+        s = s.replace(/\./g, "").replace(",", ".");
+      } else if (s.includes(",")){
+        s = s.replace(",", ".");
+      }
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
+    }
+    function loadQuoteCartMap(){
+      const m = new Map();
+      try{
+        const storageKey = window.ProductFinderQuoteUtils?.getQuoteCartStorageKey?.(QUOTE_STORAGE_KEY) || QUOTE_STORAGE_KEY;
+        const raw = sessionStorage.getItem(storageKey);
+        if (!raw) return m;
+        const rows = JSON.parse(raw);
+        if (!Array.isArray(rows)) return m;
+        for (const r of rows){
+          const code = String(r?.product_code || "").trim();
+          if (!code) continue;
+          m.set(code, {
+            product_code: code,
+            product_name: String(r?.product_name || ""),
+            manufacturer: String(r?.manufacturer || ""),
+            qty: Math.max(1, Math.round(Number(r?.qty) || 1)),
+            notes: String(r?.notes || ""),
+            project_reference: String(r?.project_reference || ""),
+            source: String(r?.source || "tools"),
+            sort_order: Number.isFinite(Number(r?.sort_order)) ? Number(r.sort_order) : m.size,
+            compare_sheet: (r?.compare_sheet && typeof r.compare_sheet === "object") ? r.compare_sheet : null,
+          });
+        }
+      }catch(_e){}
+      return m;
+    }
+    function saveQuoteCartMap(m){
+      try{
+        const storageKey = window.ProductFinderQuoteUtils?.getQuoteCartStorageKey?.(QUOTE_STORAGE_KEY) || QUOTE_STORAGE_KEY;
+        sessionStorage.setItem(storageKey, JSON.stringify(Array.from(m.values())));
+      }catch(_e){}
+    }
+    function getQuoteCount(){
+      return loadQuoteCartMap().size;
+    }
+    function refreshToolsQuoteButton(){
+      const btn = $("btnQuote");
+      if (!btn) return;
+      const n = getQuoteCount();
+      btn.textContent = n > 0 ? `${tt("quote")} (${n})` : tt("quote");
+    }
+    function isInQuote(code){
+      return loadQuoteCartMap().has(String(code || "").trim());
+    }
+    function nextQuoteSortOrder(cart){
+      let maxOrder = -1;
+      for (const row of (cart || new Map()).values()){
+        const n = Number(row?.sort_order);
+        if (Number.isFinite(n) && n > maxOrder) maxOrder = n;
+      }
+      return maxOrder + 1;
+    }
+    async function promptQuoteEntryData(existingRow){
+      return await window.ProductFinderQuoteUtils?.promptQuoteEntry?.(existingRow, {
+        title: "Add to quote",
+        confirmLabel: "Add",
+        cancelLabel: "Cancel",
+        projectReferencePlaceholder: "L1",
+      }) || null;
+    }
+    function buildQuoteCompareSheet(source, product){
+      const spec = lastIdealSpec || collectIdealSpec() || {};
+      if (!spec || !Object.keys(spec).length) return null;
+      return {
+        ideal_spec: JSON.parse(JSON.stringify(spec)),
+        source: String(source || "tools"),
+        product_code: String(product?.product_code || ""),
+        product_name: String(product?.product_name || ""),
+        created_at: new Date().toISOString(),
+      };
+    }
+    async function toggleQuoteProduct(p, source){
+      const code = String(p?.product_code || "").trim();
+      if (!code) return false;
+      const cart = loadQuoteCartMap();
+      if (cart.has(code)){
+        cart.delete(code);
+        saveQuoteCartMap(cart);
+        refreshToolsQuoteButton();
+        return false;
+      }
+      const entry = await promptQuoteEntryData(null);
+      if (!entry) return false;
+      cart.set(code, {
+        product_code: code,
+        product_name: String(p?.product_name || ""),
+        manufacturer: String(p?.manufacturer || ""),
+        qty: entry.qty,
+        notes: entry.notes,
+        project_reference: entry.project_reference,
+        source: String(source || "tools"),
+        sort_order: nextQuoteSortOrder(cart),
+        compare_sheet: buildQuoteCompareSheet(source, p),
+      });
+      saveQuoteCartMap(cart);
+      refreshToolsQuoteButton();
+      return true;
+    }
+    function getPriceDiffRow(differences){
+      return (Array.isArray(differences) ? differences : []).find(x => String(x?.field || "").toLowerCase() === "price") || null;
+    }
+    function priceSummaryGeneric(itemSlots, differences){
+      const priceRow = getPriceDiffRow(differences);
+      if (!priceRow) return '<div class="small">Price comparison unavailable.</div>';
+      const values = Array.isArray(priceRow.values) ? priceRow.values : [];
+      const priced = itemSlots.map(({ item, slot }) => {
+        const code = String(item?.product_code || `Code ${slotLabel(slot)}`);
+        const raw = values[slot];
+        const price = numPrice(raw);
+        return { code, raw, price, slot };
+      });
+
+      const valid = priced.filter(x => x.price !== null);
+      if (valid.length < 2) return '<div class="small">Price comparison unavailable.</div>';
+
+      const minP = Math.min(...valid.map(x => x.price));
+      const maxP = Math.max(...valid.map(x => x.price));
+      const lows = valid.filter(x => x.price === minP);
+      const highs = valid.filter(x => x.price === maxP);
+
+      if (minP === maxP){
+        return `<div class="small"><b>Same price:</b> ${valid.map(x => `<span class="mono">${esc(x.code)}</span>`).join(", ")}</div>`;
+      }
+      const fmtCodes = (arr) => arr.map(x => `<span class="mono">${esc(x.code)}</span>`).join(", ");
+      return `<div class="small"><b>Lowest price:</b> ${fmtCodes(lows)} | <b>Highest price:</b> ${fmtCodes(highs)}</div>`;
+    }
+    function attachPriceFromDiffs(a, b, diffs){
+      const outA = { ...(a || {}) };
+      const outB = { ...(b || {}) };
+      const priceDiff = (Array.isArray(diffs) ? diffs : []).find(x => String(x?.field || "").toLowerCase() === "price");
+      if (priceDiff){
+        if (outA.price === undefined || outA.price === null || outA.price === "") outA.price = priceDiff.a;
+        if (outB.price === undefined || outB.price === null || outB.price === "") outB.price = priceDiff.b;
+      }
+      return { a: outA, b: outB };
+    }
+
+    function slotLabel(idx){
+      return ["A","B","C"][idx] || String(idx + 1);
+    }
+    function slotTitle(idx){
+      return ["Reference", "Option 1", "Option 2"][idx] || `Option ${idx + 1}`;
+    }
+    function normalizeCodeInputValue(v){
+      return String(v || "").trim();
+    }
+    function getCompareInputCodes(){
+      return [normalizeCodeInputValue($("cmpA")?.value), normalizeCodeInputValue($("cmpB")?.value), normalizeCodeInputValue($("cmpC")?.value)];
+    }
+    function setCompareInputCodes(codes){
+      $("cmpA").value = normalizeCodeInputValue(codes?.[0]);
+      $("cmpB").value = normalizeCodeInputValue(codes?.[1]);
+      $("cmpC").value = normalizeCodeInputValue(codes?.[2]);
+    }
+    function getCompareReferenceImage(){
+      try{
+        const raw = sessionStorage.getItem(TOOLS_STATE_KEY);
+        if (raw){
+          const state = JSON.parse(raw) || {};
+          const inState = String(state?.compareReferenceImage || "").trim();
+          if (inState) return inState;
+        }
+      }catch(_e){}
+      try{
+        return String(sessionStorage.getItem(COMPARE_REF_IMAGE_KEY) || "").trim();
+      }catch(_e){
+        return "";
+      }
+    }
+
+    function renderIdealSpecSummary(item){
+      const src = (item && typeof item === "object") ? item : {};
+      const exclude = new Set([
+        "slot", "requested_code", "product_code", "product_name", "manufacturer",
+        "datasheet_url", "image_preview_url"
+      ]);
+      const preferred = [
+        "product_family", "product_name_contains", "ip_rating", "ip_visible", "ip_non_visible",
+        "ik_rating", "cct_k", "cri", "ugr", "power_min_w", "power_max_w", "lumen_output",
+        "efficacy_lm_w", "shape", "control_protocol", "interface", "emergency_present",
+        "lifetime_hours", "led_rated_life_h", "warranty_years", "lumen_maintenance_pct",
+        "luminaire_length", "luminaire_width", "luminaire_height", "diameter", "housing_color"
+      ];
+      const keys = [];
+      for (const k of preferred){
+        if (k in src && !exclude.has(k)) keys.push(k);
+      }
+      for (const k of Object.keys(src || {})){
+        if (!exclude.has(k) && !keys.includes(k)) keys.push(k);
+      }
+      const rows = [];
+      for (const key of keys){
+        const raw = src[key];
+        const value = Array.isArray(raw) ? raw.map(v => String(v ?? "").trim()).filter(Boolean).join(", ") : String(raw ?? "").trim();
+        if (!value) continue;
+        rows.push(`<div class="small"><b>${esc(prettyLabel(key))}:</b> ${esc(value)}</div>`);
+      }
+      if (!rows.length) return `<div class="small">No project requirement fields available.</div>`;
+      return `<div class="cmpSpecSummary" style="margin-top:8px;display:grid;gap:4px">${rows.join("")}</div>`;
+    }
+
+    function renderComparePayload(d, reqCodes){
+      const foundMeta = Array.isArray(d?.found) ? d.found : [];
+      const itemsBySlot = new Map();
+      (Array.isArray(d?.items) ? d.items : []).forEach((it, idx)=>{ if (it) itemsBySlot.set(idx, it); });
+      const foundCount = foundMeta.filter(x => x?.found).length;
+      if(foundCount < 2){
+        $("cmpOut").innerHTML = `<div class="small">${
+          foundMeta.map((m, idx) => `${slotTitle(idx)}=${m?.found ? "ok" : "missing"}`).join(" | ")
+        }</div>`;
+        return;
+      }
+      const itemSlots = foundMeta.map((m, idx) => ({ meta: m, slot: idx, item: itemsBySlot.get(idx) || null }));
+      const compareRefImage = getCompareReferenceImage();
+      const validSlots = itemSlots.filter(x => x.item);
+      const a = validSlots[0]?.item || {};
+      const b = validSlots[1]?.item || {};
+      const visibleDifferences = (d.differences || []);
+      const compareLine = itemSlots.map(({meta, item, slot}) => {
+        const requested = meta?.requested_code || reqCodes[slot] || "";
+        if (!item) return `<span class="mono">${slotTitle(slot)}: ${esc(requested || "-")}</span> <span class="small">(missing)</span>`;
+        return `<span class="mono">${slotTitle(slot)}: ${esc(item.product_code || requested)}</span>`;
+      }).join(" | ");
+      const compareHeader = `
+        <div class="small">Comparing ${compareLine}</div>
+        ${validSlots.length >= 2 ? priceSummaryGeneric(itemSlots, d.differences || []) : ""}
+        <div class="cmpGrid">
+          ${itemSlots.map(({meta, item, slot}) => {
+            const requested = meta?.requested_code || reqCodes[slot] || "";
+            const isVirtualIdeal = String(meta?.requested_code || "") === "IDEAL_SPEC";
+            if (!item){
+              if (isVirtualIdeal && compareRefImage){
+                return `
+                  <div class="cmpCard">
+                    <div class="cmpMetaRow small">
+                      <b>${slotTitle(slot)}</b>
+                      <span>-</span>
+                      <span class="mono">${esc(requested || "Project requirement")}</span>
+                      <span>Reference image</span>
+                    </div>
+                    <div class="cmpImgWrap"><img class="cmpImg" src="${esc(compareRefImage)}" alt="Reference requirement image" loading="eager" /></div>
+                  </div>`;
+              }
+              return `<div class="cmpCard"><div class="small"><b>${slotTitle(slot)}</b> - ${esc(requested)}</div><div class="small">Not found</div></div>`;
+            }
+            const inQuote = !isVirtualIdeal && isInQuote(item.product_code || requested);
+            const showRefImage = isVirtualIdeal && !!compareRefImage;
+            const previewSrc = showRefImage ? compareRefImage : String(item.image_preview_url || "");
+            const previewHtml = previewSrc
+              ? (showRefImage
+                  ? `<div class="cmpImgWrap"><img class="cmpImg" src="${esc(previewSrc)}" alt="Reference requirement image" loading="eager" /></div>`
+                  : `<div class="cmpImgWrap"><img class="cmpImg" src="${esc(previewSrc)}" data-full-img="${esc(`/full-image?product_code=${encodeURIComponent(String(item.product_code || requested || ""))}&manufacturer=${encodeURIComponent(String(item.manufacturer || ""))}&website_url=${encodeURIComponent(toolsWebsiteUrl(item.product_code || requested))}`)}" alt="Image ${esc(item.product_code || requested)}" loading="eager" /></div>`)
+              : "";
+            return `
+              <div class="cmpCard">
+                <div class="cmpMetaRow small">
+                  <b>${slotTitle(slot)}</b>
+                  <span>-</span>
+                  ${item.datasheet_url
+                    ? `<a class="solTableLink mono" href="${esc(item.datasheet_url)}" target="_blank" rel="noopener">${esc(item.product_code || requested)}</a>`
+                    : `<span class="mono">${esc(item.product_code || requested)}</span>`}
+                  <span>${esc(item.product_name || "")}</span>
+                </div>
+                ${isVirtualIdeal ? renderIdealSpecSummary(item) : ""}
+                ${!isVirtualIdeal ? `<div class="row" style="margin-top:8px"><button type="button" class="${inQuote ? "secondary" : ""}" data-cmp-quote-slot="${slot}">${inQuote ? "Remove from Quote" : "Add to Quote"}</button></div>` : ""}
+                ${previewHtml}
+              </div>`;
+          }).join("")}
+        </div>`;
+      if(!visibleDifferences.length){
+        $("cmpOut").innerHTML = `${compareHeader}<div class="small">No differences on compared fields.</div>`;
+        wireCompareQuoteButtons(itemSlots);
+        return;
+      }
+      $("cmpOut").innerHTML=`
+        ${compareHeader}
+        <div class="solutionsTableWrap">
+        <table class="solutionsTable compareDiffTable">
+          <thead><tr><th>Field</th>${itemSlots.map(({item, slot}) => `<th>${slotTitle(slot)}${item ? "" : " (missing)"}</th>`).join("")}</tr></thead>
+          <tbody>${visibleDifferences.map(x=>`<tr><td>${esc(prettyLabel(x.field))}</td>${itemSlots.map(({slot}) => `<td>${esc((x.values || [])[slot])}</td>`).join("")}</tr>`).join("")}</tbody>
+        </table>
+        </div>`;
+      wireCompareQuoteButtons(itemSlots);
+    }
+
+    async function runCompare(code_a, code_b, code_c=""){
+      if(!code_a || !code_b) return;
+      const reqCodes = [code_a, code_b, code_c].map(x => String(x || "").trim()).filter(Boolean);
+      setCompareInputCodes([code_a, code_b, code_c]);
+      $("cmpOut").innerHTML='<div class="small">Loading...</div>';
+      const d=await postJSON('/compare-products',{codes:reqCodes});
+      renderComparePayload(d, reqCodes);
+    }
+
+    async function runCompareIdeal(spec, code_b, code_c=""){
+      const reqCodes = [String(code_b || "").trim(), String(code_c || "").trim()].filter(Boolean);
+      if (!spec || !Object.keys(spec).length || !reqCodes.length) return;
+      $("cmpOut").innerHTML='<div class="small">Loading...</div>';
+      const d = await postJSON('/compare-spec-products', { ideal_spec: spec, codes: reqCodes });
+      renderComparePayload(d, ["IDEAL_SPEC", ...reqCodes]);
+    }
+    function containsCodeInsensitive(codes, code){
+      const wanted = normalizeCodeInputValue(code).toLowerCase();
+      if (!wanted) return false;
+      return (Array.isArray(codes) ? codes : []).some(x => normalizeCodeInputValue(x).toLowerCase() === wanted);
+    }
+    function putCodeInFirstEmptySlot(codes, code, slotOrder){
+      const picked = normalizeCodeInputValue(code);
+      const arr = [normalizeCodeInputValue(codes?.[0]), normalizeCodeInputValue(codes?.[1]), normalizeCodeInputValue(codes?.[2])];
+      if (!picked) return { codes: arr, inserted: false, full: false, duplicate: false };
+      if (containsCodeInsensitive(arr, picked)) return { codes: arr, inserted: false, full: false, duplicate: true };
+      const order = (Array.isArray(slotOrder) && slotOrder.length) ? slotOrder : [0,1,2];
+      const target = order.find(idx => !normalizeCodeInputValue(arr[idx]));
+      if (target === undefined) return { codes: arr, inserted: false, full: true, duplicate: false };
+      arr[target] = picked;
+      return { codes: arr, inserted: true, full: false, duplicate: false, slot: target };
+    }
+    async function addToComparisonSmartFromIdeal(code, specForCompare){
+      const picked = normalizeCodeInputValue(code);
+      if (!picked) return;
+      const curA = normalizeCodeInputValue($("cmpA")?.value);
+      const curB = normalizeCodeInputValue($("cmpB")?.value);
+      const curC = normalizeCodeInputValue($("cmpC")?.value);
+      const nextA = (!curA || curA === "Project requirement") ? "Project requirement" : curA;
+      const addRes = putCodeInFirstEmptySlot([nextA, curB, curC], picked, [1,2]);
+      if (addRes.full){
+        $("cmpOut").innerHTML=`<div class="small">Comparison slots are full (3/3).</div>`;
+        return;
+      }
+      if ($("cmpA")) $("cmpA").value = addRes.codes[0];
+      if ($("cmpB")) $("cmpB").value = addRes.codes[1];
+      if ($("cmpC")) $("cmpC").value = addRes.codes[2];
+
+      if (String($("cmpA")?.value || "").trim() === "Project requirement" && addRes.codes[1] && (specForCompare || lastIdealSpec)){
+        try{
+          await runCompareIdeal(specForCompare || lastIdealSpec, addRes.codes[1], addRes.codes[2]);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }catch(e){
+          $("cmpOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+        }
+      }
+    }
+    async function addToComparisonSmartFromBase(baseCode, pickedCode){
+      const base = normalizeCodeInputValue(baseCode);
+      const picked = normalizeCodeInputValue(pickedCode);
+      if (!base || !picked) return;
+      const curA = normalizeCodeInputValue($("cmpA")?.value);
+      const curB = normalizeCodeInputValue($("cmpB")?.value);
+      const curC = normalizeCodeInputValue($("cmpC")?.value);
+      const nextA = base || curA;
+      const addRes = putCodeInFirstEmptySlot([nextA, curB, curC], picked, [1,2]);
+      if (addRes.full){
+        $("cmpOut").innerHTML=`<div class="small">Comparison slots are full (3/3).</div>`;
+        return;
+      }
+      if ($("cmpA")) $("cmpA").value = nextA;
+      if ($("cmpB")) $("cmpB").value = addRes.codes[1];
+      if ($("cmpC")) $("cmpC").value = addRes.codes[2];
+      try{
+        if (addRes.codes[1]){
+          await runCompare(nextA, addRes.codes[1], addRes.codes[2]);
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }catch(e){
+        $("cmpOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+      }
+    }
+    function wireCompareQuoteButtons(itemSlots){
+      const root = $("cmpOut");
+      if (!root) return;
+      const bySlot = new Map(itemSlots.filter(x => x.item).map(x => [String(x.slot), x.item]));
+      Array.from(root.querySelectorAll("button[data-cmp-quote-slot]")).forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const item = bySlot.get(String(btn.dataset.cmpQuoteSlot || ""));
+          if (!item) return;
+          const added = toggleQuoteProduct(item, "tools-compare");
+          btn.textContent = added ? "Remove from Quote" : "Add to Quote";
+          btn.classList.toggle("secondary", added);
+        });
+      });
+    }
+    function sortAlternatives(rows){
+      const mode = solutionsSortOverride || $("altSort")?.value || $("idealSort")?.value || "score_desc";
+      const arr = Array.isArray(rows) ? [...rows] : [];
+      if (mode === "score_asc") arr.sort((a,b)=> Number(a?.score ?? Infinity) - Number(b?.score ?? Infinity));
+      if (mode === "score_desc") arr.sort((a,b)=> Number(b?.score ?? -Infinity) - Number(a?.score ?? -Infinity));
+      if (mode === "code_asc") arr.sort((a,b)=> String(a?.product_code || "").localeCompare(String(b?.product_code || "")));
+      if (mode === "code_desc") arr.sort((a,b)=> String(b?.product_code || "").localeCompare(String(a?.product_code || "")));
+      if (mode === "name_asc") arr.sort((a,b)=> String(a?.product_name || "").localeCompare(String(b?.product_name || "")));
+      if (mode === "name_desc") arr.sort((a,b)=> String(b?.product_name || "").localeCompare(String(a?.product_name || "")));
+      if (mode === "manufacturer_asc") arr.sort((a,b)=> String(a?.manufacturer || "").localeCompare(String(b?.manufacturer || "")));
+      if (mode === "manufacturer_desc") arr.sort((a,b)=> String(b?.manufacturer || "").localeCompare(String(a?.manufacturer || "")));
+      if (mode === "family_asc") arr.sort((a,b)=> String(a?.product_family || "").localeCompare(String(b?.product_family || "")));
+      if (mode === "family_desc") arr.sort((a,b)=> String(b?.product_family || "").localeCompare(String(a?.product_family || "")));
+      if (mode === "price_asc") arr.sort((a,b)=> {
+        const av = numPrice(a?.price);
+        const bv = numPrice(b?.price);
+        return (av ?? Infinity) - (bv ?? Infinity);
+      });
+      if (mode === "price_desc") arr.sort((a,b)=> {
+        const av = numPrice(a?.price);
+        const bv = numPrice(b?.price);
+        return (bv ?? -Infinity) - (av ?? -Infinity);
+      });
+      return arr;
+    }
+    function nextSortModeForColumn(col){
+      const current = String(solutionsSortOverride || $("idealSort")?.value || "score_desc");
+      const base = String(col || "").trim();
+      if (!base) return current;
+      return current === `${base}_asc` ? `${base}_desc` : `${base}_asc`;
+    }
+    function sortHeaderBtn(label, col){
+      const current = String(solutionsSortOverride || $("idealSort")?.value || "score_desc");
+      let suffix = "";
+      if (current === `${col}_asc`) suffix = " \u25B2";
+      if (current === `${col}_desc`) suffix = " \u25BC";
+      return `<button type="button" class="secondary" data-sol-sort="${esc(nextSortModeForColumn(col))}" style="padding:3px 6px;font-size:11px">${esc(label)}${suffix}</button>`;
+    }
+    function getFilteredAlternatives(rows){
+      const f = altColumnFilters || {};
+      const codeQ = String(f.code || "").trim().toLowerCase();
+      const nameQ = String(f.name || "").trim().toLowerCase();
+      const mfrQ = String(f.manufacturer || "").trim().toLowerCase();
+      const famQ = String(f.family || "").trim().toLowerCase();
+      const minScoreRaw = String(f.minScorePct || "").trim();
+      const minScore = minScoreRaw === "" ? null : Number(minScoreRaw);
+      return (Array.isArray(rows) ? rows : []).filter(r => {
+        const code = String(r?.product_code || "").toLowerCase();
+        const name = String(r?.product_name || "").toLowerCase();
+        const mfr = String(r?.manufacturer || "").toLowerCase();
+        const fam = String(r?.product_family || "").toLowerCase();
+        const score = Number(r?.score);
+        if (codeQ && !code.includes(codeQ)) return false;
+        if (nameQ && !name.includes(nameQ)) return false;
+        if (mfrQ && !mfr.includes(mfrQ)) return false;
+        if (famQ && !fam.includes(famQ)) return false;
+        if (Number.isFinite(minScore) && (score * 100) < minScore) return false;
+        return true;
+      });
+    }
+    function getSolutionsPageRows(rows){
+      const arr = Array.isArray(rows) ? rows : [];
+      const start = (solutionsPage - 1) * SOLUTIONS_PAGE_SIZE;
+      return arr.slice(start, start + SOLUTIONS_PAGE_SIZE);
+    }
+
+    function wireAlternativeFilters(d, originalCode){
+      const root = $("idealAltOut") || $("altOut");
+      if (!root) return;
+      const syncInputsToState = ()=>{
+        Array.from(root.querySelectorAll("[data-alt-filter]")).forEach(el=>{
+          const key = el.dataset.altFilter;
+          if (!key) return;
+          altColumnFilters[key] = el.value;
+        });
+      };
+      Array.from(root.querySelectorAll("[data-alt-filter]")).forEach(el=>{
+        el.addEventListener("keydown", (ev)=>{
+          if (ev.key === "Enter"){
+            syncInputsToState();
+            renderAlternatives(d, originalCode);
+          }
+        });
+      });
+      const applyBtn = root.querySelector("[data-alt-filters-apply]");
+      if (applyBtn){
+        applyBtn.addEventListener("click", ()=>{
+          syncInputsToState();
+          renderAlternatives(d, originalCode);
+        });
+      }
+      const clearBtn = root.querySelector("[data-alt-filters-clear]");
+      if (clearBtn){
+        clearBtn.addEventListener("click", ()=>{
+          altColumnFilters = { code:"", name:"", manufacturer:"", family:"", minScorePct:"" };
+          renderAlternatives(d, originalCode);
+        });
+      }
+    }
+
+    function renderSolutionsTableShared({
+      wrap,
+      dataset,
+      baseHeaderHtml,
+      emptyText,
+      filterAttr,
+      clearAttr,
+      applyAttr,
+      compareAttr,
+      quoteAttr,
+      onCompare,
+      onQuote,
+      onRerender,
+    }){
+      const sortedRows = sortAlternatives(dataset?.alternatives || []);
+      const eligibleRows = sortedRows.filter(r => Number(r?.score ?? 0) >= SOLUTIONS_MIN_SCORE);
+      const rows = getFilteredAlternatives(eligibleRows);
+      const totalPages = Math.max(1, Math.ceil(rows.length / SOLUTIONS_PAGE_SIZE));
+      if (solutionsPage > totalPages) solutionsPage = totalPages;
+      if (solutionsPage < 1) solutionsPage = 1;
+      const pageRows = getSolutionsPageRows(rows);
+      if (!rows.length){
+        const total = Array.isArray(eligibleRows) ? eligibleRows.length : 0;
+        wrap.innerHTML = `
+          <div class="small">${total ? "No alternatives match current filters." : `${emptyText} (showing only score >= 60%)`}</div>
+          ${total ? `<div class="row" style="margin-top:8px"><button type="button" class="secondary" ${clearAttr}>Clear filters</button></div>` : ""}
+        `;
+        if (total){
+          wrap.querySelector(`[${clearAttr.split("=")[0]}]`)?.addEventListener("click", ()=>{
+            altColumnFilters = { code:"", name:"", manufacturer:"", family:"", minScorePct:"" };
+            onRerender();
+          });
+        }
+        return;
+      }
+      wrap.innerHTML = `
+        ${baseHeaderHtml || ""}
+        <div class="solPager">
+          <button type="button" class="btn secondary" style="padding:6px 8px" data-sol-page-prev ${solutionsPage <= 1 ? "disabled" : ""}>Prev</button>
+          <div class="pagerInfo">Page ${solutionsPage}/${totalPages}</div>
+          <button type="button" class="btn secondary" style="padding:6px 8px" data-sol-page-next ${solutionsPage >= totalPages ? "disabled" : ""}>Next</button>
+        </div>
+        <div class="small" style="margin-bottom:6px">Showing ${pageRows.length} of ${rows.length}${Number.isFinite(Number(dataset?.total_matches)) ? ` (total matches: ${Number(dataset.total_matches)})` : ""} (score >= 60%)</div>
+        <div class="solutionsTableWrap">
+        <table class="solutionsResultsTable">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>${sortHeaderBtn("Code","code")}</th>
+              <th>${sortHeaderBtn("Name","name")}</th>
+              <th>${sortHeaderBtn("Manufacturer","manufacturer")}</th>
+              <th>${sortHeaderBtn("Family","family")}</th>
+              <th>${sortHeaderBtn("Score","score")}</th>
+              <th>Download</th>
+              <th>Actions</th>
+            </tr>
+            <tr>
+              <th></th>
+              <th><input type="text" ${filterAttr}="code" placeholder="Code" value="${esc(altColumnFilters.code)}" style="padding:5px 6px;border-radius:8px" /></th>
+              <th><input type="text" ${filterAttr}="name" placeholder="Name" value="${esc(altColumnFilters.name)}" style="padding:5px 6px;border-radius:8px" /></th>
+              <th><input type="text" ${filterAttr}="manufacturer" placeholder="Mfr" value="${esc(altColumnFilters.manufacturer)}" style="padding:5px 6px;border-radius:8px" /></th>
+              <th><input type="text" ${filterAttr}="family" placeholder="Family" value="${esc(altColumnFilters.family)}" style="padding:5px 6px;border-radius:8px" /></th>
+              <th><input type="number" min="0" max="100" step="0.1" ${filterAttr}="minScorePct" placeholder="Min %" value="${esc(altColumnFilters.minScorePct)}" style="padding:5px 6px;border-radius:8px" /></th>
+              <th></th>
+              <th>
+                <div class="solActions">
+                  <button type="button" ${applyAttr}>Apply</button>
+                  <button type="button" class="secondary" ${clearAttr}>Clear</button>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>${pageRows.map(r=>`<tr><td>${r.image_preview_url?`<img class="thumb" src="${esc(r.image_preview_url)}" data-full-img="${esc(`/full-image?product_code=${encodeURIComponent(String(r.product_code||""))}&manufacturer=${encodeURIComponent(String(r.manufacturer||""))}&website_url=${encodeURIComponent(toolsWebsiteUrl(r.product_code))}`)}" alt="Preview ${esc(r.product_code)}" loading="lazy" />`:""}</td><td class="mono"><a class="solTableLink" href="${esc(toolsWebsiteUrl(r.product_code))}" target="_blank" rel="noopener">${esc(r.product_code)}</a></td><td>${esc(r.product_name||"")}</td><td>${manufacturerLogoCell(r.manufacturer, r.product_code)}</td><td>${esc(r.product_family||"")}</td><td>${esc(scorePct(r.score))}</td><td>${r.datasheet_url?`<a class="solTableLink" href="${esc(r.datasheet_url)}" target="_blank" rel="noopener">Datasheet</a>`:""}</td><td><div class="solActions"><button type="button" ${compareAttr}="${esc(r.product_code)}">Compare</button><button type="button" class="${isInQuote(r.product_code) ? "secondary" : ""}" ${quoteAttr}="${esc(r.product_code)}">Quote</button></div></td></tr>`).join("")}</tbody>
+        </table>
+        </div>`;
+
+      const filterAttrName = filterAttr.replaceAll('"', "");
+      Array.from(wrap.querySelectorAll(`[${filterAttrName}]`)).forEach(el=>{
+        el.addEventListener("keydown", (ev)=>{
+          if (ev.key !== "Enter") return;
+          ev.preventDefault();
+          Array.from(wrap.querySelectorAll(`[${filterAttrName}]`)).forEach(inp=>{
+            const key = inp.getAttribute(filterAttrName);
+            if (key) altColumnFilters[key] = inp.value;
+          });
+          onRerender();
+        });
+      });
+      wrap.querySelector(`[${applyAttr.split("=")[0]}]`)?.addEventListener("click", ()=>{
+        Array.from(wrap.querySelectorAll(`[${filterAttrName}]`)).forEach(inp=>{
+          const key = inp.getAttribute(filterAttrName);
+          if (key) altColumnFilters[key] = inp.value;
+        });
+        solutionsPage = 1;
+        onRerender();
+      });
+      wrap.querySelector(`[${clearAttr.split("=")[0]}]`)?.addEventListener("click", ()=>{
+        altColumnFilters = { code:"", name:"", manufacturer:"", family:"", minScorePct:"" };
+        solutionsPage = 1;
+        onRerender();
+      });
+      Array.from(wrap.querySelectorAll("button[data-sol-sort]")).forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          solutionsSortOverride = String(btn.dataset.solSort || "").trim();
+          solutionsPage = 1;
+          onRerender();
+        });
+      });
+      wrap.querySelector("[data-sol-page-prev]")?.addEventListener("click", ()=>{
+        if (solutionsPage <= 1) return;
+        solutionsPage -= 1;
+        onRerender();
+      });
+      wrap.querySelector("[data-sol-page-next]")?.addEventListener("click", ()=>{
+        if (solutionsPage >= totalPages) return;
+        solutionsPage += 1;
+        onRerender();
+      });
+      Array.from(wrap.querySelectorAll(`button[${compareAttr.split("=")[0]}]`)).forEach(btn=>{
+        btn.addEventListener("click", ()=> onCompare(String(btn.getAttribute(compareAttr.replaceAll('"', "")) || "").trim()));
+      });
+      Array.from(wrap.querySelectorAll(`button[${quoteAttr.split("=")[0]}]`)).forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const code = String(btn.getAttribute(quoteAttr.replaceAll('"', "")) || "").trim();
+          const row = rows.find(x => String(x?.product_code || "").trim() === code);
+          if (!row) return;
+          const added = onQuote(row);
+          btn.classList.toggle("secondary", added);
+        });
+      });
+      Array.from(wrap.querySelectorAll("img.thumb")).forEach(img=>{
+        img.addEventListener("click", ()=>{
+          const src = img.dataset.fullImg || img.currentSrc || img.src;
+          if (!src) return;
+          openImageLightbox(src, img.alt || "Product preview");
+        });
+      });
+    }
+
+    function renderAlternatives(d, originalCode){
+      const out = $("idealAltOut") || $("altOut");
+      if (!out) return;
+      if(!d.found){
+        out.innerHTML='<div class="small">Base code not found.</div>';
+        return;
+      }
+      const baseCode = String(d.base?.product_code || originalCode || "");
+      renderSolutionsTableShared({
+        wrap: out,
+        dataset: d,
+        baseHeaderHtml: `<div class="small">Base: <span class="mono"><a href="${esc(toolsWebsiteUrl(d.base.product_code))}" target="_blank" rel="noopener">${esc(d.base.product_code)}</a></span> - ${esc(d.base.product_name||"")}</div>`,
+        emptyText: "No alternatives found.",
+        filterAttr: 'data-sol-filter',
+        clearAttr: 'data-sol-filters-clear',
+        applyAttr: 'data-sol-filters-apply',
+        compareAttr: 'data-sol-compare',
+        quoteAttr: 'data-sol-quote',
+        onCompare: async (picked)=> { await addToComparisonSmartFromBase(baseCode, picked); },
+        onQuote: (row)=> toggleQuoteProduct(row, "tools-solutions"),
+        onRerender: ()=> renderAlternatives(d, originalCode),
+      });
+    }
+
+    function collectIdealSpec(){
+      if (!finderSeedSpec || typeof finderSeedSpec !== "object") return {};
+      return { ...finderSeedSpec };
+    }
+    function setIdealSpecFields(spec){
+      const normalized = {};
+      for (const [k, v] of Object.entries(spec || {})){
+        const s = Array.isArray(v) ? String(v[0] ?? "") : String(v ?? "");
+        if (s.trim()) normalized[k] = s.trim();
+      }
+      finderSeedSpec = Object.keys(normalized).length ? normalized : null;
+    }
+    function applyFinderFiltersToIdealSpec(raw){
+      if (!raw) return false;
+      let parsed = null;
+      try{
+        parsed = JSON.parse(String(raw));
+      }catch(_e){
+        try{
+          parsed = JSON.parse(decodeURIComponent(String(raw)));
+        }catch(_e2){
+          parsed = null;
+        }
+      }
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return false;
+      setIdealSpecFields(parsed);
+      lastIdealSpec = collectIdealSpec();
+      if (Object.keys(lastIdealSpec || {}).length && $("cmpA")){
+        $("cmpA").value = "Project requirement";
+      }
+      return Object.keys(lastIdealSpec || {}).length > 0;
+    }
+    function resetRequirementFilters(){
+      finderSeedSpec = null;
+      lastIdealSpec = null;
+      if (String($("cmpA")?.value || "").trim() === "Project requirement") $("cmpA").value = "";
+    }
+    function resetToolsPage(){
+      resetRequirementFilters();
+      if ($("idealSourceCode")) $("idealSourceCode").value = "";
+      if ($("cmpA")) $("cmpA").value = "";
+      if ($("cmpB")) $("cmpB").value = "";
+      if ($("cmpC")) $("cmpC").value = "";
+      if ($("cmpOut")) $("cmpOut").innerHTML = "";
+      if ($("idealAltOut")) $("idealAltOut").innerHTML = "";
+      if ($("idealLimit")) $("idealLimit").value = "";
+      if ($("idealSort")) $("idealSort").value = "score_desc";
+      altColumnFilters = { code:"", name:"", manufacturer:"", family:"", minScorePct:"" };
+      lastAltData = null;
+      lastIdealAltData = null;
+      solutionsPage = 1;
+      try{ sessionStorage.removeItem(COMPARE_REF_IMAGE_KEY); }catch(_e){}
+      try{ sessionStorage.removeItem(TOOLS_STATE_KEY); }catch(_e){}
+    }
+
+    function saveToolsState(){
+      try{
+        const ids = [
+          "idealSourceCode","cmpA","cmpB","cmpC","idealLimit","idealSort"
+        ];
+        const fields = {};
+        ids.forEach(id => { fields[id] = String($(id)?.value || ""); });
+        let compareReferenceImage = "";
+        try{
+          compareReferenceImage = getCompareReferenceImage();
+        }catch(_e){}
+        const payload = {
+          ts: Date.now(),
+          fields,
+          compareReferenceImage,
+          finderSeedSpec: finderSeedSpec && typeof finderSeedSpec === "object" ? finderSeedSpec : null,
+          solutionsPage: Number(solutionsPage || 1),
+          solutionsSortOverride: String(solutionsSortOverride || ""),
+          toolsLang: String(toolsLang || "en"),
+          hadIdealAlt: !!lastIdealAltData,
+          hadCodeAlt: !!lastAltData,
+          hadCompare:
+            String($("cmpOut")?.textContent || "").trim().length > 0 &&
+            !!normalizeCodeInputValue($("cmpA")?.value) &&
+            !!normalizeCodeInputValue($("cmpB")?.value),
+        };
+        sessionStorage.setItem(TOOLS_STATE_KEY, JSON.stringify(payload));
+      }catch(_e){}
+    }
+
+    function restoreToolsState(){
+      try{
+        const raw = sessionStorage.getItem(TOOLS_STATE_KEY);
+        if (!raw) return false;
+        const state = JSON.parse(raw);
+        const ts = Number(state?.ts || 0);
+        if (!ts || (Date.now() - ts) > TOOLS_STATE_TTL_MS){
+          sessionStorage.removeItem(TOOLS_STATE_KEY);
+          return false;
+        }
+        const fields = state?.fields && typeof state.fields === "object" ? state.fields : {};
+        Object.entries(fields).forEach(([id, val]) => {
+          if ($(id)) $(id).value = String(val || "");
+        });
+        solutionsPage = Math.max(1, Number(state?.solutionsPage || 1));
+        solutionsSortOverride = String(state?.solutionsSortOverride || "");
+        if (state?.toolsLang && TOOLS_LANGS.some(x => x[0] === String(state.toolsLang))){
+          toolsLang = String(state.toolsLang);
+        }
+        finderSeedSpec = state?.finderSeedSpec && typeof state.finderSeedSpec === "object"
+          ? state.finderSeedSpec
+          : null;
+        restoredToolsStateMeta = {
+          hadIdealAlt: !!state?.hadIdealAlt,
+          hadCodeAlt: !!state?.hadCodeAlt,
+          hadCompare: !!state?.hadCompare,
+        };
+        const restoredSpec = collectIdealSpec();
+        lastIdealSpec = Object.keys(restoredSpec).length ? restoredSpec : null;
+        if (state?.compareReferenceImage){
+          try{ sessionStorage.setItem(COMPARE_REF_IMAGE_KEY, String(state.compareReferenceImage)); }catch(_e){}
+        }
+        return true;
+      }catch(_e){
+        return false;
+      }
+    }
+    async function populateIdealSpecFromQueryText(q, autoRun=false){
+      const text = String(q || "").trim();
+      if (!text) return;
+      if ($("idealQueryText")) $("idealQueryText").value = text;
+      try{
+        const r = await fetch(`/debug/parse?q=${encodeURIComponent(text)}`);
+        if (!r.ok) throw new Error(await r.text());
+        const d = await r.json();
+        const parsed = (d && (d.sql || d.local)) || {};
+        setIdealSpecFields(parsed);
+        lastIdealSpec = collectIdealSpec();
+        // Applying tender text should switch the workflow back to requirement-based mode.
+        if (Object.keys(lastIdealSpec || {}).length && $("cmpA")){
+          $("cmpA").value = "Project requirement";
+        }
+        if (autoRun) $("btnIdealAlt")?.click();
+      }catch(e){
+        const box = $("idealAltOut");
+        if (box) box.innerHTML = `<div class="small">Could not parse query into Ideal Spec: ${esc(e.message || e)}</div>`;
+      }
+    }
+    async function populateIdealSpecFromProductCode(code, autoRun=false){
+      const productCode = String(code || "").trim();
+      if (!productCode) return;
+      if ($("idealSourceCode")) $("idealSourceCode").value = productCode;
+      try{
+        const d = await postJSON('/alternatives', { code: productCode, limit: 1 });
+        if (!d?.found || !d?.base){
+          throw new Error("Product code not found");
+        }
+        setIdealSpecFields(d.base || {});
+        lastIdealSpec = collectIdealSpec();
+        // Applying a real product code should set the reference slot to that product, so
+        // "Apply filters" reuses the product-alternatives logic (old Show alternatives behavior).
+        if ($("cmpA")) $("cmpA").value = productCode;
+        if (autoRun) $("btnIdealAlt")?.click();
+      }catch(e){
+        const box = $("idealAltOut");
+        if (box) box.innerHTML = `<div class="small">Could not load product spec from code: ${esc(e.message || e)}</div>`;
+      }
+    }
+
+    function renderIdealAlternatives(d){
+      const wrap = $("idealAltOut");
+      if (!wrap) return;
+      renderSolutionsTableShared({
+        wrap,
+        dataset: d,
+        baseHeaderHtml: ``,
+        emptyText: "No alternatives found for current ideal spec.",
+        filterAttr: 'data-sol-filter',
+        clearAttr: 'data-sol-filters-clear',
+        applyAttr: 'data-sol-filters-apply',
+        compareAttr: 'data-sol-compare',
+        quoteAttr: 'data-sol-quote',
+        onCompare: async (picked)=> { await addToComparisonSmartFromIdeal(picked, lastIdealSpec || d.ideal_spec || {}); },
+        onQuote: (row)=> toggleQuoteProduct(row, "tools-ideal"),
+        onRerender: ()=> renderIdealAlternatives(lastIdealAltData || d),
+      });
+    }
+
+    $("btnFinder").addEventListener("click", ()=>{
+      saveToolsState();
+      window.location.href = "/";
+    });
+    $("btnQuote").addEventListener("click", ()=>{ saveToolsState(); window.location.href = "/frontend/quote.html"; });
+    $("btnResetFilters")?.addEventListener("click", ()=>{
+      resetToolsPage();
+    });
+
+    $("btnCompare").addEventListener("click", async ()=>{
+      const code_a = normalizeCodeInputValue($("cmpA")?.value);
+      const code_b = normalizeCodeInputValue($("cmpB")?.value);
+      const code_c = normalizeCodeInputValue($("cmpC")?.value);
+      if (code_a === "Project requirement"){
+        if (!lastIdealSpec){
+          $("cmpOut").innerHTML = `<div class="small">Ideal Spec not loaded. Use "Apply filters" first.</div>`;
+          return;
+        }
+        if (!code_b) return;
+        try{
+          await runCompareIdeal(lastIdealSpec, code_b, code_c);
+        }catch(e){
+          $("cmpOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+        }
+        return;
+      }
+      if(!code_a||!code_b) return;
+      try{
+        await runCompare(code_a, code_b, code_c);
+      }catch(e){
+        $("cmpOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+      }
+    });
+    $("btnClearC").addEventListener("click", ()=>{
+      if ($("cmpA")) $("cmpA").value = "";
+      if ($("cmpB")) $("cmpB").value = "";
+      if ($("cmpC")) $("cmpC").value = "";
+      if ($("cmpOut")) $("cmpOut").innerHTML = "";
+    });
+    $("btnIdealAlt").addEventListener("click", async ()=>{
+      const codeA = normalizeCodeInputValue($("cmpA")?.value);
+      const limitRaw = String($("idealLimit")?.value || "").trim();
+      const limitNum = Number(limitRaw);
+      const limit = (limitRaw !== "" && Number.isFinite(limitNum) && limitNum > 0) ? Math.max(1, Math.min(5000, Math.round(limitNum))) : null;
+      const sort = String($("idealSort")?.value || "score_desc");
+      $("idealAltOut").innerHTML = '<div class="small">Loading...</div>';
+      if (codeA && codeA !== "Project requirement"){
+        try{
+          const payload = { code: codeA, min_score: SOLUTIONS_MIN_SCORE };
+          if (limit !== null) payload.limit = limit;
+          const d = await postJSON('/alternatives', payload);
+          solutionsPage = 1;
+          lastAltData = { data: d, code: codeA };
+          renderAlternatives(d, codeA);
+        }catch(e){
+          $("idealAltOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+        }
+        return;
+      }
+      const idealSpec = collectIdealSpec();
+      if (!Object.keys(idealSpec).length){
+        $("idealAltOut").innerHTML = '<div class="small">Set at least one requirement or set a reference product code.</div>';
+        return;
+      }
+      try{
+        const payload = { ideal_spec: idealSpec, sort, min_score: SOLUTIONS_MIN_SCORE };
+        if (limit !== null) payload.limit = limit;
+        const d = await postJSON('/alternatives-from-spec', payload);
+        solutionsPage = 1;
+        lastIdealSpec = d.ideal_spec || idealSpec;
+        lastIdealAltData = d;
+        if ($("cmpA")) $("cmpA").value = "Project requirement";
+        renderIdealAlternatives(d);
+      }catch(e){
+        $("idealAltOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+      }
+    });
+    $("btnIdealFromCode")?.addEventListener("click", async ()=>{
+      const code = String($("idealSourceCode")?.value || "").trim();
+      if (!code){
+        $("idealAltOut").innerHTML = '<div class="small">Type a product code first.</div>';
+        return;
+      }
+      await populateIdealSpecFromProductCode(code, true);
+    });
+    $("idealSourceCode")?.addEventListener("keydown", async (e)=>{
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      $("btnIdealFromCode")?.click();
+    });
+    $("btnAlt")?.addEventListener("click", async ()=>{
+      const code=$("altCode")?.value.trim();
+      const limit=Math.max(1,Math.min(50,Number($("altLimit")?.value)||10));
+      if(!code || !$("altOut")) return;
+      $("altOut").innerHTML='<div class="small">Loading...</div>';
+      try{
+        const d=await postJSON('/alternatives',{code,limit});
+        lastAltData = { data: d, code };
+        renderAlternatives(d, code);
+      }catch(e){
+        $("altOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+      }
+    });
+    $("altSort")?.addEventListener("change", ()=>{
+      if (lastAltData?.data){
+        renderAlternatives(lastAltData.data, lastAltData.code);
+      }
+    });
+
+    function rerunIdealAlternativesIfActive(){
+      const box = $("idealAltOut");
+      if (!box) return;
+      const hasPreviousRun = !!lastIdealSpec || /alternatives for current ideal spec|No alternatives found for current ideal spec/i.test(String(box.textContent || ""));
+      if (!hasPreviousRun) return;
+      $("btnIdealAlt")?.click();
+    }
+
+    // Re-run backend search (not client-side sort only) when ordering/limit/spec changes.
+    $("idealSort")?.addEventListener("change", rerunIdealAlternativesIfActive);
+    $("idealLimit")?.addEventListener("change", rerunIdealAlternativesIfActive);
+
+    const tl = $("toolsLang");
+    if (FINDER_ONLY_TOOLS){
+      document.body.classList.add("finderOnly");
+    }
+    toolsLang = detectToolsLang();
+    if (tl){
+      tl.innerHTML = TOOLS_LANGS.map(([c,l])=>`<option value="${c}">${l}</option>`).join("");
+      tl.value = toolsLang;
+      tl.addEventListener("change", ()=>{ toolsLang = tl.value; try{ localStorage.setItem(UI_LANG_KEY, toolsLang); }catch(_e){} applyToolsI18n(); });
+    }
+    const _paramsForRestore = new URLSearchParams(window.location.search);
+    const hasUrlSeedForTools = !!(
+      String(_paramsForRestore.get("fresh") || "").trim() ||
+      String(_paramsForRestore.get("finderFilters") || "").trim() ||
+      String(_paramsForRestore.get("finderSeedSpec") || "").trim() ||
+      String(_paramsForRestore.get("altCode") || _paramsForRestore.get("code") || "").trim() ||
+      String(_paramsForRestore.get("cmpA") || "").trim() ||
+      String(_paramsForRestore.get("cmpB") || "").trim() ||
+      String(_paramsForRestore.get("cmpC") || "").trim()
+    );
+    if (!hasUrlSeedForTools){
+      restoreToolsState();
+    } else {
+      try{ sessionStorage.removeItem(TOOLS_STATE_KEY); }catch(_e){}
+    }
+    applyToolsI18n();
+    window.addEventListener("beforeunload", saveToolsState);
+
+    (function hydrateFromQuery(){
+      const params = new URLSearchParams(window.location.search);
+      const altCode = (params.get("altCode") || params.get("code") || "").trim();
+      const cmpA = normalizeCodeInputValue(params.get("cmpA") || "");
+      const cmpB = normalizeCodeInputValue(params.get("cmpB") || "");
+      const cmpC = normalizeCodeInputValue(params.get("cmpC") || "");
+      const cmpAuto = ["1","true","yes"].includes(String(params.get("cmpAuto") || "").toLowerCase());
+      const altLimit = Number(params.get("altLimit"));
+      const auto = ["1","true","yes"].includes(String(params.get("auto") || "").toLowerCase());
+      const finderFilters = (params.get("finderFilters") || "").trim();
+      const finderSeedSpec = (params.get("finderSeedSpec") || "").trim();
+      const idealAuto = ["1","true","yes"].includes(String(params.get("idealAuto") || "").toLowerCase());
+      hadToolsDeepLink = !!(altCode || cmpA || cmpB || cmpC || auto || idealAuto || cmpAuto || finderFilters || finderSeedSpec);
+      // URL params override restored session state when provided.
+      if (altCode && $("idealSourceCode")) $("idealSourceCode").value = altCode;
+      if (altCode && $("altCode")) $("altCode").value = altCode;
+      if (cmpA || cmpB || cmpC) {
+        if (cmpA) $("cmpA").value = cmpA;
+        if (cmpB) $("cmpB").value = cmpB;
+        if (cmpC) $("cmpC").value = cmpC;
+      }
+      if (Number.isFinite(altLimit) && altLimit > 0) {
+        $("altLimit").value = String(Math.max(1, Math.min(50, Math.round(altLimit))));
+      }
+      const hasFinderFilters = applyFinderFiltersToIdealSpec(finderSeedSpec || finderFilters);
+      if (altCode && auto) {
+        populateIdealSpecFromProductCode(altCode, true);
+      }
+      if (cmpAuto && (cmpA || cmpB)) {
+        $("btnCompare")?.click();
+      }
+    })();
+    replayRestoredToolsStateIfNeeded();
+    async function replayRestoredToolsStateIfNeeded(){
+      if (!restoredToolsStateMeta || hadToolsDeepLink) return;
+      try{
+        if (restoredToolsStateMeta.hadCodeAlt){
+          const code = normalizeCodeInputValue($("cmpA")?.value || $("idealSourceCode")?.value);
+          if (code && code !== "Project requirement"){
+            await populateIdealSpecFromProductCode(code, true);
+          }
+        } else if (restoredToolsStateMeta.hadIdealAlt){
+          const spec = collectIdealSpec();
+          if (Object.keys(spec).length){
+            $("btnIdealAlt")?.click();
+          }
+        }
+        if (restoredToolsStateMeta.hadCompare){
+          const a = normalizeCodeInputValue($("cmpA")?.value);
+          const b = normalizeCodeInputValue($("cmpB")?.value);
+          const hasIdeal = Object.keys(lastIdealSpec || collectIdealSpec() || {}).length > 0;
+          if ((a && b && a !== "Project requirement") || (a === "Project requirement" && b && hasIdeal)){
+            $("btnCompare")?.click();
+          }
+        }
+      }catch(_e){}
+    }
+    document.addEventListener("click", (ev)=>{
+      const t = ev.target;
+      if (!(t instanceof Element)) return;
+      if (t.id === "btnImgLightboxClose" || t.matches("[data-img-close='1']")){
+        closeImageLightbox();
+      }
+    });
+    $("btnComparePdf")?.addEventListener("click", async ()=>{
+      const code_a = normalizeCodeInputValue($("cmpA")?.value);
+      const code_b = normalizeCodeInputValue($("cmpB")?.value);
+      const code_c = normalizeCodeInputValue($("cmpC")?.value);
+      const isProjectReq = code_a === "Project requirement";
+      const payload = isProjectReq
+        ? { ideal_spec: (lastIdealSpec || collectIdealSpec() || {}), codes: [code_a, code_b, code_c].filter(Boolean) }
+        : { codes: [code_a, code_b, code_c].filter(Boolean) };
+      if (isProjectReq && !Object.keys(payload.ideal_spec || {}).length){
+        $("cmpOut").innerHTML = `<div class="small">Project requirement not loaded. Apply requirements first.</div>`;
+        return;
+      }
+      if ((!isProjectReq && payload.codes.length < 2) || (isProjectReq && payload.codes.filter(x => x !== "Project requirement").length < 1)){
+        $("cmpOut").innerHTML = `<div class="small">Set the comparison inputs first.</div>`;
+        return;
+      }
+      try{
+        const r = await fetch('/compare/export-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const cd = String(r.headers.get('Content-Disposition') || '');
+        const m = cd.match(/filename\*?=(?:UTF-8''|\"?)([^\";]+)/i);
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = m ? decodeURIComponent(m[1].replace(/^["']|["']$/g, '')) : 'comparison_sheet.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(()=> URL.revokeObjectURL(url), 1000);
+      }catch(e){
+        $("cmpOut").innerHTML = `<div class="small">PDF export error: ${esc(e.message || e)}</div>`;
+      }
+    });
+    document.addEventListener("keydown", (ev)=>{
+      if (ev.key === "Escape") closeImageLightbox();
+    });
+    document.addEventListener("click", (ev)=>{
+      const t = ev.target;
+      if (!(t instanceof HTMLImageElement)) return;
+      if (!t.classList.contains("cmpImg")) return;
+      const src = t.dataset.fullImg || t.currentSrc || t.src;
+      if (!src) return;
+      openImageLightbox(src, t.alt || "Comparison image");
+    });
+  </script>
+</body>
+</html>
+
+

@@ -1,0 +1,30 @@
+{$APP_DOMAIN} {
+    encode zstd gzip
+
+    @health path /health
+    handle @health {
+        reverse_proxy app:8000
+    }
+
+    handle_path /frontend/* {
+        reverse_proxy app:8000
+    }
+
+    handle /docs* {
+        reverse_proxy app:8000
+    }
+
+    handle /redoc* {
+        reverse_proxy app:8000
+    }
+
+    handle /openapi.json {
+        reverse_proxy app:8000
+    }
+
+    handle {
+        reverse_proxy app:8000
+    }
+
+    tls {$ACME_EMAIL}
+}

@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Product Finder</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#0f172a;--muted:#64748b;--border:#e2e8f0;--brand:#2563eb;--dark:#111827;--r:14px;--sh:0 1px 10px rgba(0,0,0,.06)}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,Arial;background:var(--bg);color:var(--ink)}
+header{position:sticky;top:0;z-index:10;background:var(--dark);color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-size:14px;margin:0}
+.sub{font-size:12px;opacity:.75;margin-top:2px}
+.btn{border:0;border-radius:12px;padding:10px 12px;background:var(--brand);color:#fff;cursor:pointer;font-weight:700}
+.btn.secondary{background:rgba(255,255,255,.12)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+main{display:grid;grid-template-columns:380px 1fr;gap:14px;padding:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);padding:12px}
+.sticky{position:sticky;top:64px;max-height:calc(100vh - 78px);overflow:auto}
+.hr{height:1px;background:var(--border);margin:12px 0}
+input[type=text],input[type=number],select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:12px}
+.row{display:flex;gap:10px;align-items:center}
+.wrap{flex-wrap:wrap}
+.pill{display:inline-flex;gap:8px;align-items:center;border-radius:999px;padding:6px 10px;background:#eef2ff;color:#3730a3;font-size:12px;cursor:pointer}
+.pill b{opacity:.75}
+details{border:1px solid var(--border);border-radius:14px;padding:10px;background:#fff}
+details+details{margin-top:10px}
+summary{cursor:pointer;font-weight:800;display:flex;justify-content:space-between;gap:10px;list-style:none}
+summary::-webkit-details-marker{display:none}
+.facet-list{max-height:230px;overflow:auto}
+.facet-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9}
+.facet-item:last-child{border-bottom:0}
+.count{font-size:12px;color:var(--muted)}
+.tag{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;font-size:12px;border:1px solid var(--border);background:#f1f5f9;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.hit{border:1px solid var(--border);border-radius:16px;background:#fff;padding:12px;box-shadow:0 1px 10px rgba(0,0,0,.04)}
+.hit h3{margin:0;font-size:14px}
+.name{margin-top:4px;color:var(--muted);font-size:12px}
+.specs{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.score{height:8px;border-radius:999px;background:#f1f5f9;overflow:hidden;border:1px solid var(--border);margin-top:10px}
+.score>div{height:100%;background:rgba(37,99,235,.85);width:0%}
+.toast{position:fixed;right:14px;bottom:14px;z-index:50;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--sh);padding:12px;display:none;width:min(420px,calc(100% - 28px))}
+.toast .t{font-weight:900;margin-bottom:4px}
+.muted{color:var(--muted)}
+@media(max-width:980px){main{grid-template-columns:1fr}.sticky{position:relative;top:auto;max-height:none;overflow:visible}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Product Finder</h1>
+    <div class="sub">Facets + Search (POST /facets, /search)</div>
+  </div>
+  <div class="row">
+    <button id="btnClearTop" class="btn secondary">Clear</button>
+    <button id="btnRunTop" class="btn">Search</button>
+  </div>
+</header>
+
+<main>
+  <section class="card sticky" id="filters">
+    <div style="font-weight:900;margin:2px 0 10px">Query</div>
+    <input id="q" type="text" placeholder='e.g. "UGR<19 office panel 4000K DALI"'/>
+    <div class="row" style="margin-top:10px">
+      <button id="btnRun" class="btn" style="flex:1">Search</button>
+      <button id="btnClear" class="btn secondary" style="flex:1;background:var(--dark)">Clear</button>
+    </div>
+
+    <div class="hr"></div>
+    <div style="font-weight:900;margin:2px 0 8px">Selected filters</div>
+    <div id="selected" class="row wrap"></div>
+    <div class="muted" style="font-size:12px;margin-top:6px">Click a chip to remove. Facets auto-refresh.</div>
+
+    <div class="hr"></div>
+
+    <details open>
+      <summary><span>Families</span><span class="count" id="famCount">—</span></summary>
+      <input id="fs_product_family" type="text" placeholder="Search values..." style="margin:10px 0"/>
+      <div id="families" class="facet-list"></div>
+    </details>
+
+    <details open>
+      <summary><span>Photometrics</span><span class="count" id="lumen_minmax">—</span></summary>
+      <div class="muted" style="font-size:12px;margin-top:10px">Lumen range</div>
+      <div class="row" style="margin-top:8px">
+        <input id="lumen_lo" type="number" placeholder="min"/>
+        <input id="lumen_hi" type="number" placeholder="max"/>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnApplyLumen" class="btn secondary">Apply</button>
+        <button id="btnResetLumen" class="btn secondary">Reset</button>
+      </div>
+      <div class="hr"></div>
+      <div class="muted" style="font-size:12px">CCT</div>
+      <input id="fs_cct_k" type="text" placeholder="Search values..." style="margin:8px 0"/>
+      <div id="cct_k" class="facet-list"></div>
+      <div class="muted" style="font-size:12px;margin-top:10px">CRI</div>
+      <input id="fs_cri" type="text" placeholder="Search values..." style="margin:8px 0"/>
+      <div id="cri" class="facet-list"></div>
+      <div class="muted" style="font-size:12px;margin-top:10px">UGR</div>
+      <input id="fs_ugr" type="text" placeholder="Search values..." style="margin:8px 0"/>
+      <div id="ugr" class="facet-list"></div>
+    </details>
+
+    <details open>
+      <summary><span>Power & Controls</span><span class="count" id="pwr_minmax">—</span></summary>
+      <div class="muted" style="font-size:12px;margin-top:10px">Power range (max W)</div>
+      <div class="row" style="margin-top:8px">
+        <input id="pwr_lo" type="number" placeholder="min"/>
+        <input id="pwr_hi" type="number" placeholder="max"/>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnApplyPwr" class="btn secondary">Apply</button>
+        <button id="btnResetPwr" class="btn secondary">Reset</button>
+      </div>
+      <div class="hr"></div>
+      <div class="muted" style="font-size:12px">Power buckets</div>
+      <input id="fs_power_max_w_buckets" type="text" placeholder="Search values..." style="margin:8px 0"/>
+      <div id="power_max_w_buckets" class="facet-list"></div>
+      <div class="muted" style="font-size:12px;margin-top:10px">Control</div>
+      <input id="fs_control_protocol" type="text" placeholder="Search values..." style="margin:8px 0"/>
+      <div id="control_protocol" class="facet-list"></div>
+      <div class="muted" style="font-size:12px;margin-top:10px">Emergency</div>
+      <input id="fs_emergency_present" type="text" placeholder="Search values..." style="margin:8px 0"/>
+      <div id="emergency_present" class="facet-list"></div>
+    </details>
+
+    <details open>
+      <summary><span>Protection</span><span class="count">IP/IK</span></summary>
+      <div class="muted" style="font-size:12px;margin-top:10px">IP</div>
+      <input id="fs_ip_rating" type="text" placeholder="Search values..." style="margin:8px 0"/>
+      <div id="ip_rating" class="facet-list"></div>
+      <div class="muted" style="font-size:12px;margin-top:10px">IK</div>
+      <input id="fs_ik_rating" type="text" placeholder="Search values..." style="margin:8px 0"/>
+      <div id="ik_rating" class="facet-list"></div>
+    </details>
+
+    <details>
+      <summary><span>Debug</span><span class="count">open</span></summary>
+      <pre id="raw" style="white-space:pre-wrap;font-size:12px;margin:10px 0 0"></pre>
+    </details>
+  </section>
+
+  <section class="card">
+    <div class="row wrap" style="justify-content:space-between">
+      <div>
+        <div style="font-weight:900;margin:2px 0 4px">Results</div>
+        <div class="muted" style="font-size:12px">Cards show key specs if present (hit.preview or hit.raw when debug).</div>
+      </div>
+      <div class="row" style="min-width:240px">
+        <select id="sortBy">
+          <option value="score_desc">Sort: score ↓</option>
+          <option value="score_asc">Sort: score ↑</option>
+          <option value="code_asc">Sort: code A→Z</option>
+          <option value="code_desc">Sort: code Z→A</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+    <div class="row wrap" id="kpi"></div>
+
+    <div class="hr"></div>
+    <div style="font-weight:900;margin:2px 0 10px">Exact</div>
+    <div id="exact" class="grid"></div>
+
+    <div class="hr"></div>
+    <div style="font-weight:900;margin:2px 0 10px">Similar</div>
+    <div id="similar" class="grid"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"><div class="t" id="toastT"></div><div class="muted" style="font-size:12px" id="toastB"></div></div>
+
+<script>
+const selectedFilters = {}; // {key:Set}
+let lastFacets = null;
+let lastResults = {exact:[], similar:[]};
+let debounceTimer = null;
+const $ = (id)=>document.getElementById(id);
+
+function toast(t,b){
+  $("toastT").textContent = t||"";
+  $("toastB").textContent = b||"";
+  $("toast").style.display="block";
+  clearTimeout(toast._t);
+  toast._t=setTimeout(()=>$("toast").style.display="none", 3200);
+}
+function setBusy(b){
+  $("btnRunTop").disabled=b; $("btnRunTop").textContent=b?"Searching...":"Search";
+  $("btnRun").disabled=b; $("btnRun").textContent=b?"Searching...":"Search";
+}
+function esc(s){
+  return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function addFilter(k,v){ if(!selectedFilters[k]) selectedFilters[k]=new Set(); selectedFilters[k].add(String(v)); renderSelected(); }
+function removeFilter(k,v){ if(!selectedFilters[k]) return; selectedFilters[k].delete(String(v)); if(!selectedFilters[k].size) delete selectedFilters[k]; renderSelected(); }
+function clearFilters(){ Object.keys(selectedFilters).forEach(k=>delete selectedFilters[k]); renderSelected(); }
+function buildFiltersPayload(){
+  const out={}; for(const [k,set] of Object.entries(selectedFilters)){ const arr=[...set]; out[k]=arr.length===1?arr[0]:arr; } return out;
+}
+function debounce(fn,ms=180){ clearTimeout(debounceTimer); debounceTimer=setTimeout(fn,ms); }
+
+function renderSelected(){
+  const chips=[];
+  for(const [k,set] of Object.entries(selectedFilters)){
+    for(const v of set){
+      chips.push(`<span class="pill" data-k="${esc(k)}" data-v="${esc(v)}">${esc(k)}: ${esc(v)} <b>×</b></span>`);
+    }
+  }
+  $("selected").innerHTML = chips.join(" ") || `<span class="muted" style="font-size:12px">No filters selected</span>`;
+  [...$("selected").querySelectorAll(".pill")].forEach(el=>{
+    el.addEventListener("click", ()=>{
+      removeFilter(el.getAttribute("data-k"), el.getAttribute("data-v"));
+      debounce(runQuery, 80);
+    });
+  });
+  const n = Object.values(selectedFilters).reduce((a,s)=>a+s.size,0);
+  $("btnClearTop").textContent = n?`Clear (${n})`:"Clear";
+  $("btnClear").textContent = n?`Clear (${n})`:"Clear";
+}
+
+function getFacetItems(key){
+  if(!lastFacets) return [];
+  if(key==="product_family") return lastFacets.families||[];
+  if(key==="cct_k") return lastFacets.photometrics?.cct_k||[];
+  if(key==="cri") return lastFacets.photometrics?.cri||[];
+  if(key==="ugr") return lastFacets.photometrics?.ugr||[];
+  if(key==="power_max_w") return lastFacets.power_voltage?.power_max_w_buckets||[];
+  if(key==="control_protocol") return lastFacets.power_voltage?.control_protocol||[];
+  if(key==="emergency_present") return lastFacets.power_voltage?.emergency_present||[];
+  if(key==="ip_rating") return lastFacets.dimensions_options?.ip_rating||[];
+  if(key==="ik_rating") return lastFacets.dimensions_options?.ik_rating||[];
+  return [];
+}
+
+function renderFacetList(containerId, key, items, searchText=""){
+  const box = $(containerId);
+  const q = String(searchText||"").trim().toLowerCase();
+  let arr = items||[];
+  if(q) arr = arr.filter(it => String(it.value ?? it.raw ?? "").toLowerCase().includes(q));
+  if(!arr.length){ box.innerHTML=`<div class="muted" style="font-size:12px">—</div>`; return; }
+  box.innerHTML = arr.map(it=>{
+    const shown = String(it.value ?? it.raw ?? "");
+    const checked = selectedFilters[key]?.has(shown);
+    const id = `${containerId}__${btoa(unescape(encodeURIComponent(shown))).slice(0,12)}`;
+    return `<div class="facet-item">
+      <label style="display:flex;gap:10px;align-items:center;cursor:pointer">
+        <input type="checkbox" id="${id}" ${checked?"checked":""}/>
+        <span>${esc(shown)}</span>
+      </label>
+      <span class="count">${it.count??""}</span>
+    </div>`;
+  }).join("");
+  arr.forEach(it=>{
+    const shown = String(it.value ?? it.raw ?? "");
+    const id = `${containerId}__${btoa(unescape(encodeURIComponent(shown))).slice(0,12)}`;
+    const cb = $(id);
+    if(!cb) return;
+    cb.addEventListener("change",(e)=>{
+      if(e.target.checked) addFilter(key, shown); else removeFilter(key, shown);
+      debounce(runQuery, 120);
+    });
+  });
+}
+
+function spec(hit, k){
+  const v = hit?.preview?.[k] ?? hit?.raw?.[k];
+  const s = String(v??"").trim();
+  return s && s.toLowerCase()!=="nan" ? s : null;
+}
+function specPills(hit){
+  const keys=[["ip_rating","IP"],["ik_rating","IK"],["cct_k","CCT"],["cri","CRI"],["ugr","UGR"],["power_max_w","W"],["lumen_output","lm"],["efficacy_lm_w","lm/W"],["control_protocol","Ctrl"],["emergency_present","EM"]];
+  const out=[];
+  for(const [k,l] of keys){
+    const v = spec(hit,k);
+    if(v){ out.push(`<span class="tag">${esc(l)}: ${esc(v)}</span>`); }
+    if(out.length>=8) break;
+  }
+  return out.join(" ");
+}
+function sortHits(hits){
+  const mode = $("sortBy").value;
+  const arr=[...hits];
+  const code=(h)=>String(h.product_code||"");
+  const score=(h)=>Number(h.score??0);
+  arr.sort((a,b)=>{
+    if(mode==="score_desc") return score(b)-score(a);
+    if(mode==="score_asc") return score(a)-score(b);
+    if(mode==="code_desc") return code(b).localeCompare(code(a));
+    return code(a).localeCompare(code(b));
+  });
+  return arr;
+}
+function renderHits(containerId, hits){
+  const box=$(containerId);
+  if(!hits || !hits.length){ box.innerHTML=`<div class="muted" style="font-size:12px">—</div>`; return; }
+  const arr=sortHits(hits);
+  box.innerHTML = arr.map(h=>{
+    const code=String(h.product_code||"").trim();
+    const name=String(h.product_name||"").trim();
+    const url = code?`https://www.disano.it/en/search/?q=${encodeURIComponent(code)}`:"#";
+    const sc = Math.max(0,Math.min(1,Number(h.score??0)));
+    return `<div class="hit">
+      <div class="row wrap" style="justify-content:space-between;gap:12px">
+        <div>
+          <h3><a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--brand);font-weight:900">${esc(code||"—")}</a></h3>
+          <div class="name">${esc(name||"")}</div>
+          <div class="specs">${specPills(h)}</div>
+        </div>
+        <div class="tag">Score ${(sc*100).toFixed(0)}%</div>
+      </div>
+      <div class="score"><div style="width:${(sc*100).toFixed(0)}%"></div></div>
+    </div>`;
+  }).join("");
+}
+
+async function runQuery(){
+  setBusy(true);
+  try{ await loadFacets(); await loadSearch(); }
+  finally{ setBusy(false); }
+}
+
+async function loadFacets(){
+  const payload = { text: $("q").value||"", filters: buildFiltersPayload() };
+  const res = await fetch("/facets",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  if(!res.ok){
+    $("raw").textContent = "FACETS ERROR:\n"+await res.text();
+    toast("Facets error","Check backend /facets");
+    lastFacets=null; return;
+  }
+  lastFacets = await res.json();
+  $("famCount").textContent = `${(lastFacets.families||[]).length} values`;
+
+  const lum = lastFacets.photometrics?.lumen_output;
+  $("lumen_minmax").textContent = (lum && lum.min!=null) ? `${Number(lum.min).toFixed(0)}–${Number(lum.max).toFixed(0)} lm` : "—";
+  const pwr = lastFacets.power_voltage?.power_max_w;
+  $("pwr_minmax").textContent = (pwr && pwr.min!=null) ? `${Number(pwr.min).toFixed(0)}–${Number(pwr.max).toFixed(0)} W` : "—";
+
+  renderFacetList("families","product_family", lastFacets.families, $("fs_product_family").value);
+  renderFacetList("cct_k","cct_k", getFacetItems("cct_k"), $("fs_cct_k").value);
+  renderFacetList("cri","cri", getFacetItems("cri"), $("fs_cri").value);
+  renderFacetList("ugr","ugr", getFacetItems("ugr"), $("fs_ugr").value);
+
+  renderFacetList("power_max_w_buckets","power_max_w", getFacetItems("power_max_w"), $("fs_power_max_w_buckets").value);
+  renderFacetList("control_protocol","control_protocol", getFacetItems("control_protocol"), $("fs_control_protocol").value);
+  renderFacetList("emergency_present","emergency_present", getFacetItems("emergency_present"), $("fs_emergency_present").value);
+
+  renderFacetList("ip_rating","ip_rating", getFacetItems("ip_rating"), $("fs_ip_rating").value);
+  renderFacetList("ik_rating","ik_rating", getFacetItems("ik_rating"), $("fs_ik_rating").value);
+
+  $("raw").textContent = JSON.stringify({facets_request:payload, facets_keys:Object.keys(lastFacets||{})}, null, 2);
+}
+
+async function loadSearch(){
+  const payload = { text: $("q").value||"", filters: buildFiltersPayload(), limit:20, debug:true };
+  const res = await fetch("/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  if(!res.ok){
+    $("raw").textContent = "SEARCH ERROR:\n"+await res.text();
+    toast("Search error","Check backend /search");
+    renderHits("exact",[]); renderHits("similar",[]);
+    return;
+  }
+  const data = await res.json();
+  lastResults = { exact: data.exact||[], similar: data.similar||[] };
+
+  $("kpi").innerHTML = `
+    <span class="tag">Total: <b style="margin-left:6px">${(lastResults.exact.length+lastResults.similar.length)}</b></span>
+    <span class="tag">Exact: <b style="margin-left:6px">${lastResults.exact.length}</b></span>
+    <span class="tag">Similar: <b style="margin-left:6px">${lastResults.similar.length}</b></span>
+  `;
+
+  renderHits("exact", lastResults.exact);
+  renderHits("similar", lastResults.similar);
+
+  const first = lastResults.exact[0] || lastResults.similar[0] || null;
+  $("raw").textContent = JSON.stringify({request_payload:payload, counts:{exact:lastResults.exact.length,similar:lastResults.similar.length}, backend_debug_filters:first?.debug_filters||null}, null, 2);
+}
+
+// Events
+$("btnRunTop").addEventListener("click", runQuery);
+$("btnClearTop").addEventListener("click", ()=>{ clearFilters(); runQuery(); });
+$("btnRun").addEventListener("click", runQuery);
+$("btnClear").addEventListener("click", ()=>{ clearFilters(); runQuery(); });
+$("sortBy").addEventListener("change", ()=>{ renderHits("exact", lastResults.exact); renderHits("similar", lastResults.similar); });
+
+$("q").addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); runQuery(); } });
+
+["fs_product_family","fs_cct_k","fs_cri","fs_ugr","fs_power_max_w_buckets","fs_control_protocol","fs_emergency_present","fs_ip_rating","fs_ik_rating"]
+  .forEach(id => $(id).addEventListener("input", ()=>{
+    const map={
+      fs_product_family:["families","product_family"],
+      fs_cct_k:["cct_k","cct_k"],
+      fs_cri:["cri","cri"],
+      fs_ugr:["ugr","ugr"],
+      fs_power_max_w_buckets:["power_max_w_buckets","power_max_w"],
+      fs_control_protocol:["control_protocol","control_protocol"],
+      fs_emergency_present:["emergency_present","emergency_present"],
+      fs_ip_rating:["ip_rating","ip_rating"],
+      fs_ik_rating:["ik_rating","ik_rating"],
+    };
+    const [container,key]=map[id];
+    renderFacetList(container,key, getFacetItems(key), $(id).value);
+  }));
+
+function applyRange(key, lo, hi){
+  lo = String(lo||"").trim(); hi=String(hi||"").trim();
+  if(!lo && !hi){ toast("Range filter","Set min and/or max"); return; }
+  if(selectedFilters[key]) [...selectedFilters[key]].forEach(v=>removeFilter(key,v));
+  let expr = lo && hi ? `${lo}-${hi}` : (lo ? `>=${lo}` : `<=${hi}`);
+  addFilter(key, expr);
+  runQuery();
+}
+$("btnApplyLumen").addEventListener("click", ()=>applyRange("lumen_output", $("lumen_lo").value, $("lumen_hi").value));
+$("btnResetLumen").addEventListener("click", ()=>{ if(selectedFilters.lumen_output) [...selectedFilters.lumen_output].forEach(v=>removeFilter("lumen_output",v)); $("lumen_lo").value=""; $("lumen_hi").value=""; runQuery(); });
+
+$("btnApplyPwr").addEventListener("click", ()=>applyRange("power_max_w", $("pwr_lo").value, $("pwr_hi").value));
+$("btnResetPwr").addEventListener("click", ()=>{ if(selectedFilters.power_max_w) [...selectedFilters.power_max_w].forEach(v=>removeFilter("power_max_w",v)); $("pwr_lo").value=""; $("pwr_hi").value=""; runQuery(); });
+
+renderSelected();
+runQuery().catch(e=>{ $("raw").textContent="INIT ERROR:\n"+String(e); toast("Init error",String(e)); });
+</script>
+</body>
+</html>

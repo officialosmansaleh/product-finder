@@ -1,0 +1,2466 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Laiting Admin Panel</title>
+  <style>
+    :root{--bg:#f3f6fa;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--pri:#c76a00;--pri2:#a85a00;--dark:#111827}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Aptos,"Segoe UI Variable","Segoe UI",sans-serif;background:
+      radial-gradient(circle at top left, rgba(255,255,255,.96) 0%, rgba(255,255,255,0) 28%),
+      linear-gradient(180deg, #f9fbfd 0%, var(--bg) 58%, #e7edf4 100%);color:var(--ink)}
+    .wrap{max-width:1200px;margin:0 auto;padding:18px}
+    .topBar{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{height:34px;width:auto}
+    .title{font-size:18px;font-weight:800}
+    .sub{font-size:12px;color:var(--muted)}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .topBarActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .navCluster,.utilityCluster{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:11px 13px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);box-shadow:0 10px 22px rgba(15,23,42,.05)}
+    .utilityCluster{justify-content:flex-end}
+    .utilityCluster #authMount{min-width:220px;max-width:100%}
+    .btn{padding:10px 13px;border:1px solid transparent;border-radius:12px;background:linear-gradient(180deg, #d47b18 0%, var(--pri) 100%);color:#fff;cursor:pointer;font-weight:700;letter-spacing:.01em;box-shadow:0 10px 20px rgba(199,106,0,.18);transition:transform .16s ease, box-shadow .16s ease}
+    .btn:hover{background:linear-gradient(180deg, #be660f 0%, var(--pri2) 100%);transform:translateY(-1px);box-shadow:0 14px 24px rgba(199,106,0,.22)}
+    .btn.secondary{background:linear-gradient(180deg, #1f2937 0%, var(--dark) 100%);box-shadow:0 10px 18px rgba(17,24,39,.16)}
+    .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+    .btn.small{padding:7px 10px;border-radius:10px;font-size:12px}
+    .card{background:linear-gradient(180deg, var(--card) 0%, #fbfdff 100%);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 12px 28px rgba(15,23,42,.06)}
+    .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;align-items:stretch;margin-bottom:14px}
+    .heroCard{background:linear-gradient(135deg,#ffffff 0%,#f8fbff 52%,#eef6ff 100%);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 12px 28px rgba(15,23,42,.06)}
+    .heroTitle{font-size:22px;font-weight:800;line-height:1.15;margin:0 0 8px}
+    .heroText{font-size:13px;color:var(--muted);max-width:560px;line-height:1.45}
+    .heroList{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+    .heroChip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid #dbe7f3;background:#fff;font-size:12px;color:#334155}
+    .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+    .adminShell{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start}
+    .adminMenu{position:sticky;top:14px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);padding:14px;box-shadow:0 12px 28px rgba(15,23,42,.06)}
+    .adminMenuTitle{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#475569;margin:0 0 6px}
+    .adminMenuText{font-size:12px;color:var(--muted);line-height:1.45;margin:0 0 12px}
+    .adminMenuList{display:flex;flex-direction:column;gap:8px}
+    .adminMenuLink{display:flex;justify-content:space-between;gap:10px;align-items:center;width:100%;padding:10px 12px;border-radius:14px;border:1px solid #e7edf5;background:#fff;color:#0f172a;text-decoration:none;font-size:13px;font-weight:700;transition:background .16s ease,border-color .16s ease,transform .16s ease}
+    .adminMenuLink:hover{background:#f8fbff;border-color:#cbd5e1;transform:translateY(-1px)}
+    .adminMenuLink.active{background:#111827;color:#fff;border-color:#111827}
+    .adminMenuMeta{font-size:11px;font-weight:600;color:#64748b}
+    .adminMenuLink.active .adminMenuMeta{color:#cbd5e1}
+    .adminContent{display:flex;flex-direction:column;gap:14px;min-width:0}
+    .adminAnchorSection{scroll-margin-top:20px}
+    .adminWorkspaceSection{display:none}
+    .adminWorkspaceSection.active{display:block}
+    .settingsSection{margin-top:14px}
+    .analyticsSection{margin-top:14px}
+    .catalogHealthSection{margin-top:14px}
+    .analyticsGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+    .analyticsStat{border:1px solid var(--line);border-radius:14px;padding:12px;background:#f8fbff}
+    .analyticsStat .k{font-size:12px;color:var(--muted)}
+    .analyticsStat .v{font-size:22px;font-weight:800;margin-top:4px}
+    .analyticsLists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+    .analyticsListCard{border:1px solid var(--line);border-radius:16px;padding:14px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)}
+    .analyticsToolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+    .analyticsToolbar .row{gap:10px}
+    .healthGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+    .healthStat{border:1px solid var(--line);border-radius:14px;padding:12px;background:#f8fbff}
+    .healthStat .k{font-size:12px;color:var(--muted)}
+    .healthStat .v{font-size:22px;font-weight:800;margin-top:4px}
+    .healthLists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+    .healthIssue{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff}
+    .healthIssue.warn{border-color:#fdba74;background:#fff7ed}
+    .healthIssue.error{border-color:#fca5a5;background:#fff1f2}
+    .healthIssue.info{border-color:#bfdbfe;background:#eff6ff}
+    .healthIssueTitle{font-size:13px;font-weight:800;color:#0f172a}
+    .healthIssueMeta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
+    .analyticsList{display:grid;gap:8px}
+    .analyticsRow{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding-bottom:8px;border-bottom:1px solid #e5edf5}
+    .analyticsRow:last-child{padding-bottom:0;border-bottom:0}
+    .analyticsLabel{font-size:13px;font-weight:700;color:#0f172a}
+    .analyticsMeta{font-size:11px;color:var(--muted);margin-top:3px}
+    .analyticsCount{font-size:12px;font-weight:800;color:#9a3412;white-space:nowrap}
+    .settingsToolbar{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-top:12px}
+    .settingsToolbarMain{display:flex;flex-direction:column;gap:10px;min-width:min(100%,720px);flex:1 1 720px}
+    .settingsTabs{display:flex;gap:8px;flex-wrap:wrap}
+    .settingsTab{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#334155;cursor:pointer;font-size:12px;font-weight:700}
+    .settingsTab.active{background:#111827;color:#fff;border-color:#111827}
+    .settingsSummary{font-size:12px;color:var(--muted)}
+    .settingsSearchInput{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:13px;min-width:min(100%,320px);max-width:420px}
+    .adminRuntimePills{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .runtimePill{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:700;color:#334155}
+    .runtimePill.ok{background:#ecfdf5;border-color:#86efac;color:#166534}
+    .runtimePill.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+    .runtimePill.bad{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+    .settingsGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+    .settingsCategory{display:flex;flex-direction:column;gap:12px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);padding:12px}
+    .settingsCategoryHead{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+    .settingsCategoryToggle{width:100%;display:flex;justify-content:space-between;gap:12px;align-items:center;border:0;background:transparent;padding:0;cursor:pointer;text-align:left}
+    .settingsCategoryTitle{font-size:16px;font-weight:800;margin:0}
+    .settingsCategoryText{font-size:12px;color:var(--muted);margin:4px 0 0}
+    .settingsCategoryStats{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .settingsMiniBadge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:11px;color:#475569}
+    .settingsCaret{font-size:18px;line-height:1;color:#64748b;flex:0 0 auto}
+    .settingsCategoryBody{display:none}
+    .settingsCategory.expanded .settingsCategoryBody{display:block}
+    .settingCard{border:1px solid var(--line);border-radius:14px;padding:12px;background:#f8fbff;display:flex;flex-direction:column;gap:10px}
+    .settingTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .settingLabel{font-size:14px;font-weight:800}
+    .settingMeta{font-size:11px;color:var(--muted)}
+    .settingValue{font-size:12px;color:#111827;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+    .settingInput,.settingTextarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:13px}
+    .settingTextarea{min-height:88px;resize:vertical}
+    .settingHint{font-size:11px;color:var(--muted);line-height:1.4}
+    .settingActions{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+    .settingStatus{font-size:11px;color:var(--muted)}
+    .settingFlags{display:flex;gap:6px;flex-wrap:wrap}
+    .settingFlag{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:11px;color:#475569}
+    .settingFlag.warn{background:#fff7ed;border-color:#fdba74;color:#9a3412}
+    .settingFlag.ok{background:#ecfdf5;border-color:#86efac;color:#166534}
+    .scoringGroups{display:grid;gap:12px}
+    .scoringGroup{border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px}
+    .scoringGroupHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px}
+    .scoringGroupTitle{font-size:14px;font-weight:800;margin:0}
+    .scoringGroupText{font-size:12px;color:var(--muted);margin:4px 0 0}
+    .scoringGroupStats{display:flex;gap:6px;flex-wrap:wrap}
+    .scoringTable{display:grid;gap:8px}
+    .scoringRow{display:grid;grid-template-columns:minmax(180px,1.2fr) minmax(110px,.7fr) minmax(180px,1fr) auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid #edf2f7}
+    .scoringRow:first-child{border-top:0;padding-top:0}
+    .scoringCellLabel{font-size:13px;font-weight:800;color:#0f172a}
+    .scoringCellMeta{font-size:11px;color:var(--muted);margin-top:3px}
+    .scoringCurrent{font-size:12px;color:#0f172a;background:#f8fbff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:40px}
+    .scoringInputWrap{display:flex;flex-direction:column;gap:6px}
+    .scoringInput{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:13px}
+    .scoringHint{font-size:11px;color:var(--muted);line-height:1.35}
+    @media (max-width: 900px){
+      .scoringRow{grid-template-columns:1fr}
+    }
+    .statGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+    .stat{border:1px solid var(--line);border-radius:14px;padding:12px;background:#f8fbff}
+    .stat .k{font-size:12px;color:var(--muted)}
+    .stat .v{font-size:22px;font-weight:800;margin-top:4px}
+    .toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 14px}
+    .toolbarGroup{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .searchInput,.statusSelect{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:13px}
+    .searchInput{min-width:min(100%,280px)}
+    .sectionHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .sectionBadge{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;font-size:11px;font-weight:700}
+    table{width:100%;border-collapse:collapse;border-spacing:0}
+    th,td{padding:11px 9px;border-bottom:1px solid #edf2f7;text-align:left;vertical-align:top;font-size:13px}
+    th{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.03em;background:#f8fbff}
+    .stack{display:flex;flex-direction:column;gap:4px}
+    .muted{font-size:12px;color:var(--muted)}
+    .pill{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid transparent}
+    .pill.pending{background:#fffbeb;color:#92400e;border-color:#fde68a}
+    .pill.approved{background:#ecfdf5;color:#166534;border-color:#bbf7d0}
+    .pill.rejected{background:#fff1f2;color:#9f1239;border-color:#fecdd3}
+    .panelTitle{font-size:15px;font-weight:800;margin:0 0 10px}
+    .panelSub{font-size:12px;color:var(--muted);margin:0 0 12px}
+    .notice{padding:10px 12px;border-radius:12px;background:#eef6ff;color:#355070;border:1px solid #cfe1f7;font-size:12px}
+    .notice.error{background:#fff1f2;color:#9f1239;border-color:#fecdd3}
+    .empty{padding:16px;border:1px dashed #dbeafe;border-radius:14px;background:#f8fbff;color:#475569;font-size:13px}
+    .tableWrap{overflow:auto;border:1px solid #edf2f7;border-radius:16px;background:#fff}
+    .tableWrap table thead th{position:sticky;top:0;z-index:1}
+    .tableWrap table tbody tr:hover{background:#f8fbff}
+    .sortableTh{user-select:none;cursor:pointer}
+    .sortableTh:hover{background:#eef6ff}
+    .sortHead{display:inline-flex;align-items:center;gap:6px}
+    .sortArrow{font-size:11px;color:#94a3b8}
+    .sortableTh.active .sortArrow{color:#c76a00}
+    .userCell{display:flex;gap:10px;align-items:flex-start}
+    .userAvatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#111827;color:#fff;font-size:11px;font-weight:800;flex:0 0 auto}
+    .userLinkBtn{appearance:none;border:0;background:none;padding:0;margin:0;color:#0f172a;font:inherit;font-weight:800;cursor:pointer;text-align:left}
+    .userLinkBtn:hover{text-decoration:underline}
+    .actionsCol{display:flex;gap:8px;flex-wrap:wrap}
+    .countryMultiSelect{min-width:220px;min-height:132px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:13px}
+    .editCard{display:grid;gap:12px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#f8fbff}
+    .editGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+    .editField{display:grid;gap:6px}
+    .editField label{font-size:12px;font-weight:700;color:#334155}
+    .quoteList{display:grid;gap:8px}
+    .quoteItem{border:1px solid var(--line);border-radius:12px;padding:10px;background:#f8fbff}
+    .quoteItemTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+    .quoteDetail{margin-top:10px;border-top:1px solid #e2e8f0;padding-top:10px}
+    .quoteDetailTable{width:100%;border-collapse:collapse}
+    .quoteDetailTable th,.quoteDetailTable td{padding:8px 6px;border-bottom:1px solid #edf2f7;text-align:left;vertical-align:top;font-size:12px}
+    .managerOnlyUsers .hero{display:none}
+    .managerOnlyUsers .grid{display:block}
+    .managerOnlyUsers .grid > .card:first-child{display:none}
+    .managerOnlyUsers .settingsSection{display:none}
+    .managerOnlyUsers .toolbar{margin-bottom:14px}
+    .authTriggerGroup{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .authCompactTrigger{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;box-shadow:0 6px 16px rgba(15,23,42,.05)}
+    .authCompactBadge{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#111827;color:#fff;font-size:11px;font-weight:800}
+    .authCompactMeta{display:flex;flex-direction:column;align-items:flex-start;line-height:1.1}
+    .authCompactName{font-size:12px;font-weight:700;color:#111827}
+    .authCompactRole{font-size:11px;color:#64748b}
+    .authModal{position:fixed;inset:0;display:none;z-index:90}
+    .authModal.show{display:block}
+    .authModalBackdrop{position:absolute;inset:0;background:rgba(15,23,42,.62)}
+    .authModalDialog{position:relative;z-index:1;width:min(92vw,620px);margin:8vh auto;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:16px;box-shadow:0 24px 60px rgba(15,23,42,.18)}
+    .authModalClose{display:inline-flex;align-items:center;justify-content:center;margin-left:auto;margin-bottom:10px;border:1px solid var(--line);background:#fff;color:#111827;border-radius:999px;padding:7px 12px;cursor:pointer}
+    .authBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid #dbe3ec;border-radius:16px;background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);box-shadow:0 8px 20px rgba(15,23,42,.05);min-width:min(100%,380px)}
+    .authBoxExpanded{align-items:flex-start}
+    .authAccountCard{display:flex;flex-direction:column;gap:14px}
+    .authAccountHead{display:flex;gap:12px;align-items:center}
+    .authAccountInfo{display:grid;gap:8px}
+    .authInfoRow{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}
+    .authInfoRow span{font-size:12px;color:#64748b}
+    .authInfoRow strong{font-size:12px;color:#111827}
+    .authHeader{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;width:100%}
+    .authTitle{font-size:12px;font-weight:800;color:#0f172a;letter-spacing:.02em;text-transform:uppercase}
+    .authSubtitle{font-size:12px;color:#64748b;max-width:360px;line-height:1.35;margin-top:3px}
+    .authTabs{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:#e9eef5;border:1px solid #d7e0ea}
+    .authTab{border:0;background:transparent;color:#526173;padding:7px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+    .authTab.active{background:#111827;color:#fff}
+    .authFields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+    .authBox input,.authBox select{min-width:0;flex:1 1 150px}
+    .authHidden{display:none}
+    .authActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%}
+    .authHelper{font-size:12px;color:#64748b;line-height:1.35}
+    .authStatus{font-size:12px;flex:1 1 100%;padding:9px 10px;border-radius:12px;background:#eef6ff;color:#355070;border:1px solid #cfe1f7}
+    .authStatus.isError{color:#9f1239;background:#fff1f2;border-color:#fecdd3}
+    .authStatus.isWarn{color:#92400e;background:#fffbeb;border-color:#fde68a}
+    .authStatus.isInfo{color:#355070;background:#eef6ff;border-color:#cfe1f7}
+    .authBoxLoggedIn{justify-content:flex-end;min-width:auto;background:#fff}
+    .authIdentityBadge{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#111827;color:#fff;font-size:12px;font-weight:800}
+    .authUserMeta{display:flex;flex-direction:column;gap:3px;min-width:0}
+    .authUserName{font-size:12px;font-weight:700;color:#111827}
+    .authUserRole{font-size:11px;color:#64748b;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .authRolePill{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:#fff1e6;color:#9a3412;border:1px solid #fdba74;font-weight:700}
+    .cookieConsentBanner{position:fixed;left:16px;right:16px;bottom:16px;z-index:1200;display:none}
+    .cookieConsentBanner.show{display:block}
+    .cookieConsentCard{max-width:760px;margin:0 auto;background:#0f172a;color:#fff;border-radius:18px;padding:18px 18px 16px;box-shadow:0 26px 60px rgba(15,23,42,.28)}
+    .cookieConsentTitle{font-size:16px;font-weight:800;margin-bottom:6px}
+    .cookieConsentText{font-size:13px;line-height:1.55;color:#dbe7f3}
+    .cookieConsentActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+    .cookiePrefsBtn{position:fixed;right:18px;bottom:18px;z-index:1190;border:1px solid var(--line);background:#fff;color:#0f172a;border-radius:999px;padding:10px 14px;font-weight:700;box-shadow:0 10px 24px rgba(15,23,42,.14);display:none}
+    .cookiePrefsModal{position:fixed;inset:0;z-index:1250;display:none}
+    .cookiePrefsModal.show{display:block}
+    .cookiePrefsBackdrop{position:absolute;inset:0;background:rgba(15,23,42,.62)}
+    .cookiePrefsDialog{position:relative;z-index:1;width:min(92vw,620px);margin:8vh auto;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:16px;box-shadow:0 24px 60px rgba(15,23,42,.18)}
+    .cookiePrefsRows{display:grid;gap:10px;margin-top:16px}
+    .cookiePrefRow{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:14px 16px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc}
+    .cookiePrefLabel{font-size:13px;font-weight:800;color:#0f172a}
+    .cookiePrefHint{font-size:12px;color:#64748b;line-height:1.45;margin-top:4px}
+    .cookiePrefBadge{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#111827;color:#fff;font-size:12px;font-weight:700}
+    .cookiePrefsLegal{font-size:12px;color:#64748b;line-height:1.5;margin-top:14px}
+    @media (max-width: 960px){
+      .hero{grid-template-columns:1fr}
+      .grid{grid-template-columns:1fr}
+      .adminShell{grid-template-columns:1fr}
+      .adminMenu{position:static}
+      .adminMenuList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+      .analyticsGrid{grid-template-columns:1fr 1fr}
+      .healthGrid{grid-template-columns:1fr 1fr}
+      .analyticsLists{grid-template-columns:1fr}
+      .healthLists{grid-template-columns:1fr}
+      .statGrid{grid-template-columns:1fr}
+      .authFields{grid-template-columns:1fr}
+      .authModalDialog{width:min(94vw,620px);margin:4vh auto;padding:14px}
+      .toolbar{align-items:stretch}
+      .toolbarGroup{width:100%}
+      .searchInput,.statusSelect{width:100%}
+      .topBarActions{width:100%;justify-content:flex-start}
+      .navCluster,.utilityCluster{width:100%;justify-content:flex-start}
+      .cookieConsentBanner{left:10px;right:10px;bottom:10px}
+      .cookieConsentCard{padding:16px}
+      .cookiePrefsBtn{top:auto;bottom:10px;right:10px}
+      .cookiePrefRow{flex-direction:column}
+    }
+  </style>
+</head>
+<body data-page="admin">
+  <div class="wrap">
+    <div class="topBar">
+      <div class="brand">
+        <img src="/frontend/laiting-logo-ai.png" alt="Laiting logo" />
+        <div>
+          <div class="title">Admin Panel</div>
+          <div class="sub">Approve access requests and monitor workspace users.</div>
+        </div>
+      </div>
+      <div class="topBarActions">
+        <div class="navCluster">
+          <button id="btnBackFinder" class="btn ghost" type="button">Finder</button>
+          <button id="btnBackTools" class="btn ghost" type="button">Compare</button>
+        </div>
+        <div class="utilityCluster">
+          <div id="authMount"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="adminShell">
+      <aside class="adminMenu">
+        <div class="adminMenuTitle">Navigation</div>
+        <p class="adminMenuText">Move through the admin workspace like a dashboard instead of scrolling through one long page.</p>
+        <nav class="adminMenuList">
+          <a class="adminMenuLink active" href="#overviewSection" data-admin-nav="overviewSection"><span>Overview</span><span class="adminMenuMeta">Status</span></a>
+          <a class="adminMenuLink" href="#usersSection" data-admin-nav="usersSection"><span>Users</span><span class="adminMenuMeta">Approvals</span></a>
+          <a class="adminMenuLink" href="#quotesSection" data-admin-nav="quotesSection"><span>Quotes</span><span class="adminMenuMeta">Projects</span></a>
+          <a class="adminMenuLink" href="#analyticsSection" data-admin-nav="analyticsSection"><span>Analytics</span><span class="adminMenuMeta">Usage</span></a>
+          <a class="adminMenuLink" href="#catalogHealthSection" data-admin-nav="catalogHealthSection"><span>Catalog health</span><span class="adminMenuMeta">Quality</span></a>
+          <a class="adminMenuLink" href="#releaseChangesSection" data-admin-nav="releaseChangesSection"><span>Release changes</span><span class="adminMenuMeta">Diff</span></a>
+          <a class="adminMenuLink" href="#scoringSection" data-admin-nav="scoringSection"><span>Scoring</span><span class="adminMenuMeta">Weights</span></a>
+          <a class="adminMenuLink" href="#settingsSection" data-admin-nav="settingsSection"><span>Settings</span><span class="adminMenuMeta">Control</span></a>
+        </nav>
+      </aside>
+
+      <div class="adminContent">
+        <section id="overviewSection" class="adminAnchorSection adminWorkspaceSection">
+          <div class="hero">
+            <section class="heroCard">
+              <h1 class="heroTitle">Manage workspace access with less friction</h1>
+              <div class="heroText">Review incoming requests, approve the right collaborators, and keep the Smart Finder workspace clean and controlled.</div>
+              <div class="heroList">
+                <span class="heroChip">Fast approvals</span>
+                <span class="heroChip">Pending queue</span>
+                <span class="heroChip">User overview</span>
+              </div>
+            </section>
+            <section class="heroCard">
+              <div id="adminNotice" class="notice">Checking your admin session...</div>
+              <div id="runtimeStatusPills" class="adminRuntimePills"></div>
+              <div class="statGrid" style="margin-top:14px">
+                <div class="stat">
+                  <div class="k">Pending requests</div>
+                  <div id="statPending" class="v">-</div>
+                </div>
+                <div class="stat">
+                  <div class="k">Approved users</div>
+                  <div id="statApproved" class="v">-</div>
+                </div>
+                <div class="stat">
+                  <div class="k">Rejected users</div>
+                  <div id="statRejected" class="v">-</div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="usersSection" class="adminAnchorSection adminWorkspaceSection">
+          <div class="toolbar">
+            <div class="toolbarGroup">
+              <input id="userSearch" class="searchInput" type="text" placeholder="Search by name, email, company, or country" />
+              <input id="companyFilter" class="searchInput" type="text" placeholder="Filter by company name" />
+              <select id="countryFilter" class="statusSelect"></select>
+              <select id="statusFilter" class="statusSelect">
+                <option value="all">All statuses</option>
+                <option value="pending">Pending only</option>
+                <option value="approved">Approved only</option>
+                <option value="rejected">Rejected only</option>
+              </select>
+            </div>
+            <div class="toolbarGroup">
+              <button id="btnRefreshAdmin" class="btn ghost" type="button">Refresh</button>
+            </div>
+          </div>
+
+          <div class="grid">
+      <section class="card">
+        <div class="sectionHeader">
+          <div>
+            <h2 class="panelTitle">Pending approvals</h2>
+            <p class="panelSub">Review new access requests and decide who can enter the workspace.</p>
+          </div>
+          <span class="sectionBadge">Priority queue</span>
+        </div>
+        <div id="pendingWrap" class="tableWrap"></div>
+      </section>
+
+      <section class="card">
+        <div class="sectionHeader">
+          <div>
+            <h2 class="panelTitle">All users</h2>
+            <p class="panelSub">Current account list with role and approval state.</p>
+          </div>
+          <span id="usersCountBadge" class="sectionBadge">0 users</span>
+        </div>
+        <div id="usersWrap" class="tableWrap"></div>
+      </section>
+          </div>
+        </section>
+
+    <section id="quotesSection" class="card adminAnchorSection adminWorkspaceSection">
+      <div class="sectionHeader">
+        <div>
+          <h2 class="panelTitle">Visible quotes</h2>
+          <p class="panelSub">Project quotes available inside your scope. Managers see only their assigned countries, while directors and admins see the full workspace.</p>
+        </div>
+        <span id="quotesCountBadge" class="sectionBadge">0 quotes</span>
+      </div>
+      <div class="toolbar" style="margin-bottom:12px">
+        <div class="toolbarGroup">
+          <input id="quoteSearch" class="searchInput" type="text" placeholder="Search by project, customer, contractor, consultant, or owner" />
+          <select id="quoteCountryFilter" class="statusSelect">
+            <option value="">All countries</option>
+          </select>
+          <select id="quoteStatusFilter" class="statusSelect">
+            <option value="">All statuses</option>
+            <option value="design_phase">Design phase</option>
+            <option value="tender">Tender</option>
+            <option value="job_in_hand_contractor">Job in hand contractor</option>
+            <option value="job_in_hand">Job in hand</option>
+          </select>
+        </div>
+        <div class="toolbarGroup">
+          <button id="btnRefreshVisibleQuotes" class="btn ghost small" type="button">Refresh quotes</button>
+          <button id="btnExportVisibleQuotesCsv" class="btn small" type="button">Export quotes CSV</button>
+        </div>
+      </div>
+      <div id="quotesNotice" class="notice">Loading quotes...</div>
+      <div id="quotesWrap" class="tableWrap" style="margin-top:12px"></div>
+    </section>
+
+    <section id="analyticsSection" class="card analyticsSection adminAnchorSection adminWorkspaceSection">
+      <div class="sectionHeader">
+        <div>
+          <h2 class="panelTitle">Usage analytics</h2>
+          <p class="panelSub">First-party analytics collected only after explicit consent. Search terms and actions are shown in a product-usage view, not as advertising profiles.</p>
+        </div>
+        <span class="sectionBadge">Consent based</span>
+      </div>
+      <div id="analyticsNotice" class="notice">Loading analytics...</div>
+      <div class="analyticsToolbar">
+        <div class="row">
+          <label class="muted" for="analyticsDays">Period</label>
+          <select id="analyticsDays" class="statusSelect">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected="selected">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">Last 365 days</option>
+          </select>
+        </div>
+        <div class="row">
+          <button id="btnRefreshAnalytics" class="btn ghost small" type="button">Refresh analytics</button>
+          <button id="btnExportAnalyticsCsv" class="btn small" type="button">Export CSV</button>
+        </div>
+      </div>
+      <div class="analyticsGrid">
+        <div class="analyticsStat"><div class="k">Tracked events</div><div id="statTrackedEvents" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Tracked searches</div><div id="statTrackedSearches" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Known users</div><div id="statTrackedUsers" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Tracked sessions</div><div id="statTrackedSessions" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Zero-result searches</div><div id="statZeroResultSearches" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Searches without exact</div><div id="statSearchesWithoutExact" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Quote saves</div><div id="statQuoteSaves" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Quote PDF exports</div><div id="statQuoteExports" class="v">-</div></div>
+      </div>
+      <div class="analyticsLists">
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Top searches</h3>
+          <div id="analyticsTopSearches" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Top actions</h3>
+          <div id="analyticsTopEvents" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Top users</h3>
+          <div id="analyticsTopUsers" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Recent activity</h3>
+          <div id="analyticsRecent" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">No-result searches</h3>
+          <div id="analyticsNoResultSearches" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Searches without exact match</h3>
+          <div id="analyticsSearchesWithoutExact" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Requested families</h3>
+          <div id="analyticsRequestedFamilies" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Gap-heavy families</h3>
+          <div id="analyticsGapFamilies" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard" style="grid-column:1 / -1">
+          <h3 class="panelTitle">Catalog gaps to fix first</h3>
+          <div id="analyticsCatalogGaps" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard" style="grid-column:1 / -1">
+          <h3 class="panelTitle">Journey funnel</h3>
+          <div id="analyticsJourneyFunnel" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Top viewed products</h3>
+          <div id="analyticsTopViewedProducts" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Top compared products</h3>
+          <div id="analyticsTopComparedProducts" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Top quoted products</h3>
+          <div id="analyticsTopQuotedProducts" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Highest intent products</h3>
+          <div id="analyticsTopProductIntent" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Top companies</h3>
+          <div id="analyticsTopCompanies" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Country insights</h3>
+          <div id="analyticsCountryInsights" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard" style="grid-column:1 / -1">
+          <h3 class="panelTitle">Quote funnel</h3>
+          <div id="analyticsQuoteFunnel" class="analyticsList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="catalogHealthSection" class="card catalogHealthSection adminAnchorSection adminWorkspaceSection">
+      <div class="sectionHeader">
+        <div>
+          <h2 class="panelTitle">Catalog health</h2>
+          <p class="panelSub">Check data quality before it hurts search, filters, quotes, or pricing confidence.</p>
+        </div>
+        <span class="sectionBadge">Foundation</span>
+      </div>
+      <div id="catalogHealthNotice" class="notice">Loading catalog health...</div>
+      <div class="healthGrid">
+        <div class="healthStat"><div class="k">Rows</div><div id="healthRows" class="v">-</div></div>
+        <div class="healthStat"><div class="k">Families</div><div id="healthFamilies" class="v">-</div></div>
+        <div class="healthStat"><div class="k">Manufacturers</div><div id="healthManufacturers" class="v">-</div></div>
+        <div class="healthStat"><div class="k">Products with price</div><div id="healthPriced" class="v">-</div></div>
+      </div>
+      <div class="healthLists">
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Field coverage</h3>
+          <div id="catalogFieldCoverage" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Top families</h3>
+          <div id="catalogTopFamilies" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard" style="grid-column:1 / -1">
+          <h3 class="panelTitle">Detected issues</h3>
+          <div id="catalogIssues" class="analyticsList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="releaseChangesSection" class="card catalogHealthSection adminAnchorSection adminWorkspaceSection">
+      <div class="sectionHeader">
+        <div>
+          <h2 class="panelTitle">Catalog release changes</h2>
+          <p class="panelSub">Export only the catalog modifications compared with the previous release.</p>
+        </div>
+        <div class="row">
+          <button id="btnRefreshReleaseDiff" class="btn ghost small" type="button">Refresh changes</button>
+          <button id="btnExportReleaseDiffCsv" class="btn small" type="button">Export diff CSV</button>
+        </div>
+      </div>
+      <div id="releaseDiffNotice" class="notice">Loading release diff...</div>
+      <div class="healthGrid">
+        <div class="healthStat"><div class="k">Modified products</div><div id="releaseDiffTotal" class="v">-</div></div>
+        <div class="healthStat"><div class="k">Added</div><div id="releaseDiffAdded" class="v">-</div></div>
+        <div class="healthStat"><div class="k">Changed</div><div id="releaseDiffChanged" class="v">-</div></div>
+        <div class="healthStat"><div class="k">Removed</div><div id="releaseDiffRemoved" class="v">-</div></div>
+      </div>
+      <div class="healthLists">
+        <div class="analyticsListCard" style="grid-column:1 / -1">
+          <h3 class="panelTitle">Latest modifications</h3>
+          <div id="releaseDiffList" class="analyticsList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="scoringSection" class="card settingsSection adminAnchorSection adminWorkspaceSection">
+      <div class="sectionHeader">
+        <div>
+          <h2 class="panelTitle">Scoring</h2>
+          <p class="panelSub">Tune the match-percentage logic with dedicated grouped controls for every filter.</p>
+        </div>
+        <span class="sectionBadge">Ranking</span>
+      </div>
+      <div id="scoringNotice" class="notice">Loading scoring controls...</div>
+      <div class="settingsToolbar">
+        <div class="settingsToolbarMain">
+          <input id="scoringSearch" class="settingsSearchInput" type="text" placeholder="Search scoring controls by name, key, or description" />
+        </div>
+        <div id="scoringSummary" class="settingsSummary"></div>
+      </div>
+      <div id="scoringWrap" style="margin-top:12px"></div>
+    </section>
+
+    <section id="settingsSection" class="card settingsSection adminAnchorSection adminWorkspaceSection">
+      <div class="sectionHeader">
+        <div>
+          <h2 class="panelTitle">Settings</h2>
+          <p class="panelSub">Maintain app configuration outside scoring. Sensitive values stay masked.</p>
+        </div>
+        <span class="sectionBadge">Maintenance</span>
+      </div>
+      <div id="settingsNotice" class="notice">Loading settings...</div>
+      <div class="settingsToolbar">
+        <div class="settingsToolbarMain">
+          <div id="settingsTabs" class="settingsTabs"></div>
+          <input id="settingsSearch" class="settingsSearchInput" type="text" placeholder="Search settings by name, key, or description" />
+        </div>
+        <div id="settingsSummary" class="settingsSummary"></div>
+      </div>
+      <div id="settingsWrap" class="settingsGrid" style="margin-top:12px"></div>
+    </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="/frontend/assets/countries.js?v=2026-03-25-country-list-1"></script>
+  <script src="/frontend/assets/auth.js?v=2026-03-25-auth-roles-country-1"></script>
+  <script src="/frontend/assets/consent.js?v=2026-03-31-consent-analytics-1"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let allUsers = [];
+    let allPending = [];
+    let allVisibleQuotes = [];
+    let allSettings = [];
+    let latestAnalyticsSummary = {};
+    let selectedSettingsCategory = "All";
+    let settingsSearchTerm = "";
+    let scoringSearchTerm = "";
+    let expandedSettingsCategories = new Set(["Scoring"]);
+    let currentAdminSection = "overviewSection";
+    let editingUserId = null;
+    let visibleQuoteSort = { key: "updated_at", direction: "desc" };
+    const SETTINGS_CATEGORY_META = {
+      All: "All maintenance settings in one place.",
+      AI: "AI provider and external catalog enrichment settings.",
+      Email: "Delivery settings for password reset emails and outbound app mail.",
+      Security: "Authentication, cookies, session lifetime, and browser access controls.",
+      Administration: "Bootstrap admin and maintenance access defaults.",
+      Catalog: "Dataset import paths and import behavior for catalog maintenance.",
+      Operations: "Debugging and runtime operational behavior.",
+      Deployment: "Deployment-side values that usually need restart or redeploy.",
+    };
+
+    function esc(value){
+      return String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+    }
+
+    function scoringFieldKey(item){
+      const key = String(item?.key || "");
+      if (key.startsWith("scoring_weight_")) return key.slice("scoring_weight_".length);
+      return "";
+    }
+
+    function scoringGroupName(item){
+      const key = String(item?.key || "");
+      if (!key.startsWith("scoring_weight_")) return "Rules";
+      const field = scoringFieldKey(item);
+      if (["ip_rating", "ip_visible", "ip_non_visible", "ik_rating"].includes(field)) return "Protection";
+      if (["cct_k", "cri", "ugr", "beam_angle_deg", "beam_type", "asymmetry", "lumen_output", "efficacy_lm_w", "lumen_maintenance_pct"].includes(field)) return "Photometric";
+      if (["control_protocol", "interface", "emergency_present", "power_min_w", "power_max_w"].includes(field)) return "Electrical";
+      if (["warranty_years", "lifetime_hours", "led_rated_life_h", "ambient_temp_min_c", "ambient_temp_max_c"].includes(field)) return "Lifetime";
+      if (["shape", "diameter", "luminaire_height", "luminaire_width", "luminaire_length", "housing_color"].includes(field)) return "Mechanical";
+      return "Catalog and Naming";
+    }
+
+    function scoringGroupDescription(group){
+      return {
+        "Protection": "Ingress and impact resistance filters.",
+        "Photometric": "Light quality, output, optics, and efficiency filters.",
+        "Electrical": "Power, controls, and emergency behavior filters.",
+        "Lifetime": "Durability, ambient range, warranty, and service-life filters.",
+        "Mechanical": "Shape, dimensions, and physical finish filters.",
+        "Catalog and Naming": "Family, manufacturer, and product naming filters.",
+        "Rules": "Global penalties and multipliers used by the score formula.",
+      }[group] || "Scoring controls.";
+    }
+
+    function renderScoringItem(item){
+      const currentValue = item.secret ? (item.masked_value || (item.configured ? "Configured" : "Not set")) : (item.value || "Not set");
+      return `
+        <div class="scoringRow">
+          <div>
+            <div class="scoringCellLabel">${esc(item.label || item.key)}</div>
+            <div class="scoringCellMeta">${esc(item.key || "")}</div>
+          </div>
+          <div class="scoringCurrent">${esc(currentValue)}</div>
+          <div class="scoringInputWrap">
+            <input class="scoringInput" data-setting-input="${esc(item.key)}" type="text" value="${esc(item.secret ? "" : (item.value || ""))}" placeholder="${esc(item.secret ? ((item.configured ? "Paste new secret here or leave blank to keep current secret" : "Paste new secret here") || "") : (item.placeholder || ""))}" autocomplete="off" autocapitalize="off" spellcheck="false" />
+            <div class="scoringHint">${esc(item.description || "")}</div>
+          </div>
+          <div class="settingActions">
+            <div class="settingStatus">${item.updated_at ? `Updated ${esc(formatDate(item.updated_at))}` : "No recorded update yet."}</div>
+            <button class="btn small" type="button" data-save-setting="${esc(item.key)}">Save</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderScoringGroups(items){
+      const groups = {};
+      const groupOrder = ["Photometric", "Electrical", "Protection", "Mechanical", "Lifetime", "Catalog and Naming", "Rules"];
+      items.forEach((item) => {
+        const group = scoringGroupName(item);
+        if (!groups[group]) groups[group] = [];
+        groups[group].push(item);
+      });
+      return `
+        <div class="scoringGroups">
+          ${groupOrder.filter((group) => (groups[group] || []).length).map((group) => {
+            const groupItems = groups[group];
+            const configured = groupItems.filter((item) => !!item.configured).length;
+            return `
+              <section class="scoringGroup">
+                <div class="scoringGroupHead">
+                  <div>
+                    <h4 class="scoringGroupTitle">${esc(group)}</h4>
+                    <p class="scoringGroupText">${esc(scoringGroupDescription(group))}</p>
+                  </div>
+                  <div class="scoringGroupStats">
+                    <span class="settingsMiniBadge">${groupItems.length} controls</span>
+                    <span class="settingsMiniBadge">${configured} configured</span>
+                  </div>
+                </div>
+                <div class="scoringTable">
+                  ${groupItems.map((item) => renderScoringItem(item)).join("")}
+                </div>
+              </section>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    function initials(user){
+      const source = String(user?.full_name || user?.email || "U").trim();
+      const parts = source.split(/\s+/).filter(Boolean).slice(0, 2);
+      if (!parts.length) return "U";
+      return parts.map((part) => part[0]?.toUpperCase() || "").join("");
+    }
+
+    function countryApi(){
+      return window.ProductFinderCountries || {
+        all: [],
+        otherValue: "__OTHER__",
+        normalizeSelection(values){
+          const raw = Array.isArray(values) ? values : [values];
+          return raw.map((value) => String(value || "").trim()).filter(Boolean);
+        },
+        optionList(values, options){
+          const selected = new Set(this.normalizeSelection(values).map((value) => value.toLowerCase()));
+          const includePlaceholder = !!options?.includePlaceholder;
+          const placeholder = String(options?.placeholder || "Select country");
+          const includeOther = options?.includeOther !== false;
+          const parts = [];
+          if (includePlaceholder) parts.push(`<option value="">${esc(placeholder)}</option>`);
+          this.all.forEach((country) => {
+            const isSelected = selected.has(String(country).toLowerCase()) ? ' selected="selected"' : "";
+            parts.push(`<option value="${esc(country)}"${isSelected}>${esc(country)}</option>`);
+          });
+          if (includeOther) parts.push(`<option value="${esc(this.otherValue)}">Other / Not listed</option>`);
+          return parts.join("");
+        },
+      };
+    }
+
+    function getKnownCountries(){
+      const seen = new Set();
+      const out = [];
+      [...countryApi().all, ...allUsers.map((user) => user.country), ...allPending.map((user) => user.country)].forEach((value) => {
+        const clean = String(value || "").trim();
+        if (!clean) return;
+        const key = clean.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push(clean);
+      });
+      return out;
+    }
+
+    function countryOptionsHtml(selectedValues, options){
+      const selected = countryApi().normalizeSelection(selectedValues);
+      const known = getKnownCountries();
+      const selectedSet = new Set(selected.map((value) => value.toLowerCase()));
+      const includePlaceholder = !!options?.includePlaceholder;
+      const placeholder = String(options?.placeholder || "Select country");
+      const includeOther = options?.includeOther !== false;
+      const hasCustom = selected.some((value) => !known.some((country) => country.toLowerCase() === value.toLowerCase()));
+      const parts = [];
+      if (includePlaceholder) {
+        const placeholderSelected = !selected.length ? ' selected="selected"' : "";
+        parts.push(`<option value=""${placeholderSelected}>${esc(placeholder)}</option>`);
+      }
+      known.forEach((country) => {
+        const isSelected = selectedSet.has(country.toLowerCase()) ? ' selected="selected"' : "";
+        parts.push(`<option value="${esc(country)}"${isSelected}>${esc(country)}</option>`);
+      });
+      if (includeOther) {
+        parts.push(`<option value="${esc(countryApi().otherValue)}"${hasCustom ? ' selected="selected"' : ""}>Other / Not listed</option>`);
+      }
+      return parts.join("");
+    }
+
+    function readMultiSelectValues(select){
+      return Array.from(select?.selectedOptions || [])
+        .map((option) => String(option.value || "").trim())
+        .filter((value) => value && value !== String(countryApi().otherValue || "__OTHER__"));
+    }
+
+    function parseCustomCountries(value){
+      return String(value || "")
+        .split(",")
+        .map((item) => String(item || "").trim())
+        .filter(Boolean);
+    }
+
+    function mergeAssignedCountries(select, extraInput){
+      return countryApi().normalizeSelection([
+        ...readMultiSelectValues(select),
+        ...parseCustomCountries(extraInput?.value || ""),
+      ]);
+    }
+
+    function syncCountriesSelect(roleSelect, countriesSelect, hint){
+      const isManager = String(roleSelect?.value || "user").trim().toLowerCase() === "manager";
+      if (countriesSelect) countriesSelect.disabled = !isManager;
+      if (hint) hint.textContent = isManager
+        ? "Use Ctrl/Cmd to assign one or more countries."
+        : "Assigned countries are used only for managers.";
+    }
+
+    function syncCountrySelect(select, otherInput){
+      const showOther = String(select?.value || "").trim() === String(countryApi().otherValue || "__OTHER__");
+      otherInput?.classList.toggle("authHidden", !showOther);
+      if (!showOther && otherInput) otherInput.value = "";
+    }
+
+    function populateCountryFilter(){
+      const filter = $("countryFilter");
+      if (!filter) return;
+      const current = String(filter.value || "").trim();
+      filter.innerHTML = `<option value="">All countries</option>${countryOptionsHtml(current ? [current] : [])}`;
+      filter.value = current;
+    }
+
+    function roleCellContent(user){
+      const assigned = Array.isArray(user?.assigned_countries) ? user.assigned_countries.filter(Boolean) : [];
+      if (String(user?.role || "").toLowerCase() === "manager" && assigned.length) {
+        return `${esc(user.role || "user")}<div class="muted">${esc(assigned.join(", "))}</div>`;
+      }
+      return esc(user?.role || "user");
+    }
+
+    function setNotice(message, isError){
+      const box = $("adminNotice");
+      if (!box) return;
+      box.textContent = message;
+      box.className = `notice${isError ? " error" : ""}`;
+    }
+
+    function setSettingsNotice(message, isError){
+      const box = $("settingsNotice");
+      if (!box) return;
+      box.textContent = message;
+      box.className = `notice${isError ? " error" : ""}`;
+    }
+
+    function setScoringNotice(message, isError){
+      const box = $("scoringNotice");
+      if (!box) return;
+      box.textContent = message;
+      box.className = `notice${isError ? " error" : ""}`;
+    }
+
+    function setAnalyticsNotice(message, isError){
+      const box = $("analyticsNotice");
+      if (!box) return;
+      box.textContent = message;
+      box.className = `notice${isError ? " error" : ""}`;
+    }
+
+    function setCatalogHealthNotice(message, isError){
+      const box = $("catalogHealthNotice");
+      if (!box) return;
+      box.textContent = message;
+      box.className = `notice${isError ? " error" : ""}`;
+    }
+
+    function setReleaseDiffNotice(message, isError){
+      const box = $("releaseDiffNotice");
+      if (!box) return;
+      box.textContent = message;
+      box.className = `notice${isError ? " error" : ""}`;
+    }
+
+    function setQuotesNotice(message, isError){
+      const box = $("quotesNotice");
+      if (!box) return;
+      box.textContent = message;
+      box.className = `notice${isError ? " error" : ""}`;
+    }
+
+    function quoteCountryOptionsHtml(selectedValue){
+      const current = String(selectedValue || "").trim().toLowerCase();
+      const countries = Array.from(new Set(
+        (allVisibleQuotes || [])
+          .map((quote) => String(quote?.country || "").trim())
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b))
+      ));
+      return `<option value="">All countries</option>${countries.map((country) => (
+        `<option value="${esc(country)}"${current === country.toLowerCase() ? ' selected="selected"' : ""}>${esc(country)}</option>`
+      )).join("")}`;
+    }
+
+    function populateQuoteCountryFilter(){
+      const filter = $("quoteCountryFilter");
+      if (!filter) return;
+      const current = String(filter.value || "").trim();
+      filter.innerHTML = quoteCountryOptionsHtml(current);
+      filter.value = current;
+    }
+
+    function applyViewerLayout(){
+      const statusFilter = $("statusFilter");
+      if (statusFilter) {
+        statusFilter.value = isManagerViewer() ? "approved" : String(statusFilter.value || "all");
+        statusFilter.disabled = isManagerViewer();
+      }
+      syncAdminWorkspace();
+    }
+
+    function permittedAdminSections(){
+      const allowed = [];
+      if (!currentViewer) return ["overviewSection"];
+      if (currentViewer && isStaffViewer()){
+        allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection", "catalogHealthSection");
+        if (isLeadershipViewer()) allowed.push("releaseChangesSection");
+        if (isAdminViewer()) allowed.push("scoringSection", "settingsSection");
+      }
+      return allowed;
+    }
+
+    function syncAdminWorkspace(){
+      const allowed = permittedAdminSections();
+      const links = Array.from(document.querySelectorAll("[data-admin-nav]"));
+      const sections = Array.from(document.querySelectorAll(".adminWorkspaceSection"));
+      if (!allowed.length){
+        links.forEach((link) => link.style.display = "none");
+        sections.forEach((section) => section.classList.remove("active"));
+        return;
+      }
+      if (!allowed.includes(currentAdminSection)) currentAdminSection = allowed[0];
+      links.forEach((link) => {
+        const id = String(link.getAttribute("data-admin-nav") || "").trim();
+        const permitted = allowed.includes(id);
+        link.style.display = permitted ? "" : "none";
+        link.classList.toggle("active", permitted && id === currentAdminSection);
+      });
+      sections.forEach((section) => {
+        section.classList.toggle("active", section.id === currentAdminSection);
+      });
+    }
+
+    function renderRuntimeStatusPills(items){
+      const mount = $("runtimeStatusPills");
+      if (!mount) return;
+      const byKey = Object.fromEntries((items || []).map((item) => [String(item.key || ""), item]));
+      const aiKey = byKey["openai_api_key"];
+      const smtpKey = byKey["smtp_host"];
+      const pills = [];
+      if (aiKey){
+        pills.push(`<span class="runtimePill ${aiKey.configured ? "ok" : "warn"}">AI ${aiKey.configured ? "configured" : "missing key"}</span>`);
+      }
+      if (smtpKey){
+        pills.push(`<span class="runtimePill ${smtpKey.configured ? "ok" : "warn"}">SMTP ${smtpKey.configured ? "configured" : "pending IT"}</span>`);
+      }
+      mount.innerHTML = pills.join("");
+    }
+
+    function formatDate(value){
+      const text = String(value || "").trim();
+      if (!text) return "";
+      try{
+        return new Date(text).toLocaleString();
+      }catch(_e){
+        return text;
+      }
+    }
+
+    function renderAnalyticsList(mountId, rows, formatter){
+      const mount = $(mountId);
+      if (!mount) return;
+      if (!Array.isArray(rows) || !rows.length){
+        mount.innerHTML = `<div class="empty">No tracked activity yet.</div>`;
+        return;
+      }
+      mount.innerHTML = rows.map((row) => formatter(row)).join("");
+    }
+
+    function renderAnalytics(summary){
+      latestAnalyticsSummary = summary || {};
+      const totals = summary?.totals || {};
+      $("statTrackedEvents").textContent = String(totals.events ?? 0);
+      $("statTrackedSearches").textContent = String(totals.searches ?? 0);
+      $("statTrackedUsers").textContent = String(totals.known_users ?? 0);
+      $("statTrackedSessions").textContent = String(totals.sessions ?? 0);
+      $("statZeroResultSearches").textContent = String(totals.zero_result_searches ?? 0);
+      $("statSearchesWithoutExact").textContent = String(totals.searches_without_exact ?? 0);
+      $("statQuoteSaves").textContent = String(totals.quote_saves ?? 0);
+      $("statQuoteExports").textContent = String(totals.quote_exports ?? 0);
+
+      renderAnalyticsList("analyticsTopSearches", summary?.top_searches || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.query_text || "(empty query)")}</div>
+          </div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsTopEvents", summary?.top_events || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.event_type || "event")}</div>
+          </div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsTopUsers", summary?.top_users || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.full_name || row.email || `User ${row.user_id || ""}`)}</div>
+            <div class="analyticsMeta">${esc(row.company_name || row.country || row.email || "")}</div>
+          </div>
+          <div class="analyticsCount">${esc(row.events || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsRecent", summary?.recent_events || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.event_type || "event")}</div>
+            <div class="analyticsMeta">${esc(row.full_name || row.email || "Anonymous")} ${row.query_text ? `| ${esc(row.query_text)}` : ""}</div>
+            <div class="analyticsMeta">${esc(formatDate(row.created_at || ""))}</div>
+          </div>
+          <div class="analyticsCount">${esc(row.product_code || "")}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsNoResultSearches", summary?.top_no_result_searches || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.query_text || "(empty query)")}</div>
+            <div class="analyticsMeta">No exact or similar results returned</div>
+          </div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsSearchesWithoutExact", summary?.top_searches_without_exact || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.query_text || "(empty query)")}</div>
+            <div class="analyticsMeta">Results existed, but none landed in the exact-match tier</div>
+          </div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsRequestedFamilies", summary?.top_requested_families || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.family || "Unknown family")}</div>
+            <div class="analyticsMeta">Understood or requested in search flow</div>
+          </div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsGapFamilies", summary?.top_gap_families || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.family || "Unclassified search")}</div>
+            <div class="analyticsMeta">Searches in this area often failed to produce an exact match</div>
+          </div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsCatalogGaps", summary?.top_catalog_gaps || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.family || "Unclassified search")}</div>
+            <div class="analyticsMeta">
+              Example: ${esc(row.example_query || "(empty query)")} |
+              ${row.gap_type === "no_result" ? "No matching products were returned." : "Only broader alternatives were returned."}
+            </div>
+            <div class="analyticsMeta">
+              No exact: ${esc(row.no_exact_count || 0)} | No result: ${esc(row.zero_result_count || 0)} | Broader only: ${esc(row.closest_only_count || 0)}
+            </div>
+          </div>
+          <div class="analyticsCount">${esc(row.searches || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsJourneyFunnel", summary?.journey_funnel || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.label || "")}</div>
+            <div class="analyticsMeta">
+              ${row.conversion_from_previous == null
+                ? "Starting point for consented sessions"
+                : `${esc(row.conversion_from_previous || 0)}% of the previous stage moved forward`}
+            </div>
+          </div>
+          <div class="analyticsCount">${esc(row.sessions || 0)} sessions</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsTopViewedProducts", summary?.top_viewed_products || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.product_code || "")}</div>
+            <div class="analyticsMeta">Datasheet or website openings from the finder</div>
+          </div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsTopComparedProducts", summary?.top_compared_products || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.product_code || "")}</div>
+            <div class="analyticsMeta">Products pulled into comparison activity</div>
+          </div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsTopQuotedProducts", summary?.top_quoted_products || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.product_code || "")}</div>
+            <div class="analyticsMeta">Products added to quote-building activity</div>
+          </div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsTopProductIntent", summary?.top_product_intent || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.product_code || "")}</div>
+            <div class="analyticsMeta">Views: ${esc(row.views || 0)} | Compares: ${esc(row.compares || 0)} | Quotes: ${esc(row.quotes || 0)}</div>
+          </div>
+          <div class="analyticsCount">${esc(row.intent_score || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsTopCompanies", summary?.top_companies || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.company_name || "")}</div>
+            <div class="analyticsMeta">Searches: ${esc(row.searches || 0)} | Quote saves: ${esc(row.quote_saves || 0)} | Quote exports: ${esc(row.quote_exports || 0)}</div>
+          </div>
+          <div class="analyticsCount">${esc(row.sessions || 0)} sessions</div>
+        </div>
+      `);
+      renderAnalyticsList("analyticsCountryInsights", summary?.country_insights || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.country || "")}</div>
+            <div class="analyticsMeta">Searches: ${esc(row.searches || 0)} | Quote saves: ${esc(row.quote_saves || 0)} | Quote exports: ${esc(row.quote_exports || 0)}</div>
+          </div>
+          <div class="analyticsCount">${esc(row.sessions || 0)} sessions</div>
+        </div>
+      `);
+      const funnel = summary?.quote_funnel || {};
+      renderAnalyticsList("analyticsQuoteFunnel", [
+        { label: "Quotes saved", count: funnel.saved || 0, meta: "Users creating new quote records" },
+        { label: "Quotes updated", count: funnel.updated || 0, meta: "Existing projects refined over time" },
+        { label: "Quote PDF exports", count: funnel.exported_pdf || 0, meta: "Client-facing quote documents generated" },
+        { label: "Datasheets ZIP exports", count: funnel.datasheets_zip || 0, meta: "Technical follow-up packages downloaded" },
+      ], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.label || "")}</div>
+            <div class="analyticsMeta">${esc(row.meta || "")}</div>
+          </div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+    }
+
+    function analyticsDaysValue(){
+      const raw = String($("analyticsDays")?.value || "30").trim();
+      const parsed = Number.parseInt(raw, 10);
+      if (!Number.isFinite(parsed) || parsed < 1) return 30;
+      return parsed;
+    }
+
+    function csvEscape(value){
+      const text = String(value ?? "");
+      if (/["\n,]/.test(text)) return `"${text.replaceAll('"', '""')}"`;
+      return text;
+    }
+
+    function flattenCsvSections(summary){
+      const sections = [];
+      const totals = summary?.totals || {};
+      sections.push(["section", "metric", "value"]);
+      Object.entries(totals).forEach(([key, value]) => {
+        sections.push(["totals", key, value]);
+      });
+      const listSpecs = [
+        ["top_searches", ["query_text", "count"]],
+        ["top_no_result_searches", ["query_text", "count"]],
+        ["top_searches_without_exact", ["query_text", "count"]],
+        ["top_requested_families", ["family", "count"]],
+        ["top_gap_families", ["family", "count"]],
+        ["top_catalog_gaps", ["family", "example_query", "searches", "no_exact_count", "zero_result_count", "closest_only_count", "gap_type"]],
+        ["journey_funnel", ["key", "label", "sessions", "conversion_from_previous"]],
+        ["top_viewed_products", ["product_code", "count"]],
+        ["top_compared_products", ["product_code", "count"]],
+        ["top_quoted_products", ["product_code", "count"]],
+        ["top_product_intent", ["product_code", "views", "compares", "quotes", "intent_score"]],
+        ["top_companies", ["company_name", "events", "searches", "quote_saves", "quote_exports", "sessions"]],
+        ["country_insights", ["country", "events", "searches", "quote_saves", "quote_exports", "sessions"]],
+      ];
+      listSpecs.forEach(([sectionName, fields]) => {
+        const rows = Array.isArray(summary?.[sectionName]) ? summary[sectionName] : [];
+        if (!rows.length) return;
+        sections.push([]);
+        sections.push(["section", ...fields]);
+        rows.forEach((row) => {
+          sections.push([sectionName, ...fields.map((field) => row?.[field] ?? "")]);
+        });
+      });
+      return sections;
+    }
+
+    function exportAnalyticsCsv(){
+      const summary = latestAnalyticsSummary || {};
+      const rows = flattenCsvSections(summary);
+      if (!rows.length){
+        alert("No analytics data is loaded yet.");
+        return;
+      }
+      const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\r\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const href = URL.createObjectURL(blob);
+      const days = analyticsDaysValue();
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = `laiting-analytics-${days}d.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 1000);
+    }
+
+    function renderCatalogHealth(data){
+      const summary = data?.summary || {};
+      $("healthRows").textContent = String(summary.rows ?? 0);
+      $("healthFamilies").textContent = String(summary.unique_families ?? 0);
+      $("healthManufacturers").textContent = String(summary.unique_manufacturers ?? 0);
+      $("healthPriced").textContent = String(summary.priced_rows ?? 0);
+
+      renderAnalyticsList("catalogFieldCoverage", data?.field_coverage || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.field || "")}</div>
+            <div class="analyticsMeta">${esc(row.filled || 0)} filled, ${esc(row.missing || 0)} missing</div>
+          </div>
+          <div class="analyticsCount">${esc(row.pct || 0)}%</div>
+        </div>
+      `);
+
+      renderAnalyticsList("catalogTopFamilies", data?.top_families || [], (row) => `
+        <div class="analyticsRow">
+          <div class="analyticsLabel">${esc(row.family || "")}</div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+
+      const mount = $("catalogIssues");
+      if (!mount) return;
+      const issues = Array.isArray(data?.issues) ? data.issues : [];
+      if (!issues.length){
+        mount.innerHTML = `<div class="empty">No critical catalog issues detected in the current loaded dataset.</div>`;
+        return;
+      }
+      mount.innerHTML = issues.map((issue) => `
+        <div class="healthIssue ${esc(issue.severity || "info")}">
+          <div class="healthIssueTitle">${esc(issue.message || issue.key || "Issue")}</div>
+          <div class="healthIssueMeta">Count: ${esc(issue.count || 0)}</div>
+          ${Array.isArray(issue.examples) && issue.examples.length ? `<div class="healthIssueMeta">Examples: ${esc(issue.examples.join(", "))}</div>` : ""}
+        </div>
+      `).join("");
+    }
+
+    function renderReleaseDiff(data){
+      const summary = data?.summary || {};
+      $("releaseDiffTotal").textContent = String(summary.total_modified_products ?? 0);
+      $("releaseDiffAdded").textContent = String(summary.added_count ?? 0);
+      $("releaseDiffChanged").textContent = String(summary.changed_count ?? 0);
+      $("releaseDiffRemoved").textContent = String(summary.removed_count ?? 0);
+      renderAnalyticsList("releaseDiffList", data?.items || [], (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.product_code || "")} <span class="muted">(${esc(row.change_type || "")})</span></div>
+            <div class="analyticsMeta">
+              ${esc((row.changed_fields || []).join(", ") || "No field details")}
+            </div>
+            <div class="analyticsMeta">
+              ${esc(row.product_name_current || row.product_name_previous || "")}
+            </div>
+          </div>
+          <div class="analyticsCount">${esc((row.changed_fields || []).length || 0)} fields</div>
+        </div>
+      `);
+    }
+
+    async function getJSON(url){
+      const res = await fetch(url, { credentials: "same-origin" });
+      let data = null;
+      try{ data = await res.json(); }catch(_e){}
+      if (!res.ok){
+        throw new Error(extractErrorText(data, res.statusText || "Request failed"));
+      }
+      return data;
+    }
+
+    function extractErrorText(data, fallback){
+      const source = data && (data.detail || data.message || data.error);
+      if (Array.isArray(source)) {
+        return source.map((item) => {
+          if (!item) return "";
+          if (typeof item === "string") return item;
+          const location = Array.isArray(item.loc) ? item.loc.filter(Boolean).join(" -> ") : "";
+          const message = String(item.msg || item.message || "").trim();
+          return [location, message].filter(Boolean).join(": ");
+        }).filter(Boolean).join(" | ") || String(fallback || "Request failed");
+      }
+      if (source && typeof source === "object") {
+        return String(source.msg || source.message || fallback || "Request failed");
+      }
+      return String(source || fallback || "Request failed");
+    }
+
+    let currentViewer = null;
+
+    function viewerRole(){
+      return String(currentViewer?.role || "").toLowerCase();
+    }
+
+    function isAdminViewer(){
+      return viewerRole() === "admin";
+    }
+
+    function isDirectorViewer(){
+      return viewerRole() === "director";
+    }
+
+    function isLeadershipViewer(){
+      return ["admin", "director"].includes(viewerRole());
+    }
+
+    function isManagerViewer(){
+      return viewerRole() === "manager";
+    }
+
+    function isStaffViewer(){
+      return ["admin", "director", "manager"].includes(viewerRole());
+    }
+
+    function assignableRoleEntries(){
+      const roles = [
+        ["user", "User"],
+        ["manager", "Manager"],
+        ["director", "Director"],
+      ];
+      if (isAdminViewer()) roles.push(["admin", "Admin"]);
+      return roles;
+    }
+
+    function roleOptionsHtml(selectedRole){
+      const current = String(selectedRole || "user").trim().toLowerCase();
+      return assignableRoleEntries().map(([value, label]) => (
+        `<option value="${esc(value)}"${current === value ? ' selected="selected"' : ""}>${esc(label)}</option>`
+      )).join("");
+    }
+
+    function canManageUser(user){
+      if (!isLeadershipViewer()) return false;
+      if (Number(user?.id || 0) === Number(currentViewer?.id || 0)) return false;
+      const targetRole = String(user?.role || "user").toLowerCase();
+      if (!isAdminViewer() && targetRole === "admin") return false;
+      return true;
+    }
+
+    async function postJSON(url, payload){
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: payload ? { "Content-Type": "application/json" } : undefined,
+        body: payload ? JSON.stringify(payload) : undefined,
+      });
+      let data = null;
+      try{ data = await res.json(); }catch(_e){}
+      if (!res.ok){
+        throw new Error(extractErrorText(data, res.statusText || "Request failed"));
+      }
+      return data;
+    }
+
+    async function putJSON(url, payload){
+      const res = await fetch(url, {
+        method: "PUT",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload || {}),
+      });
+      let data = null;
+      try{ data = await res.json(); }catch(_e){}
+      if (!res.ok){
+        throw new Error(extractErrorText(data, res.statusText || "Request failed"));
+      }
+      return data;
+    }
+
+    async function deleteJSON(url){
+      const res = await fetch(url, { method: "DELETE", credentials: "same-origin" });
+      let data = null;
+      try{ data = await res.json(); }catch(_e){}
+      if (!res.ok){
+        throw new Error(extractErrorText(data, res.statusText || "Request failed"));
+      }
+      return data;
+    }
+
+    function statusPill(status){
+      const clean = String(status || "").toLowerCase();
+      return `<span class="pill ${esc(clean)}">${esc(clean || "unknown")}</span>`;
+    }
+
+    function renderPending(items){
+      const wrap = $("pendingWrap");
+      if (!wrap) return;
+      if (!items.length){
+        wrap.innerHTML = `<div class="empty">No pending requests right now.</div>`;
+        return;
+      }
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Requested</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map((user) => `
+              <tr>
+                <td>
+                  <div class="userCell">
+                    <div class="userAvatar">${esc(initials(user))}</div>
+                    <div class="stack">
+                      <strong>${esc(user.full_name || "Unnamed user")}</strong>
+                      <span class="muted">${esc(user.email || "")}</span>
+                      <span class="muted">${esc(user.company_name || "No company provided")}</span>
+                      <span class="muted">${esc(user.country || "No country provided")}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>${esc(user.created_at || "")}</td>
+                <td>
+                  <div class="actionsCol">
+                    ${isLeadershipViewer() ? `
+                      <select class="statusSelect" data-approve-role="${esc(user.id)}" style="padding:7px 10px">
+                        ${roleOptionsHtml("user")}
+                      </select>
+                      <div class="stack">
+                        <select class="countryMultiSelect" data-approve-countries="${esc(user.id)}" multiple="multiple" size="6" disabled>
+                          ${countryOptionsHtml(user.assigned_countries || [])}
+                        </select>
+                        <input class="searchInput" data-approve-countries-extra="${esc(user.id)}" type="text" placeholder="Custom countries, comma separated" />
+                        <span class="muted" data-approve-countries-hint="${esc(user.id)}">Assigned countries are used only for managers.</span>
+                      </div>
+                      <button class="btn small" data-approve="${esc(user.id)}" type="button">Approve</button>
+                      <button class="btn secondary small" data-reject="${esc(user.id)}" type="button">Reject</button>
+                    ` : '<span class="muted">Directors or admins only</span>'}
+                  </div>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+      wrap.querySelectorAll("[data-approve]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const userId = btn.getAttribute("data-approve");
+          const roleInput = wrap.querySelector(`[data-approve-role="${CSS.escape(String(userId || ""))}"]`);
+          const countriesInput = wrap.querySelector(`[data-approve-countries="${CSS.escape(String(userId || ""))}"]`);
+          const countriesExtra = wrap.querySelector(`[data-approve-countries-extra="${CSS.escape(String(userId || ""))}"]`);
+          const role = String(roleInput?.value || "user").trim().toLowerCase();
+          const assignedCountries = mergeAssignedCountries(countriesInput, countriesExtra);
+          await postJSON(`/admin/users/${userId}/approve`, { role, assigned_countries: assignedCountries });
+          await loadAdminData();
+        });
+      });
+      wrap.querySelectorAll("[data-approve-role]").forEach((roleSelect) => {
+        const userId = roleSelect.getAttribute("data-approve-role");
+        const countriesSelect = wrap.querySelector(`[data-approve-countries="${CSS.escape(String(userId || ""))}"]`);
+        const hint = wrap.querySelector(`[data-approve-countries-hint="${CSS.escape(String(userId || ""))}"]`);
+        syncCountriesSelect(roleSelect, countriesSelect, hint);
+        roleSelect.addEventListener("change", () => syncCountriesSelect(roleSelect, countriesSelect, hint));
+      });
+      wrap.querySelectorAll("[data-reject]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          await postJSON(`/admin/users/${btn.getAttribute("data-reject")}/reject`);
+          await loadAdminData();
+        });
+      });
+    }
+
+    function renderUsers(items){
+      const wrap = $("usersWrap");
+      if (!wrap) return;
+      if (!items.length){
+        wrap.innerHTML = `<div class="empty">No users found.</div>`;
+        return;
+      }
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map((user) => `
+              <tr>
+                <td>
+                  <div class="userCell">
+                    <div class="userAvatar">${esc(initials(user))}</div>
+                    <div class="stack">
+                      <button class="userLinkBtn" data-user-quotes="${esc(user.id)}" type="button">${esc(user.full_name || "Unnamed user")}</button>
+                      <span class="muted">${esc(user.email || "")}</span>
+                      <span class="muted">${esc(user.company_name || "No company provided")}</span>
+                      <span class="muted">${esc(user.country || "No country provided")}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>${roleCellContent(user)}</td>
+                <td>${statusPill(user.status)}</td>
+                <td>
+                  <div class="actionsCol">
+                    ${canManageUser(user) && String(user.status || "").toLowerCase() === "approved"
+                      ? `<button class="btn ghost small" data-edit-user="${esc(user.id)}" type="button">${editingUserId === user.id ? "Close edit" : "Edit"}</button><button class="btn secondary small" data-block-user="${esc(user.id)}" type="button">Block</button>`
+                    : canManageUser(user) && String(user.status || "").toLowerCase() === "rejected"
+                        ? `<button class="btn small" data-approve-user="${esc(user.id)}" type="button">Re-approve</button><button class="btn secondary small" data-delete-user="${esc(user.id)}" type="button">Delete</button>`
+                        : `<span class="muted">${isLeadershipViewer() ? "Use pending queue" : "Read only"}</span>`}
+                  </div>
+                </td>
+              </tr>
+              ${canManageUser(user) && editingUserId === user.id && String(user.status || "").toLowerCase() === "approved" ? `
+                <tr>
+                  <td colspan="4">
+                    <div class="editCard">
+                      <div class="editGrid">
+                        <div class="editField">
+                          <label for="editFullName_${esc(user.id)}">Full name</label>
+                          <input id="editFullName_${esc(user.id)}" class="searchInput" data-edit-full-name="${esc(user.id)}" type="text" value="${esc(user.full_name || "")}" />
+                        </div>
+                        <div class="editField">
+                          <label for="editCompany_${esc(user.id)}">Company name</label>
+                          <input id="editCompany_${esc(user.id)}" class="searchInput" data-edit-company-name="${esc(user.id)}" type="text" value="${esc(user.company_name || "")}" />
+                        </div>
+                        <div class="editField">
+                          <label for="editCountry_${esc(user.id)}">Country</label>
+                          <select id="editCountry_${esc(user.id)}" class="statusSelect" data-edit-country="${esc(user.id)}">
+                            ${countryOptionsHtml([user.country || ""], { includePlaceholder: true, placeholder: "Select country" })}
+                          </select>
+                          <input id="editCountryOther_${esc(user.id)}" class="searchInput authHidden" data-edit-country-other="${esc(user.id)}" type="text" placeholder="Enter custom country" value="${esc(getKnownCountries().some((country) => country.toLowerCase() === String(user.country || "").toLowerCase()) ? "" : (user.country || ""))}" />
+                        </div>
+                        <div class="editField">
+                          <label for="editRole_${esc(user.id)}">Role</label>
+                          <select id="editRole_${esc(user.id)}" class="statusSelect" data-edit-role="${esc(user.id)}">
+                            ${roleOptionsHtml(user.role)}
+                          </select>
+                        </div>
+                        <div class="editField" style="grid-column:1 / -1">
+                          <label for="editAssignedCountries_${esc(user.id)}">Assigned countries</label>
+                          <select id="editAssignedCountries_${esc(user.id)}" class="countryMultiSelect" data-edit-assigned-countries="${esc(user.id)}" multiple="multiple" size="6">
+                            ${countryOptionsHtml(user.assigned_countries || [])}
+                          </select>
+                          <input class="searchInput" data-edit-assigned-countries-extra="${esc(user.id)}" type="text" placeholder="Custom countries, comma separated" value="${esc((user.assigned_countries || []).filter((value) => !getKnownCountries().some((country) => country.toLowerCase() === String(value || "").toLowerCase())).join(", "))}" />
+                          <div class="muted" data-edit-countries-hint="${esc(user.id)}">Assigned countries are used only for managers.</div>
+                        </div>
+                      </div>
+                      <div class="actionsCol">
+                        <button class="btn small" data-save-user="${esc(user.id)}" type="button">Save changes</button>
+                        <button class="btn ghost small" data-cancel-edit-user="${esc(user.id)}" type="button">Cancel</button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ` : ""}
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+      wrap.querySelectorAll("[data-edit-user]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const nextId = Number(btn.getAttribute("data-edit-user") || 0);
+          editingUserId = editingUserId === nextId ? null : nextId;
+          renderUsers(items);
+        });
+      });
+      wrap.querySelectorAll("[data-user-quotes]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const userId = btn.getAttribute("data-user-quotes");
+          const user = items.find((entry) => String(entry?.id) === String(userId));
+          if (!userId || !user) return;
+          await openUserQuotes(user);
+        });
+      });
+      wrap.querySelectorAll("[data-block-user]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          editingUserId = null;
+          await postJSON(`/admin/users/${btn.getAttribute("data-block-user")}/reject`);
+          await loadAdminData();
+        });
+      });
+      wrap.querySelectorAll("[data-approve-user]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          editingUserId = null;
+          await postJSON(`/admin/users/${btn.getAttribute("data-approve-user")}/approve`);
+          await loadAdminData();
+        });
+      });
+      wrap.querySelectorAll("[data-delete-user]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const userId = btn.getAttribute("data-delete-user");
+          const user = items.find((entry) => String(entry?.id) === String(userId));
+          const label = user?.full_name || user?.email || `user ${userId}`;
+          if (!window.confirm(`Delete ${label}? This will permanently remove the blocked user and their saved quotes.`)) return;
+          editingUserId = null;
+          await deleteJSON(`/admin/users/${userId}`);
+          await loadAdminData();
+        });
+      });
+      wrap.querySelectorAll("[data-edit-role]").forEach((roleSelect) => {
+        const userId = roleSelect.getAttribute("data-edit-role");
+        const countriesSelect = wrap.querySelector(`[data-edit-assigned-countries="${CSS.escape(String(userId || ""))}"]`);
+        const hint = wrap.querySelector(`[data-edit-countries-hint="${CSS.escape(String(userId || ""))}"]`);
+        syncCountriesSelect(roleSelect, countriesSelect, hint);
+        roleSelect.addEventListener("change", () => syncCountriesSelect(roleSelect, countriesSelect, hint));
+      });
+      wrap.querySelectorAll("[data-edit-country]").forEach((select) => {
+        const userId = select.getAttribute("data-edit-country");
+        const otherInput = wrap.querySelector(`[data-edit-country-other="${CSS.escape(String(userId || ""))}"]`);
+        syncCountrySelect(select, otherInput);
+        select.addEventListener("change", () => syncCountrySelect(select, otherInput));
+      });
+      wrap.querySelectorAll("[data-cancel-edit-user]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          editingUserId = null;
+          renderUsers(items);
+        });
+      });
+      wrap.querySelectorAll("[data-save-user]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const userId = btn.getAttribute("data-save-user");
+          const fullName = wrap.querySelector(`[data-edit-full-name="${CSS.escape(String(userId || ""))}"]`);
+          const companyName = wrap.querySelector(`[data-edit-company-name="${CSS.escape(String(userId || ""))}"]`);
+          const country = wrap.querySelector(`[data-edit-country="${CSS.escape(String(userId || ""))}"]`);
+          const countryOther = wrap.querySelector(`[data-edit-country-other="${CSS.escape(String(userId || ""))}"]`);
+          const role = wrap.querySelector(`[data-edit-role="${CSS.escape(String(userId || ""))}"]`);
+          const assignedCountries = wrap.querySelector(`[data-edit-assigned-countries="${CSS.escape(String(userId || ""))}"]`);
+          const assignedCountriesExtra = wrap.querySelector(`[data-edit-assigned-countries-extra="${CSS.escape(String(userId || ""))}"]`);
+          const countryValue = String(country?.value || "").trim() === String(countryApi().otherValue || "__OTHER__")
+            ? String(countryOther?.value || "").trim()
+            : String(country?.value || "").trim();
+          await putJSON(`/admin/users/${userId}`, {
+            full_name: String(fullName?.value || "").trim(),
+            company_name: String(companyName?.value || "").trim(),
+            country: countryValue,
+            role: String(role?.value || "user").trim().toLowerCase(),
+            assigned_countries: mergeAssignedCountries(assignedCountries, assignedCountriesExtra),
+          });
+          editingUserId = null;
+          await loadAdminData();
+        });
+      });
+    }
+
+    function formatProjectStatus(value){
+      const key = String(value || "").trim().toLowerCase();
+      const labels = {
+        design_phase: "Design phase",
+        tender: "Tender",
+        job_in_hand_contractor: "Job in hand contractor",
+        job_in_hand: "Job in hand",
+      };
+      return labels[key] || (key ? key.replaceAll("_", " ") : "Unavailable");
+    }
+
+    function sortVisibleQuotes(items){
+      const rows = [...(Array.isArray(items) ? items : [])];
+      const key = String(visibleQuoteSort?.key || "updated_at");
+      const direction = String(visibleQuoteSort?.direction || "desc") === "asc" ? 1 : -1;
+      const textValue = (value) => String(value ?? "").trim().toLowerCase();
+      const dateValue = (value) => {
+        const stamp = Date.parse(String(value || ""));
+        return Number.isFinite(stamp) ? stamp : 0;
+      };
+      rows.sort((a, b) => {
+        let left = 0;
+        let right = 0;
+        if (key === "updated_at") {
+          left = dateValue(a?.updated_at || a?.created_at);
+          right = dateValue(b?.updated_at || b?.created_at);
+        } else if (key === "item_count") {
+          left = Number(a?.item_count || 0);
+          right = Number(b?.item_count || 0);
+        } else if (key === "project_status") {
+          left = textValue(formatProjectStatus(a?.project_status));
+          right = textValue(formatProjectStatus(b?.project_status));
+        } else {
+          left = textValue(a?.[key]);
+          right = textValue(b?.[key]);
+        }
+        if (left < right) return -1 * direction;
+        if (left > right) return 1 * direction;
+        return 0;
+      });
+      return rows;
+    }
+
+    function quoteSortHead(label, key){
+      const active = String(visibleQuoteSort?.key || "") === String(key || "");
+      const direction = active ? String(visibleQuoteSort?.direction || "asc") : "";
+      const arrow = !active ? "↕" : direction === "asc" ? "↑" : "↓";
+      return `<button class="userLinkBtn sortHead" data-quote-sort="${esc(key)}" type="button">${esc(label)} <span class="sortArrow">${esc(arrow)}</span></button>`;
+    }
+
+    function renderVisibleQuotes(items){
+      const wrap = $("quotesWrap");
+      if (!wrap) return;
+      const rows = sortVisibleQuotes(items);
+      $("quotesCountBadge").textContent = `${rows.length} quotes`;
+      if (!rows.length){
+        wrap.innerHTML = `<div class="empty">No quotes are visible in your current scope yet.</div>`;
+        return;
+      }
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th class="${visibleQuoteSort.key === "project" ? "sortableTh active" : "sortableTh"}">${quoteSortHead("Project name", "project")}</th>
+              <th class="${visibleQuoteSort.key === "customer_name" ? "sortableTh active" : "sortableTh"}">${quoteSortHead("Customer name", "customer_name")}</th>
+              <th class="${visibleQuoteSort.key === "country" ? "sortableTh active" : "sortableTh"}">${quoteSortHead("Country", "country")}</th>
+              <th class="${visibleQuoteSort.key === "contractor_name" ? "sortableTh active" : "sortableTh"}">${quoteSortHead("Contractor", "contractor_name")}</th>
+              <th class="${visibleQuoteSort.key === "project_status" ? "sortableTh active" : "sortableTh"}">${quoteSortHead("Status", "project_status")}</th>
+              <th class="${visibleQuoteSort.key === "consultant_name" ? "sortableTh active" : "sortableTh"}">${quoteSortHead("Consultant", "consultant_name")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((quote) => `
+              <tr>
+                <td>
+                  <div class="stack">
+                    <strong>${esc(quote.project || "Untitled project")}</strong>
+                    <span class="muted">${esc(quote.quote_owner_name || quote.quote_owner_email || "Unknown owner")}</span>
+                    <span class="muted">Updated ${esc(formatDate(quote.updated_at || quote.created_at || ""))}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="stack">
+                    <span>${esc(quote.customer_name || "Unavailable")}</span>
+                    <span class="muted">${esc(quote.item_count || 0)} items</span>
+                  </div>
+                </td>
+                <td>${esc(quote.country || "Unavailable")}</td>
+                <td>${esc(quote.contractor_name || "Unavailable")}</td>
+                <td>${esc(formatProjectStatus(quote.project_status || ""))}</td>
+                <td>${esc(quote.consultant_name || "Unavailable")}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+      wrap.querySelectorAll("[data-quote-sort]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const key = String(btn.getAttribute("data-quote-sort") || "");
+          if (!key) return;
+          if (visibleQuoteSort.key === key) {
+            visibleQuoteSort.direction = visibleQuoteSort.direction === "asc" ? "desc" : "asc";
+          } else {
+            visibleQuoteSort = { key, direction: key === "updated_at" ? "desc" : "asc" };
+          }
+          applyVisibleQuoteFilters();
+        });
+      });
+    }
+
+    function filteredVisibleQuotes(){
+      const term = String($("quoteSearch")?.value || "").trim().toLowerCase();
+      const countryTerm = String($("quoteCountryFilter")?.value || "").trim().toLowerCase();
+      const statusTerm = String($("quoteStatusFilter")?.value || "").trim().toLowerCase();
+      return (allVisibleQuotes || []).filter((quote) => {
+        const haystack = [
+          quote.project,
+          quote.customer_name,
+          quote.country,
+          quote.contractor_name,
+          quote.consultant_name,
+          quote.quote_owner_name,
+          quote.quote_owner_email,
+        ].map((value) => String(value || "")).join(" ").toLowerCase();
+        const matchesText = !term || haystack.includes(term);
+        const matchesCountry = !countryTerm || String(quote.country || "").trim().toLowerCase() === countryTerm;
+        const matchesStatus = !statusTerm || String(quote.project_status || "").trim().toLowerCase() === statusTerm;
+        return matchesText && matchesCountry && matchesStatus;
+      });
+    }
+
+    function applyVisibleQuoteFilters(){
+      renderVisibleQuotes(filteredVisibleQuotes());
+    }
+
+    function exportVisibleQuotesCsv(){
+      const rows = filteredVisibleQuotes();
+      if (!rows.length){
+        alert("No visible quotes match the current filters.");
+        return;
+      }
+      const csvEscape = (value) => {
+        const text = String(value ?? "");
+        if (/["\n,]/.test(text)) return `"${text.replaceAll('"', '""')}"`;
+        return text;
+      };
+      const header = [
+        "project_name",
+        "customer_name",
+        "country",
+        "contractor",
+        "status",
+        "consultant",
+        "quote_owner",
+        "quote_owner_email",
+        "item_count",
+        "updated_at",
+      ];
+      const lines = [
+        header,
+        ...rows.map((quote) => [
+          quote.project || "",
+          quote.customer_name || "",
+          quote.country || "",
+          quote.contractor_name || "",
+          formatProjectStatus(quote.project_status || ""),
+          quote.consultant_name || "",
+          quote.quote_owner_name || "",
+          quote.quote_owner_email || "",
+          quote.item_count || 0,
+          formatDate(quote.updated_at || quote.created_at || ""),
+        ]),
+      ];
+      const csv = lines.map((row) => row.map(csvEscape).join(",")).join("\r\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = "visible-quotes.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 1000);
+    }
+
+    function renderQuotePopupHtml(user, quotes){
+      const items = Array.isArray(quotes) ? quotes : [];
+      return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Saved Quotes - ${esc(user.full_name || user.email || "user")}</title>
+  <style>
+    body{margin:0;padding:18px;font-family:Segoe UI,Arial,sans-serif;background:#f3f6fa;color:#0f172a}
+    .wrap{max-width:1040px;margin:0 auto}
+    .head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
+    .title{font-size:22px;font-weight:800;margin:0}
+    .muted{font-size:12px;color:#64748b}
+    .btn{padding:10px 12px;border:0;border-radius:12px;background:#111827;color:#fff;cursor:pointer}
+    .quoteList{display:grid;gap:10px}
+    .quoteItem{border:1px solid #e2e8f0;border-radius:14px;padding:12px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.05)}
+    .quoteItemTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+    .quoteDetail{margin-top:10px;border-top:1px solid #e2e8f0;padding-top:10px}
+    .quoteDetailTable{width:100%;border-collapse:collapse}
+    .quoteDetailTable th,.quoteDetailTable td{padding:8px 6px;border-bottom:1px solid #edf2f7;text-align:left;vertical-align:top;font-size:12px}
+    .empty{padding:16px;border:1px dashed #dbeafe;border-radius:14px;background:#f8fbff;color:#475569;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <h1 class="title">Saved quotes for ${esc(user.full_name || user.email || "user")}</h1>
+        <div class="muted">${esc(user.email || "")}</div>
+        <div class="muted">${esc(user.company_name || "")}</div>
+      </div>
+      <button class="btn" type="button" onclick="window.close()">Close</button>
+    </div>
+    ${items.length ? `
+      <div class="quoteList">
+        ${items.map((quote) => `
+          <div class="quoteItem">
+            <div class="quoteItemTop">
+              <div>
+                <strong>${esc(quote.project || "Untitled project")}</strong>
+                <div class="muted">Company: ${esc(quote.company || "Not set")}</div>
+                <div class="muted">Items: ${esc(quote.item_count || 0)} | Updated: ${esc(formatDate(quote.updated_at || quote.created_at || ""))}</div>
+              </div>
+            </div>
+            ${renderUserQuoteDetail(quote)}
+          </div>
+        `).join("")}
+      </div>
+    ` : `<div class="empty">This user has no saved quotes yet.</div>`}
+  </div>
+</body>
+</html>`;
+    }
+
+    async function openUserQuotes(user){
+      const popup = window.open("", "_blank", "width=1080,height=760");
+      if (!popup){
+        throw new Error("Popup blocked. Allow popups for this site and try again.");
+      }
+      try{
+        popup.opener = null;
+      }catch(_e){}
+      popup.document.open();
+      popup.document.write(`<!doctype html><html><head><title>Loading quotes...</title></head><body style="font-family:Segoe UI,Arial,sans-serif;padding:18px">Loading saved quotes...</body></html>`);
+      popup.document.close();
+      try{
+        const listData = await getJSON(`/admin/users/${encodeURIComponent(user.id)}/quotes`);
+        const summaries = Array.isArray(listData.items) ? listData.items : [];
+        const details = await Promise.all(
+          summaries.map((quote) => getJSON(`/admin/users/${encodeURIComponent(user.id)}/quotes/${encodeURIComponent(quote.id)}`))
+        );
+        popup.document.open();
+        popup.document.write(renderQuotePopupHtml(user, details));
+        popup.document.close();
+      }catch(e){
+        popup.document.open();
+        popup.document.write(`<!doctype html><html><body style="font-family:Segoe UI,Arial,sans-serif;padding:18px"><div style="color:#9f1239">Could not load saved quotes: ${esc(String(e.message || e))}</div></body></html>`);
+        popup.document.close();
+      }
+    }
+
+    function renderUserQuoteDetail(quote){
+      const items = Array.isArray(quote?.items) ? quote.items : [];
+      return `
+        <div class="quoteDetail">
+          <div class="muted" style="margin-bottom:8px">Created: ${esc(formatDate(quote.created_at || ""))}</div>
+          ${items.length ? `
+            <table class="quoteDetailTable">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Name</th>
+                  <th>Qty</th>
+                  <th>Project Ref</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items.map((item) => `
+                  <tr>
+                    <td>${esc(item.product_code || "")}</td>
+                    <td>${esc(item.product_name || "")}</td>
+                    <td>${esc(item.qty || 1)}</td>
+                    <td>${esc(item.project_reference || "")}</td>
+                    <td>${esc(item.notes || "")}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          ` : `<div class="empty">This quote has no items.</div>`}
+        </div>
+      `;
+    }
+
+    function updateStats(users, pending){
+      const approved = users.filter((u) => String(u.status || "").toLowerCase() === "approved").length;
+      const rejected = users.filter((u) => String(u.status || "").toLowerCase() === "rejected").length;
+      $("statPending").textContent = String(pending.length);
+      $("statApproved").textContent = String(approved);
+      $("statRejected").textContent = String(rejected);
+    }
+
+    function renderSettingsTabs(items){
+      const tabs = $("settingsTabs");
+      const summary = $("settingsSummary");
+      const searchInput = $("settingsSearch");
+      if (!tabs || !summary) return;
+      if (searchInput && !searchInput.dataset.bound){
+        searchInput.value = settingsSearchTerm;
+        searchInput.addEventListener("input", () => {
+          settingsSearchTerm = String(searchInput.value || "").trim().toLowerCase();
+          renderSettings(allSettings);
+        });
+        searchInput.dataset.bound = "1";
+      } else if (searchInput && searchInput.value !== settingsSearchTerm){
+        searchInput.value = settingsSearchTerm;
+      }
+      const categories = ["All", ...Array.from(new Set((items || []).map((item) => String(item.category || "General"))))];
+      if (!categories.includes(selectedSettingsCategory)) selectedSettingsCategory = "All";
+      tabs.innerHTML = categories.map((category) => {
+        const count = category === "All"
+          ? items.length
+          : items.filter((item) => String(item.category || "General") === category).length;
+        return `<button class="settingsTab ${category === selectedSettingsCategory ? "active" : ""}" type="button" data-settings-tab="${esc(category)}">${esc(category)} (${count})</button>`;
+      }).join("");
+      tabs.querySelectorAll("[data-settings-tab]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          selectedSettingsCategory = String(btn.getAttribute("data-settings-tab") || "All");
+          renderSettings(allSettings);
+        });
+      });
+      const visible = selectedSettingsCategory === "All"
+        ? items
+        : items.filter((item) => String(item.category || "General") === selectedSettingsCategory);
+      const configured = visible.filter((item) => !!item.configured).length;
+      const restartRequired = visible.filter((item) => !!item.restart_required).length;
+      const searchLabel = settingsSearchTerm ? `, filtered by "${settingsSearchTerm}"` : "";
+      summary.textContent = `${visible.length} settings shown, ${configured} configured, ${restartRequired} restart-sensitive${searchLabel}.`;
+    }
+
+    function bindSettingSaveButtons(root){
+      root?.querySelectorAll?.("[data-save-setting]")?.forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const key = String(btn.getAttribute("data-save-setting") || "");
+          const input = root.querySelector(`[data-setting-input="${CSS.escape(key)}"]`);
+          const value = String(input?.value || "");
+          btn.disabled = true;
+          const isScoring = key.startsWith("scoring_");
+          (isScoring ? setScoringNotice : setSettingsNotice)(`Saving ${key}...`, false);
+          try{
+            const data = await putJSON(`/admin/settings/${encodeURIComponent(key)}`, { value });
+            const updated = data?.setting || null;
+            allSettings = allSettings.map((item) => item.key === key ? updated : item);
+            if (!allSettings.find((item) => item.key === key) && updated) allSettings.push(updated);
+            renderScoringSettings(allSettings);
+            renderSettings(allSettings);
+            (isScoring ? setScoringNotice : setSettingsNotice)(`Saved ${updated?.label || key}.`, false);
+            if (updated?.secret) {
+              alert(`Saved ${updated?.label || key}.`);
+            }
+          }catch(error){
+            (isScoring ? setScoringNotice : setSettingsNotice)(String(error.message || error), true);
+            alert(String(error.message || error));
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+
+    function renderScoringSettings(items){
+      const wrap = $("scoringWrap");
+      const summary = $("scoringSummary");
+      const searchInput = $("scoringSearch");
+      if (!wrap || !summary) return;
+      if (!isAdminViewer()){
+        wrap.innerHTML = `<div class="empty">Scoring controls are available only to admins.</div>`;
+        summary.textContent = "Read-only non-admin view.";
+        return;
+      }
+      if (searchInput && !searchInput.dataset.bound){
+        searchInput.value = scoringSearchTerm;
+        searchInput.addEventListener("input", () => {
+          scoringSearchTerm = String(searchInput.value || "").trim().toLowerCase();
+          renderScoringSettings(allSettings);
+        });
+        searchInput.dataset.bound = "1";
+      } else if (searchInput && searchInput.value !== scoringSearchTerm){
+        searchInput.value = scoringSearchTerm;
+      }
+      const scoringItems = (items || []).filter((item) => String(item.category || "General") === "Scoring");
+      const visibleItems = scoringItems.filter((item) => {
+        if (!scoringSearchTerm) return true;
+        const haystack = `${item.label || ""} ${item.key || ""} ${item.description || ""}`.toLowerCase();
+        return haystack.includes(scoringSearchTerm);
+      });
+      const configured = visibleItems.filter((item) => !!item.configured).length;
+      const searchLabel = scoringSearchTerm ? `, filtered by "${scoringSearchTerm}"` : "";
+      summary.textContent = `${visibleItems.length} scoring controls shown, ${configured} configured${searchLabel}.`;
+      if (!visibleItems.length){
+        wrap.innerHTML = `<div class="empty">No scoring controls match the current search.</div>`;
+        return;
+      }
+      wrap.innerHTML = renderScoringGroups(visibleItems);
+      bindSettingSaveButtons(wrap);
+    }
+
+    function renderSettings(items){
+      const wrap = $("settingsWrap");
+      if (!wrap) return;
+      if (!isAdminViewer()){
+        wrap.innerHTML = `<div class="empty">Settings are available only to admins.</div>`;
+        const tabs = $("settingsTabs");
+        const summary = $("settingsSummary");
+        if (tabs) tabs.innerHTML = "";
+        if (summary) summary.textContent = "Read-only non-admin view.";
+        return;
+      }
+      const generalItems = (items || []).filter((item) => String(item.category || "General") !== "Scoring");
+      renderSettingsTabs(generalItems);
+      if (!generalItems.length){
+        wrap.innerHTML = `<div class="empty">No settings available.</div>`;
+        return;
+      }
+      const visibleItems = (selectedSettingsCategory === "All"
+        ? generalItems
+        : generalItems.filter((item) => String(item.category || "General") === selectedSettingsCategory)
+      ).filter((item) => {
+        if (!settingsSearchTerm) return true;
+        const haystack = `${item.label || ""} ${item.key || ""} ${item.description || ""}`.toLowerCase();
+        return haystack.includes(settingsSearchTerm);
+      });
+      if (!visibleItems.length){
+        wrap.innerHTML = `<div class="empty">No settings match the current filters.</div>`;
+        return;
+      }
+      const grouped = visibleItems.reduce((acc, item) => {
+        const category = String(item.category || "General");
+        if (!acc[category]) acc[category] = [];
+        acc[category].push(item);
+        return acc;
+      }, {});
+      const entries = Object.entries(grouped);
+      if (selectedSettingsCategory !== "All"){
+        expandedSettingsCategories = new Set([selectedSettingsCategory]);
+      } else if (!entries.some(([category]) => expandedSettingsCategories.has(category))){
+        expandedSettingsCategories = new Set(entries.length ? [entries[0][0]] : []);
+      }
+      wrap.innerHTML = entries.map(([category, categoryItems]) => {
+        const configuredCount = categoryItems.filter((item) => !!item.configured).length;
+        const restartCount = categoryItems.filter((item) => !!item.restart_required).length;
+        const isExpanded = selectedSettingsCategory !== "All" || expandedSettingsCategories.has(category);
+        const categoryBody = category === "Scoring"
+          ? renderScoringGroups(categoryItems)
+          : `<div class="settingsGrid">
+            ${categoryItems.map((item) => `
+              <div class="settingCard">
+                <div class="settingTop">
+                  <div>
+                    <div class="settingLabel">${esc(item.label || item.key)}</div>
+                    <div class="settingMeta">${esc(item.key || "")}</div>
+                  </div>
+                  <span class="sectionBadge">${item.secret ? "Secret" : "Config"}</span>
+                </div>
+                <div class="settingHint">${esc(item.description || "")}</div>
+                <div class="settingFlags">
+                  <span class="settingFlag ${item.configured ? "ok" : ""}">${item.configured ? "Configured" : "Not set"}</span>
+                  ${item.restart_required ? '<span class="settingFlag warn">Restart needed</span>' : '<span class="settingFlag">Hot apply</span>'}
+                  ${item.secret ? '<span class="settingFlag">Masked</span>' : ""}
+                </div>
+                <div class="settingValue">${esc(item.secret ? (item.masked_value || (item.configured ? "Configured" : "Missing")) : (item.value || "Not set"))}</div>
+                ${item.multiline
+                  ? `<textarea class="settingTextarea" data-setting-input="${esc(item.key)}" placeholder="${esc(item.placeholder || "")}" autocomplete="off" autocapitalize="off" spellcheck="false">${esc(item.secret ? "" : (item.value || ""))}</textarea>`
+                  : `<input class="settingInput" data-setting-input="${esc(item.key)}" type="text" value="${esc(item.secret ? "" : (item.value || ""))}" placeholder="${esc(item.secret ? ((item.configured ? "Paste new secret here or leave blank to keep current secret" : "Paste new secret here") || "") : (item.placeholder || ""))}" autocomplete="off" autocapitalize="off" spellcheck="false" />`
+                }
+                <div class="settingActions">
+                  <div class="settingStatus">${item.updated_at ? `Updated ${esc(formatDate(item.updated_at))}` : "No recorded update yet."}</div>
+                  <button class="btn small" type="button" data-save-setting="${esc(item.key)}">Save</button>
+                </div>
+              </div>
+            `).join("")}
+          </div>`;
+        return `
+        <section class="settingsCategory ${isExpanded ? "expanded" : ""}" data-settings-category="${esc(category)}">
+          <div class="settingsCategoryHead">
+            <button class="settingsCategoryToggle" type="button" data-settings-toggle="${esc(category)}" aria-expanded="${isExpanded ? "true" : "false"}">
+              <div>
+                <h3 class="settingsCategoryTitle">${esc(category)}</h3>
+                <p class="settingsCategoryText">${esc(SETTINGS_CATEGORY_META[category] || "Settings for this area.")}</p>
+                <div class="settingsCategoryStats">
+                  <span class="settingsMiniBadge">${categoryItems.length} items</span>
+                  <span class="settingsMiniBadge">${configuredCount} configured</span>
+                  ${restartCount ? `<span class="settingsMiniBadge">${restartCount} restart-sensitive</span>` : `<span class="settingsMiniBadge">Hot-apply ready</span>`}
+                </div>
+              </div>
+              <span class="settingsCaret">${isExpanded ? "-" : "+"}</span>
+            </button>
+          </div>
+          <div class="settingsCategoryBody">
+          ${categoryBody}
+          </div>
+        </section>
+      `;
+      }).join("");
+      wrap.querySelectorAll("[data-settings-toggle]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (selectedSettingsCategory !== "All") return;
+          const category = String(btn.getAttribute("data-settings-toggle") || "");
+          if (!category) return;
+          if (expandedSettingsCategories.has(category)) expandedSettingsCategories.delete(category);
+          else expandedSettingsCategories.add(category);
+          renderSettings(allSettings);
+        });
+      });
+      bindSettingSaveButtons(wrap);
+    }
+
+    function applyFilters(){
+      const term = String($("userSearch")?.value || "").trim().toLowerCase();
+      const companyTerm = String($("companyFilter")?.value || "").trim().toLowerCase();
+      const countryTerm = String($("countryFilter")?.value || "").trim().toLowerCase();
+      const status = String($("statusFilter")?.value || "all").trim().toLowerCase();
+      const filteredUsers = allUsers.filter((user) => {
+        const haystack = `${user.full_name || ""} ${user.email || ""} ${user.company_name || ""} ${user.country || ""}`.toLowerCase();
+        const matchesText = !term || haystack.includes(term);
+        const matchesCompany = !companyTerm || String(user.company_name || "").toLowerCase().includes(companyTerm);
+        const matchesCountry = !countryTerm || String(user.country || "").trim().toLowerCase() === countryTerm;
+        const matchesStatus = status === "all" || String(user.status || "").toLowerCase() === status;
+        return matchesText && matchesCompany && matchesCountry && matchesStatus;
+      });
+      const filteredPending = allPending.filter((user) => {
+        const haystack = `${user.full_name || ""} ${user.email || ""} ${user.company_name || ""} ${user.country || ""}`.toLowerCase();
+        const matchesText = !term || haystack.includes(term);
+        const matchesCompany = !companyTerm || String(user.company_name || "").toLowerCase().includes(companyTerm);
+        const matchesCountry = !countryTerm || String(user.country || "").trim().toLowerCase() === countryTerm;
+        return matchesText && matchesCompany && matchesCountry;
+      });
+      renderPending(status === "all" || status === "pending" ? filteredPending : []);
+      renderUsers(filteredUsers);
+      $("usersCountBadge").textContent = `${filteredUsers.length} users`;
+    }
+
+    async function loadAdminData(){
+      try{
+        const me = window.ProductFinderAuth?.getUser?.();
+        currentViewer = me || null;
+        if (!me){
+          setNotice("Log in with an admin, director, or manager account to open this page.", true);
+          return;
+        }
+        if (!isStaffViewer()){
+          setNotice("This page is available only to approved admin, director, or manager users.", true);
+          return;
+        }
+        applyViewerLayout();
+        setNotice(isLeadershipViewer() ? "Loading leadership workspace..." : "Loading manager workspace...", false);
+        const requests = [getJSON("/admin/users")];
+        if (isLeadershipViewer()) requests.unshift(getJSON("/admin/users/pending"));
+        const results = await Promise.all(requests);
+        const pendingRes = isLeadershipViewer() ? results[0] : { items: [] };
+        const usersRes = isLeadershipViewer() ? results[1] : results[0];
+        allPending = Array.isArray(pendingRes.items) ? pendingRes.items : [];
+        allUsers = Array.isArray(usersRes.items) ? usersRes.items : [];
+        populateCountryFilter();
+        const pendingSection = $("pendingWrap")?.closest(".card");
+        if (pendingSection) pendingSection.style.display = isLeadershipViewer() ? "" : "none";
+        updateStats(allUsers, allPending);
+        applyFilters();
+        setNotice(isLeadershipViewer() ? "Leadership data is up to date." : "Manager data is up to date.", false);
+      }catch(error){
+        setNotice(String(error.message || error), true);
+      }
+    }
+
+    async function loadSettings(){
+      try{
+        const me = window.ProductFinderAuth?.getUser?.();
+        currentViewer = me || null;
+        applyViewerLayout();
+        if (!me || !isAdminViewer()){
+          setSettingsNotice("Settings are available only to admins.", true);
+          setScoringNotice("Scoring controls are available only to admins.", true);
+          renderScoringSettings([]);
+          renderSettings([]);
+          return;
+        }
+        setSettingsNotice("Loading settings...", false);
+        setScoringNotice("Loading scoring controls...", false);
+        const data = await getJSON("/admin/settings");
+        allSettings = Array.isArray(data.items) ? data.items : [];
+        renderRuntimeStatusPills(allSettings);
+        renderScoringSettings(allSettings);
+        renderSettings(allSettings);
+        setScoringNotice("Scoring controls are up to date.", false);
+        setSettingsNotice("Settings are up to date.", false);
+      }catch(error){
+        setScoringNotice(String(error.message || error), true);
+        setSettingsNotice(String(error.message || error), true);
+      }
+    }
+
+    async function loadAnalytics(){
+      try{
+        const me = window.ProductFinderAuth?.getUser?.();
+        currentViewer = me || null;
+        applyViewerLayout();
+        if (!me || !isLeadershipViewer()){
+          setAnalyticsNotice("Analytics are available only to approved directors and admins.", true);
+          renderAnalytics({});
+          return;
+        }
+        setAnalyticsNotice("Loading analytics...", false);
+        const days = analyticsDaysValue();
+        const data = await getJSON(`/admin/analytics/summary?days=${encodeURIComponent(days)}&top_n=8`);
+        renderAnalytics(data || {});
+        setAnalyticsNotice(`Analytics reflect first-party consented activity from the last ${days} days.`, false);
+      }catch(error){
+        setAnalyticsNotice(String(error.message || error), true);
+      }
+    }
+
+    async function loadVisibleQuotes(){
+      try{
+        const me = window.ProductFinderAuth?.getUser?.();
+        currentViewer = me || null;
+        applyViewerLayout();
+        if (!me || !isStaffViewer()){
+          setQuotesNotice("Quotes are available only to approved admin, director, or manager users.", true);
+          allVisibleQuotes = [];
+          renderVisibleQuotes([]);
+          return;
+        }
+        setQuotesNotice("Loading visible quotes...", false);
+        const data = await getJSON("/admin/quotes");
+        allVisibleQuotes = Array.isArray(data.items) ? data.items : [];
+        populateQuoteCountryFilter();
+        applyVisibleQuoteFilters();
+        setQuotesNotice(
+          isManagerViewer()
+            ? "Showing quotes from your assigned countries."
+            : "Showing quotes across your visible workspace.",
+          false,
+        );
+      }catch(error){
+        allVisibleQuotes = [];
+        setQuotesNotice(String(error.message || error), true);
+        renderVisibleQuotes([]);
+      }
+    }
+
+    async function loadCatalogHealth(){
+      try{
+        const me = window.ProductFinderAuth?.getUser?.();
+        currentViewer = me || null;
+        applyViewerLayout();
+        if (!me || !isStaffViewer()){
+          setCatalogHealthNotice("Catalog health is available only to approved admin, director, or manager users.", true);
+          renderCatalogHealth({});
+          return;
+        }
+        setCatalogHealthNotice("Loading catalog health...", false);
+        const data = await getJSON("/admin/catalog-health");
+        renderCatalogHealth(data || {});
+        setCatalogHealthNotice("Catalog health is based on the currently loaded dataset.", false);
+      }catch(error){
+        setCatalogHealthNotice(String(error.message || error), true);
+      }
+    }
+
+    async function loadReleaseDiff(){
+      try{
+        const me = window.ProductFinderAuth?.getUser?.();
+        currentViewer = me || null;
+        applyViewerLayout();
+        if (!me || !isLeadershipViewer()){
+          setReleaseDiffNotice("Catalog release export is available only to approved directors and admins.", true);
+          renderReleaseDiff({});
+          return;
+        }
+        setReleaseDiffNotice("Loading release diff...", false);
+        const data = await getJSON("/admin/catalog-release-diff");
+        renderReleaseDiff(data || {});
+        const summary = data?.summary || {};
+        if (!summary.release_id){
+          setReleaseDiffNotice("No catalog release snapshot is available yet.", false);
+          return;
+        }
+        const source = String(summary.source_filename || "").trim();
+        const when = formatDate(summary.imported_at || "");
+        setReleaseDiffNotice(`Showing modifications for ${source || "the latest release"}${when ? ` imported on ${when}` : ""}.`, false);
+      }catch(error){
+        setReleaseDiffNotice(String(error.message || error), true);
+        renderReleaseDiff({});
+      }
+    }
+
+    function initAdminMenu(){
+      document.querySelectorAll("[data-admin-nav]").forEach((link) => {
+        link.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          const id = String(link.getAttribute("data-admin-nav") || "").trim();
+          if (!id) return;
+          currentAdminSection = id;
+          syncAdminWorkspace();
+          history.replaceState(null, "", `#${id}`);
+        });
+      });
+      const hash = String(window.location.hash || "").replace(/^#/, "").trim();
+      if (hash) currentAdminSection = hash;
+      syncAdminWorkspace();
+    }
+
+    $("btnBackFinder").addEventListener("click", () => {
+      window.location.href = "/frontend/";
+    });
+    $("btnBackTools").addEventListener("click", () => {
+      window.location.href = "/frontend/tools.html";
+    });
+    $("btnRefreshAdmin").addEventListener("click", async () => {
+      await loadAdminData();
+    });
+    $("btnRefreshVisibleQuotes").addEventListener("click", async () => {
+      await loadVisibleQuotes();
+    });
+    $("btnExportVisibleQuotesCsv").addEventListener("click", () => {
+      exportVisibleQuotesCsv();
+    });
+    $("btnRefreshAnalytics").addEventListener("click", async () => {
+      await loadAnalytics();
+    });
+    $("btnExportAnalyticsCsv").addEventListener("click", () => {
+      exportAnalyticsCsv();
+    });
+    $("btnRefreshReleaseDiff").addEventListener("click", async () => {
+      await loadReleaseDiff();
+    });
+    $("btnExportReleaseDiffCsv").addEventListener("click", () => {
+      window.location.href = "/admin/catalog-release-diff/export";
+    });
+    $("analyticsDays").addEventListener("change", async () => {
+      await loadAnalytics();
+    });
+    $("userSearch").addEventListener("input", applyFilters);
+    $("companyFilter").addEventListener("input", applyFilters);
+    $("countryFilter").addEventListener("change", applyFilters);
+    $("statusFilter").addEventListener("change", applyFilters);
+    $("quoteSearch").addEventListener("input", applyVisibleQuoteFilters);
+    $("quoteCountryFilter").addEventListener("change", applyVisibleQuoteFilters);
+    $("quoteStatusFilter").addEventListener("change", applyVisibleQuoteFilters);
+
+    document.addEventListener("productfinder:auth-changed", async () => {
+      await loadAdminData();
+      await loadVisibleQuotes();
+      await loadSettings();
+      await loadAnalytics();
+      await loadReleaseDiff();
+      await loadCatalogHealth();
+    });
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      initAdminMenu();
+      populateCountryFilter();
+      await loadAdminData();
+      await loadVisibleQuotes();
+      await loadSettings();
+      await loadAnalytics();
+      await loadReleaseDiff();
+      await loadCatalogHealth();
+    });
+  </script>
+</body>
+</html>

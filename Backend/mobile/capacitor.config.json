@@ -1,0 +1,13 @@
+﻿{
+  "appId": "com.productfinder.mobile",
+  "appName": "ProductFinder",
+  "webDir": "www",
+  "server": {
+    "url": "https://simulant-iluminada-skinlike.ngrok-free.dev",
+    "cleartext": true,
+    "allowNavigation": [
+      "*"
+    ]
+  }
+}
+

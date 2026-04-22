@@ -1,0 +1,57 @@
+name: Backend Production Monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Probe production health
+        env:
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
+        run: |
+          if [ -z "$HEALTHCHECK_URL" ]; then
+            echo "HEALTHCHECK_URL secret is required" >&2
+            exit 1
+          fi
+          python Backend/scripts/check_health.py "$HEALTHCHECK_URL" --expect-backend postgres
+
+      - name: Send alert webhook on failure
+        if: failure() && secrets.ALERT_WEBHOOK_URL != ''
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          payload = {
+              "text": (
+                  "Product Finder production healthcheck failed.\n"
+                  f"Endpoint: {os.environ.get('HEALTHCHECK_URL')}\n"
+                  f"Run: {os.environ.get('RUN_URL')}"
+              )
+          }
+          request = urllib.request.Request(
+              os.environ["ALERT_WEBHOOK_URL"],
+              data=json.dumps(payload).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+          )
+          urllib.request.urlopen(request, timeout=15).read()
+          PY

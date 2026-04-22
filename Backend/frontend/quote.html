@@ -1,0 +1,1402 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Laiting Quote Cart</title>
+  <style>
+    :root{
+      --bg:#eef2f6; --card:#fff; --cardAlt:#fbfdff; --ink:#102033; --muted:#62748a; --line:#dbe4ee;
+      --pri:#c96e10; --pri2:#a95a08;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Aptos,"Segoe UI Variable","Segoe UI",sans-serif;background:
+      radial-gradient(circle at top left, rgba(255,255,255,.94) 0%, rgba(255,255,255,0) 28%),
+      linear-gradient(180deg, #f9fbfd 0%, var(--bg) 56%, #e8edf3 100%);color:var(--ink)}
+    .wrap{max-width:1160px;margin:0 auto;padding:18px}
+    .card{background:linear-gradient(180deg, var(--card) 0%, var(--cardAlt) 100%);border-radius:20px;box-shadow:0 14px 34px rgba(15,23,42,.08);padding:20px;border:1px solid #e9eff5}
+    .h{font-weight:800;margin:2px 0 10px}
+    .small{font-size:12px;color:var(--muted)}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .btn{padding:10px 13px;border:1px solid transparent;border-radius:12px;background:linear-gradient(180deg, #d47b18 0%, var(--pri) 100%);color:#fff;cursor:pointer;font-weight:700;letter-spacing:.01em;box-shadow:0 10px 20px rgba(201,110,16,.18);transition:transform .16s ease, box-shadow .16s ease}
+    .btn:hover{transform:translateY(-1px);box-shadow:0 14px 24px rgba(201,110,16,.22)}
+    .btn.secondary{background:linear-gradient(180deg, #1f2937 0%, #111827 100%);box-shadow:0 10px 18px rgba(17,24,39,.16)}
+    .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    input[type="text"], input[type="number"]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:inset 0 1px 2px rgba(15,23,42,.03)}
+    textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;resize:vertical;min-height:88px;box-shadow:inset 0 1px 2px rgba(15,23,42,.03)}
+    select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:inset 0 1px 2px rgba(15,23,42,.03)}
+    .quoteHero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,.9fr);gap:14px;align-items:start;margin-top:12px}
+    .quoteMetaPanel,.quoteActionsPanel{border:1px solid #e5edf5;border-radius:18px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);padding:16px;box-shadow:0 10px 24px rgba(15,23,42,.04)}
+    .quoteMeta{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .quoteField{display:flex;flex-direction:column;gap:6px}
+    .quoteFieldLabel{font-size:12px;font-weight:700;color:var(--muted)}
+    .projectDetailsCard{margin-top:12px;padding-top:12px;border-top:1px solid #dbe3ec}
+    .projectDetailsGrid{display:grid;grid-template-columns:220px 1fr;gap:10px;align-items:start}
+    .projectContactsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;margin-top:10px}
+    .inlineFieldRow{display:flex;gap:8px;align-items:center}
+    .inlineFieldRow .btn{white-space:nowrap}
+    .quickAddRow{margin-top:0;align-items:end}
+    .quickAddField{flex:0 1 320px;max-width:320px;gap:4px}
+    .quickAddCodeInput{padding:8px 10px !important;height:40px;line-height:1.2;border-radius:10px}
+    .quickAddRow .btn{height:40px;padding:8px 14px;border-radius:10px}
+    .quickAddHint{min-height:18px}
+    .quoteSectionTitle{font-size:14px;font-weight:800;color:var(--ink);margin:0 0 4px}
+    .quoteSectionText{font-size:12px;color:var(--muted);line-height:1.45;margin:0 0 12px}
+    .quoteActionsGrid{display:grid;gap:10px}
+    .quoteExportButtons{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .quoteActionRow{display:flex;gap:8px;flex-wrap:wrap}
+    .quoteActionRow .btn{flex:1 1 150px}
+    .quoteActionsPanel .quickAddHint{margin-top:2px}
+    .quoteTableWrap{overflow:auto;margin-top:8px}
+    .quoteTable{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;table-layout:fixed}
+    .quoteTable th,.quoteTable td{border-bottom:1px solid #e5e7eb;padding:6px;vertical-align:top;text-align:left}
+    .quoteTable input[type="number"], .quoteTable input[type="text"]{padding:6px 8px;border-radius:8px;width:100%;box-sizing:border-box}
+    .quoteTable .qty{width:72px}
+    .quoteOrderCell{display:flex;gap:4px;justify-content:center;align-items:center}
+    .quoteOrderBtn{width:28px;height:28px;padding:0;border-radius:999px;border:1px solid var(--line);background:#fff;color:#0f172a;cursor:pointer;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+    .quoteOrderBtn:hover{background:#f8fafc}
+    .savedQuotesBox{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)}
+    .savedQuoteRow{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+    .savedQuoteRow:last-child{border-bottom:0}
+    .savedQuoteActions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .savedQuoteRow.active{background:#fff7ed;border-radius:14px;padding:12px}
+    .savedQuoteStatus{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;background:#e2e8f0;color:#0f172a;font-size:11px;font-weight:700;text-transform:capitalize}
+    .quoteCodeLink{color:var(--ink);text-decoration:none;font-weight:600}
+    .quoteCodeLink:hover{text-decoration:none;color:var(--ink)}
+    .quoteContext{display:grid;gap:4px}
+    .quoteContextMeta{font-size:11px;color:var(--muted)}
+    .quoteMiniBtn{display:inline-flex;align-items:center;justify-content:center;padding:5px 8px;border-radius:999px;border:1px solid var(--line);background:#fff;color:#0f172a;text-decoration:none;font-size:11px;font-weight:700}
+    .quoteMiniBtn:hover{background:#f8fafc}
+    .quoteTable th:nth-child(1), .quoteTable td:nth-child(1),
+    .quoteTable th:nth-child(4), .quoteTable td:nth-child(4),
+    .quoteTable th:nth-child(6), .quoteTable td:nth-child(6){text-align:center;white-space:nowrap}
+    .hr{height:1px;background:#eef2f7;margin:12px 0}
+    .topBar{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+    .topBarInfo{display:grid;gap:6px}
+    .brandHead{display:flex;align-items:center;gap:10px}
+    .brandHead img{height:24px;width:auto;display:block}
+    .topBarTitle{font-size:24px;font-weight:800;line-height:1.05}
+    .topBarSub{font-size:13px;color:var(--muted);max-width:580px;line-height:1.45}
+    .topBarActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .topBarNav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .topBarUtility{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .navCluster,.utilityCluster{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:11px 13px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);box-shadow:0 10px 22px rgba(15,23,42,.05)}
+    .utilityCluster{justify-content:flex-end}
+    .utilityCluster #authMount{min-width:220px;max-width:100%}
+    .langCard{display:flex;align-items:center;gap:8px}
+    .groupHead{display:flex;align-items:center;gap:8px}
+    .groupHead img{height:18px;width:auto;display:block}
+    .authTriggerGroup{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .authCompactTrigger{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;box-shadow:0 6px 16px rgba(15,23,42,.05)}
+    .authCompactBadge{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#111827;color:#fff;font-size:11px;font-weight:800}
+    .authCompactMeta{display:flex;flex-direction:column;align-items:flex-start;line-height:1.1}
+    .authCompactName{font-size:12px;font-weight:700;color:#111827}
+    .authCompactRole{font-size:11px;color:#64748b}
+    .authModal{position:fixed;inset:0;display:none;z-index:90}
+    .authModal.show{display:block}
+    .authModalBackdrop{position:absolute;inset:0;background:rgba(15,23,42,.62)}
+    .authModalDialog{position:relative;z-index:1;width:min(92vw,620px);margin:8vh auto;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:16px;box-shadow:0 24px 60px rgba(15,23,42,.18)}
+    .authModalClose{display:inline-flex;align-items:center;justify-content:center;margin-left:auto;margin-bottom:10px;border:1px solid var(--line);background:#fff;color:#111827;border-radius:999px;padding:7px 12px;cursor:pointer}
+    .authBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid #dbe3ec;border-radius:16px;background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);box-shadow:0 8px 20px rgba(15,23,42,.05);min-width:min(100%,380px)}
+    .authBoxExpanded{align-items:flex-start}
+    .authAccountCard{display:flex;flex-direction:column;gap:14px}
+    .authAccountHead{display:flex;gap:12px;align-items:center}
+    .authAccountInfo{display:grid;gap:8px}
+    .authInfoRow{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}
+    .authInfoRow span{font-size:12px;color:#64748b}
+    .authInfoRow strong{font-size:12px;color:#111827}
+    .authHeader{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;width:100%}
+    .authTitle{font-size:12px;font-weight:800;color:#0f172a;letter-spacing:.02em;text-transform:uppercase}
+    .authSubtitle{font-size:12px;color:#64748b;max-width:360px;line-height:1.35;margin-top:3px}
+    .authTabs{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:#e9eef5;border:1px solid #d7e0ea}
+    .authTab{border:0;background:transparent;color:#526173;padding:7px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+    .authTab.active{background:#111827;color:#fff}
+    .authFields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+    .authBox input,.authBox select{min-width:0;flex:1 1 150px}
+    .authHidden{display:none}
+    .authActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%}
+    .authHelper{font-size:12px;color:#64748b;line-height:1.35}
+    .authStatus{font-size:12px;flex:1 1 100%;padding:9px 10px;border-radius:12px;background:#eef6ff;color:#355070;border:1px solid #cfe1f7}
+    .authStatus.isError{color:#9f1239;background:#fff1f2;border-color:#fecdd3}
+    .authStatus.isWarn{color:#92400e;background:#fffbeb;border-color:#fde68a}
+    .authStatus.isInfo{color:#355070;background:#eef6ff;border-color:#cfe1f7}
+    .authBoxLoggedIn{justify-content:flex-end;min-width:auto;background:#fff}
+    .authIdentityBadge{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#111827;color:#fff;font-size:12px;font-weight:800}
+    .authUserMeta{display:flex;flex-direction:column;gap:3px;min-width:0}
+    .authUserName{font-size:12px;font-weight:700;color:#111827}
+    .authUserRole{font-size:11px;color:#64748b;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .authRolePill{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:#fff1e6;color:#9a3412;border:1px solid #fdba74;font-weight:700}
+    .cookieConsentBanner{position:fixed;left:16px;right:16px;bottom:16px;z-index:1200;display:none}
+    .cookieConsentBanner.show{display:block}
+    .cookieConsentCard{max-width:760px;margin:0 auto;background:#0f172a;color:#fff;border-radius:18px;padding:18px 18px 16px;box-shadow:0 26px 60px rgba(15,23,42,.28)}
+    .cookieConsentTitle{font-size:16px;font-weight:800;margin-bottom:6px}
+    .cookieConsentText{font-size:13px;line-height:1.55;color:#dbe7f3}
+    .cookieConsentActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+    .cookiePrefsBtn{position:fixed;right:18px;bottom:18px;z-index:1190;border:1px solid var(--line);background:#fff;color:#0f172a;border-radius:999px;padding:10px 14px;font-weight:700;box-shadow:0 10px 24px rgba(15,23,42,.14);display:none}
+    .cookiePrefsModal{position:fixed;inset:0;z-index:1250;display:none}
+    .cookiePrefsModal.show{display:block}
+    .cookiePrefsBackdrop{position:absolute;inset:0;background:rgba(15,23,42,.62)}
+    .cookiePrefsDialog{position:relative;z-index:1;width:min(92vw,620px);margin:8vh auto;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:16px;box-shadow:0 24px 60px rgba(15,23,42,.18)}
+    .cookiePrefsRows{display:grid;gap:10px;margin-top:16px}
+    .cookiePrefRow{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:14px 16px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc}
+    .cookiePrefLabel{font-size:13px;font-weight:800;color:#0f172a}
+    .cookiePrefHint{font-size:12px;color:#64748b;line-height:1.45;margin-top:4px}
+    .cookiePrefBadge{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#111827;color:#fff;font-size:12px;font-weight:700}
+    .cookiePrefsLegal{font-size:12px;color:#64748b;line-height:1.5;margin-top:14px}
+    @media (max-width: 980px){
+      .quoteHero{grid-template-columns:1fr}
+      .quoteMeta{grid-template-columns:1fr}
+      .projectDetailsGrid{grid-template-columns:1fr}
+      .projectContactsGrid{grid-template-columns:1fr}
+      .quoteExportButtons{grid-template-columns:1fr}
+      .topBarActions{width:100%;justify-content:flex-start}
+      .navCluster,.utilityCluster{width:100%;justify-content:flex-start}
+      .authFields{grid-template-columns:1fr}
+      .authModalDialog{width:min(94vw,620px);margin:4vh auto;padding:14px}
+      .btn,input[type="text"],input[type="number"]{min-height:44px}
+      .quickAddField{max-width:none;flex:1 1 100%}
+      .quickAddCodeInput{height:44px}
+      .quickAddRow .btn{height:44px}
+      .cookieConsentBanner{left:10px;right:10px;bottom:10px}
+      .cookieConsentCard{padding:16px}
+      .cookiePrefsBtn{top:auto;bottom:10px;right:10px}
+      .cookiePrefRow{flex-direction:column}
+    }
+  </style>
+</head>
+<body data-page="quote">
+  <div class="wrap">
+    <section class="card">
+      <div class="topBar">
+        <div class="topBarInfo">
+          <div class="brandHead">
+            <img src="/frontend/laiting-logo-ai.png" alt="Laiting" />
+            <div class="topBarTitle">Quote Cart</div>
+          </div>
+          <div class="topBarSub">Prepare a clean project quote, keep the technical context connected, and export a client-ready summary without re-entering product information.</div>
+          <div id="quoteStats" class="small">0 selected</div>
+        </div>
+        <div class="topBarActions">
+          <div class="topBarNav">
+            <div class="navCluster">
+              <button id="btnBack" class="btn secondary" type="button">Finder</button>
+              <button id="btnTools" class="btn secondary" type="button">Tools</button>
+            </div>
+          </div>
+          <div class="topBarUtility">
+            <div class="utilityCluster">
+              <label class="small langCard" id="quoteLangWrap">
+                <span id="quoteLangLabel">Language</span>
+                <select id="quoteLang" style="padding:8px;border:1px solid var(--line);border-radius:10px;background:#fff;min-width:140px"></select>
+              </label>
+              <div id="authMount"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="quoteHero">
+        <div class="quoteMetaPanel">
+          <div class="quoteSectionTitle">Project identity</div>
+          <div class="quoteSectionText">Define the commercial context and project details together, then keep contractor, consultant, and notes attached to the saved quote.</div>
+          <div class="quoteMeta">
+            <label class="quoteField" for="quoteCompany">
+              <span class="quoteFieldLabel">Company name</span>
+              <input id="quoteCompany" type="text" placeholder="Company name (required for export)" readonly />
+            </label>
+            <label class="quoteField" for="quoteProject">
+              <span class="quoteFieldLabel">Project name</span>
+              <input id="quoteProject" type="text" placeholder="Project name (required for export)" />
+            </label>
+          </div>
+          <div class="projectDetailsCard">
+            <div class="h" style="font-size:14px;margin:0 0 8px 0">Project details</div>
+            <div class="projectDetailsGrid">
+              <label class="quoteField" for="quoteStatus">
+                <span class="quoteFieldLabel">Project status</span>
+                <select id="quoteStatus">
+                  <option value="design_phase">Design phase</option>
+                  <option value="tender">Tender</option>
+                  <option value="job_in_hand_contractor">Job in hand contractor</option>
+                  <option value="job_in_hand">Job in hand</option>
+                </select>
+              </label>
+              <label class="quoteField" for="quoteProjectNotes">
+                <span class="quoteFieldLabel">Project notes</span>
+                <textarea id="quoteProjectNotes" placeholder="Add a short project summary, client notes, or next actions"></textarea>
+              </label>
+            </div>
+            <div class="projectContactsGrid">
+              <label class="quoteField" for="quoteContractorName">
+                <span class="quoteFieldLabel">Contractor name</span>
+                <div class="inlineFieldRow">
+                  <input id="quoteContractorName" type="text" placeholder="Contractor name" />
+                  <button id="btnQuoteContractorUnavailable" class="btn ghost" type="button">Unavailable</button>
+                </div>
+              </label>
+              <label class="quoteField" for="quoteConsultantName">
+                <span class="quoteFieldLabel">Consultant name</span>
+                <div class="inlineFieldRow">
+                  <input id="quoteConsultantName" type="text" placeholder="Consultant name" />
+                  <button id="btnQuoteConsultantUnavailable" class="btn ghost" type="button">Unavailable</button>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+        <aside class="quoteActionsPanel">
+          <div class="quoteSectionTitle">Quick actions</div>
+          <div class="quoteSectionText">Add products fast, save the project, and export the quote package from one clean area.</div>
+          <div class="quoteActionsGrid">
+            <div class="row quickAddRow">
+              <label class="quoteField quickAddField" for="quoteCodeQuick">
+                <span class="quoteFieldLabel">Add by product code</span>
+                <input id="quoteCodeQuick" class="quickAddCodeInput" type="text" list="quoteCodeSuggestions" autocomplete="off" placeholder="Add by product code" />
+              </label>
+              <datalist id="quoteCodeSuggestions"></datalist>
+              <button id="btnQuoteAddCode" class="btn" type="button">Add</button>
+            </div>
+            <div id="quoteCodeHint" class="small quickAddHint"></div>
+            <div class="quoteActionRow">
+              <button id="btnQuoteSave" class="btn secondary" type="button">Save Quote</button>
+              <button id="btnQuoteClear" class="btn ghost" type="button">Clear Cart</button>
+            </div>
+            <div class="quoteExportButtons">
+              <button id="btnQuoteExport" class="btn" type="button">Export CSV</button>
+              <button id="btnQuoteExportPdf" class="btn" type="button">Export PDF</button>
+              <button id="btnQuoteCompareSheets" class="btn secondary" type="button">Comparison sheets</button>
+              <button id="btnQuoteDatasheetsZip" class="btn secondary" type="button">Datasheets ZIP</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <div class="hr"></div>
+      <div id="quoteTableWrap" class="small quoteTableWrap">No products selected.</div>
+      <div id="savedQuotesBox" class="savedQuotesBox" style="display:none">
+        <div class="h" style="font-size:14px;margin:0 0 6px 0">Saved Quotes</div>
+        <div id="savedQuotesList" class="small">No saved quotes yet.</div>
+      </div>
+    </section>
+  </div>
+  <script src="/frontend/assets/countries.js?v=2026-03-25-country-list-1"></script>
+  <script src="/frontend/assets/auth.js?v=2026-03-25-auth-roles-country-1"></script>
+  <script src="/frontend/assets/consent.js?v=2026-03-31-consent-analytics-1"></script>
+  <script src="/frontend/assets/quote-utils.js?v=2026-03-25-quote-modal-labels-1"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const QUOTE_STORAGE_KEY = "productFinderQuoteCartV1";
+    const QUOTE_META_KEY = "productFinderQuoteMetaV1";
+    const UI_LANG_KEY = "productFinderUiLangV1";
+    const AUTH_TOKEN_KEY = "productFinderAuthTokenV1";
+    const AUTH_USER_KEY = "productFinderAuthUserV1";
+    const DISANO_LOGO_URL = "/frontend/logo-disano.png";
+    const FOSNOVA_LOGO_URL = "https://www.disano.it/_next/image/?url=%2F_next%2Fstatic%2Fmedia%2Flogo-fosnova.4f4c2c36.png&w=256&q=75";
+    const quoteCart = new Map();
+    let currentSavedQuoteId = null;
+    let currentQuoteStorageOwner = "";
+    const QUOTE_LANGS = [["en","English"],["it","Italiano"],["fr","Français"],["es","Español"],["pt","Português"],["ru","Русский"],["ar","العربية"],["pl","Polski"],["cs","Čeština"],["hr","Hrvatski"],["sl","Slovenščina"]];
+    const QI18N = {
+      en:{title:"Quote Cart",finder:"Finder",tools:"Tools",language:"Language",selected:"{n} selected",company_ph:"Company name (required for export)",project_ph:"Project name (required for export)",export_csv:"Export CSV",export_pdf:"Export PDF",export_datasheets_zip:"Datasheets ZIP",clear:"Clear Cart",no_products:"No products selected.",quote_empty:"Quote cart is empty",need_meta:"Set company and project name before export",popup_blocked:"Popup blocked. Allow popups, then try Export PDF again.",pdf_backend_fallback:"Backend PDF unavailable. Downloaded client PDF fallback.",pdf_print_fallback:"Opened print preview fallback. Use 'Save as PDF'.",pdf_failed:"PDF export failed: {msg}",pdf_accessory_confirm:"Before exporting PDF: verify on each product datasheet whether any accessories are required, and add them to the Notes field if needed. Continue?",zip_failed:"Datasheets ZIP export failed: {msg}",optional_note:"Optional note",project_ref:"Project ref",remove:"Remove"},
+      it:{title:"Carrello Offerta",finder:"Finder",tools:"Strumenti",language:"Lingua",selected:"{n} selezionati",company_ph:"Nome azienda (richiesto per export)",project_ph:"Nome progetto (richiesto per export)",export_csv:"Esporta CSV",export_pdf:"Esporta PDF",export_datasheets_zip:"ZIP schede tecniche",clear:"Svuota carrello",no_products:"Nessun prodotto selezionato.",quote_empty:"Il carrello offerta è vuoto",need_meta:"Imposta azienda e progetto prima dell'export",popup_blocked:"Popup bloccato. Abilita i popup e riprova.",pdf_backend_fallback:"PDF backend non disponibile. Scaricato PDF locale.",pdf_print_fallback:"Anteprima stampa aperta. Usa 'Salva come PDF'.",pdf_failed:"Export PDF fallito: {msg}",pdf_accessory_confirm:"Prima di esportare il PDF: verifica sulle schede tecniche dei prodotti se sono richiesti accessori e, se necessario, aggiungili nel campo Note. Continuare?",zip_failed:"Export ZIP schede tecniche fallito: {msg}",optional_note:"Nota opzionale",project_ref:"Rif. progetto",remove:"Rimuovi"},
+      fr:{title:"Panier Devis",finder:"Finder",tools:"Outils",language:"Langue",selected:"{n} sélectionnés",company_ph:"Nom société (requis pour export)",project_ph:"Nom projet (requis pour export)",export_csv:"Exporter CSV",export_pdf:"Exporter PDF",clear:"Vider panier",no_products:"Aucun produit sélectionné.",quote_empty:"Le panier devis est vide",need_meta:"Renseignez société et projet avant export",popup_blocked:"Popup bloquée. Autorisez les popups.",pdf_backend_fallback:"PDF backend indisponible. PDF local téléchargé.",pdf_print_fallback:"Aperçu impression ouvert. Utilisez 'Enregistrer en PDF'.",pdf_failed:"Export PDF échoué : {msg}",optional_note:"Note optionnelle",project_ref:"Réf. projet",remove:"Supprimer"},
+      es:{title:"Carrito de Cotización",finder:"Finder",tools:"Herramientas",language:"Idioma",selected:"{n} seleccionados",company_ph:"Empresa (requerido para exportar)",project_ph:"Proyecto (requerido para exportar)",export_csv:"Exportar CSV",export_pdf:"Exportar PDF",clear:"Vaciar carrito",no_products:"No hay productos seleccionados.",quote_empty:"El carrito de cotización está vacío",need_meta:"Define empresa y proyecto antes de exportar",popup_blocked:"Popup bloqueado. Habilita popups.",pdf_backend_fallback:"PDF backend no disponible. PDF local descargado.",pdf_print_fallback:"Vista de impresión abierta. Usa 'Guardar como PDF'.",pdf_failed:"Error exportando PDF: {msg}",optional_note:"Nota opcional",project_ref:"Ref. proyecto",remove:"Quitar"},
+      pt:{title:"Carrinho de Cotação",finder:"Finder",tools:"Ferramentas",language:"Idioma",selected:"{n} selecionados",company_ph:"Empresa (obrigatório para exportar)",project_ph:"Projeto (obrigatório para exportar)",export_csv:"Exportar CSV",export_pdf:"Exportar PDF",clear:"Limpar carrinho",no_products:"Nenhum produto selecionado.",quote_empty:"Carrinho de cotação vazio",need_meta:"Defina empresa e projeto antes de exportar",popup_blocked:"Popup bloqueado. Habilite popups.",pdf_backend_fallback:"Backend PDF indisponível. PDF local baixado.",pdf_print_fallback:"Pré-visualização aberta. Use 'Salvar como PDF'.",pdf_failed:"Falha ao exportar PDF: {msg}",optional_note:"Nota opcional",project_ref:"Ref. projeto",remove:"Remover"},
+      ru:{title:"Смета",finder:"Finder",tools:"Инструменты",language:"Язык",selected:"Выбрано: {n}",company_ph:"Компания (обязательно для экспорта)",project_ph:"Проект (обязательно для экспорта)",export_csv:"Экспорт CSV",export_pdf:"Экспорт PDF",clear:"Очистить",no_products:"Нет выбранных продуктов.",quote_empty:"Корзина сметы пуста",need_meta:"Укажите компанию и проект перед экспортом",popup_blocked:"Всплывающее окно заблокировано.",pdf_backend_fallback:"Backend PDF недоступен. Загружен локальный PDF.",pdf_print_fallback:"Открыт предпросмотр печати. Используйте 'Сохранить в PDF'.",pdf_failed:"Ошибка экспорта PDF: {msg}",optional_note:"Примечание",project_ref:"Реф. проекта",remove:"Удалить"},
+      ar:{title:"سلة عرض السعر",finder:"Finder",tools:"الأدوات",language:"اللغة",selected:"{n} محدد",company_ph:"اسم الشركة (مطلوب للتصدير)",project_ph:"اسم المشروع (مطلوب للتصدير)",export_csv:"تصدير CSV",export_pdf:"تصدير PDF",clear:"مسح السلة",no_products:"لا توجد منتجات محددة.",quote_empty:"سلة عرض السعر فارغة",need_meta:"حدد الشركة والمشروع قبل التصدير",popup_blocked:"تم حظر النافذة المنبثقة.",pdf_backend_fallback:"خدمة PDF غير متاحة. تم تنزيل PDF محلي.",pdf_print_fallback:"تم فتح معاينة الطباعة. استخدم 'حفظ كـ PDF'.",pdf_failed:"فشل تصدير PDF: {msg}",optional_note:"ملاحظة اختيارية",project_ref:"مرجع المشروع",remove:"إزالة"},
+      pl:{title:"Koszyk Oferty",finder:"Finder",tools:"Narzędzia",language:"Język",selected:"Wybrano: {n}",company_ph:"Nazwa firmy (wymagane do eksportu)",project_ph:"Nazwa projektu (wymagane do eksportu)",export_csv:"Eksport CSV",export_pdf:"Eksport PDF",clear:"Wyczyść koszyk",no_products:"Brak wybranych produktów.",quote_empty:"Koszyk oferty jest pusty",need_meta:"Ustaw firmę i projekt przed eksportem",popup_blocked:"Popup zablokowany.",pdf_backend_fallback:"PDF backend niedostępny. Pobrano lokalny PDF.",pdf_print_fallback:"Otwarto podgląd wydruku. Użyj 'Zapisz jako PDF'.",pdf_failed:"Eksport PDF nie powiódł się: {msg}",optional_note:"Notatka opcjonalna",project_ref:"Ref. projektu",remove:"Usuń"},
+      cs:{title:"Košík Nabídky",finder:"Finder",tools:"Nástroje",language:"Jazyk",selected:"Vybráno: {n}",company_ph:"Název firmy (povinné pro export)",project_ph:"Název projektu (povinné pro export)",export_csv:"Export CSV",export_pdf:"Export PDF",clear:"Vymazat košík",no_products:"Nejsou vybrány žádné produkty.",quote_empty:"Košík nabídky je prázdný",need_meta:"Nastavte firmu a projekt před exportem",popup_blocked:"Popup blokován.",pdf_backend_fallback:"Backend PDF nedostupné. Stažen lokální PDF.",pdf_print_fallback:"Otevřen náhled tisku. Použijte 'Uložit jako PDF'.",pdf_failed:"Export PDF selhal: {msg}",optional_note:"Volitelná poznámka",project_ref:"Ref. projektu",remove:"Odebrat"},
+      hr:{title:"Košarica Ponude",finder:"Finder",tools:"Alati",language:"Jezik",selected:"Odabrano: {n}",company_ph:"Naziv tvrtke (obavezno za izvoz)",project_ph:"Naziv projekta (obavezno za izvoz)",export_csv:"Izvoz CSV",export_pdf:"Izvoz PDF",clear:"Očisti košaricu",no_products:"Nema odabranih proizvoda.",quote_empty:"Košarica ponude je prazna",need_meta:"Postavite tvrtku i projekt prije izvoza",popup_blocked:"Popup je blokiran.",pdf_backend_fallback:"Backend PDF nedostupan. Preuzet lokalni PDF.",pdf_print_fallback:"Otvoren pregled ispisa. Koristite 'Spremi kao PDF'.",pdf_failed:"Izvoz PDF-a nije uspio: {msg}",optional_note:"Opcionalna napomena",project_ref:"Ref. projekta",remove:"Ukloni"},
+      sl:{title:"Košarica Ponudbe",finder:"Finder",tools:"Orodja",language:"Jezik",selected:"Izbrano: {n}",company_ph:"Naziv podjetja (obvezno za izvoz)",project_ph:"Naziv projekta (obvezno za izvoz)",export_csv:"Izvoz CSV",export_pdf:"Izvoz PDF",clear:"Počisti košarico",no_products:"Ni izbranih izdelkov.",quote_empty:"Košarica ponudbe je prazna",need_meta:"Nastavite podjetje in projekt pred izvozom",popup_blocked:"Pojavno okno blokirano.",pdf_backend_fallback:"Backend PDF ni na voljo. Prenesen lokalni PDF.",pdf_print_fallback:"Odprt predogled tiskanja. Uporabite 'Shrani kot PDF'.",pdf_failed:"Izvoz PDF ni uspel: {msg}",optional_note:"Neobvezna opomba",project_ref:"Ref. projekta",remove:"Odstrani"},
+    };
+    let quoteLang = "en";
+    function tq(k, vars){ let s=(QI18N[quoteLang]||QI18N.en)[k] || QI18N.en[k] || k; if(vars){ for(const [kk,v] of Object.entries(vars)) s=s.replaceAll(`{${kk}}`, String(v)); } return s; }
+    function detectQuoteLang(){ try{ const v=String(localStorage.getItem(UI_LANG_KEY)||"").toLowerCase(); if(QUOTE_LANGS.some(x=>x[0]===v)) return v; }catch(_e){} const b=String(navigator.language||"en").toLowerCase().split("-")[0]; return QUOTE_LANGS.some(x=>x[0]===b)?b:"en"; }
+    function applyQuoteI18n(){
+      document.documentElement.lang = quoteLang;
+      document.documentElement.dir = quoteLang === "ar" ? "rtl" : "ltr";
+      document.title = tq("title");
+      document.querySelector(".brandHead .h").textContent = tq("title");
+      $("quoteLangLabel").textContent = tq("language");
+      $("btnBack").textContent = tq("finder");
+      $("btnTools").textContent = tq("tools");
+      if ($("btnQuoteSave")) $("btnQuoteSave").textContent = "Save Quote";
+      $("btnQuoteExport").textContent = tq("export_csv");
+      $("btnQuoteExportPdf").textContent = tq("export_pdf");
+      if ($("btnQuoteCompareSheets")) $("btnQuoteCompareSheets").textContent = "Comparison sheets";
+      if ($("btnQuoteDatasheetsZip")) $("btnQuoteDatasheetsZip").textContent = tq("export_datasheets_zip");
+      $("btnQuoteClear").textContent = tq("clear");
+      $("quoteCompany").placeholder = tq("company_ph");
+      $("quoteProject").placeholder = tq("project_ph");
+    }
+
+    function esc(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function formatDate(value){
+      const text = String(value || "").trim();
+      if (!text) return "";
+      try{
+        return new Date(text).toLocaleString();
+      }catch(_e){
+        return text;
+      }
+    }
+
+    function getQuoteStorageOwner(user){
+      const u = user || readAuthUser();
+      if (!u) return "anonymous";
+      const byId = String(u?.id || "").trim();
+      if (byId) return `user:${byId}`;
+      const byEmail = String(u?.email || "").trim().toLowerCase();
+      return byEmail ? `email:${byEmail}` : "anonymous";
+    }
+
+    function getQuoteCartStorageKey(user){
+      return `${QUOTE_STORAGE_KEY}:${getQuoteStorageOwner(user)}`;
+    }
+
+    function getQuoteMetaStorageKey(user){
+      return `${QUOTE_META_KEY}:${getQuoteStorageOwner(user)}`;
+    }
+
+    function clearVisibleQuoteState(){
+      quoteCart.clear();
+      currentSavedQuoteId = null;
+      if ($("quoteCompany")) $("quoteCompany").value = "";
+      if ($("quoteProject")) $("quoteProject").value = "";
+      if ($("quoteStatus")) $("quoteStatus").value = "design_phase";
+      if ($("quoteContractorName")) $("quoteContractorName").value = "";
+      if ($("quoteConsultantName")) $("quoteConsultantName").value = "";
+      if ($("quoteProjectNotes")) $("quoteProjectNotes").value = "";
+    }
+
+    function toast(msg){
+      alert(msg);
+    }
+
+    function quoteStatusLabel(value){
+      const key = String(value || "design_phase").trim().toLowerCase() || "design_phase";
+      return {
+        design_phase: "Design phase",
+        tender: "Tender",
+        job_in_hand_contractor: "Job in hand contractor",
+        job_in_hand: "Job in hand",
+      }[key] || key.replaceAll("_", " ");
+    }
+
+    function markUnavailable(fieldId){
+      const input = $(fieldId);
+      if (!input) return;
+      input.value = "Unavailable";
+      saveQuoteMeta();
+    }
+
+    function collectQuoteMeta(){
+      return {
+        company: String($("quoteCompany")?.value || "").trim(),
+        project: String($("quoteProject")?.value || "").trim(),
+        project_status: String($("quoteStatus")?.value || "design_phase").trim() || "design_phase",
+        contractor_name: String($("quoteContractorName")?.value || "").trim(),
+        consultant_name: String($("quoteConsultantName")?.value || "").trim(),
+        project_notes: String($("quoteProjectNotes")?.value || "").trim(),
+      };
+    }
+
+    function validateRequiredQuoteMeta(meta, { requireCompany = false } = {}){
+      if (!meta.project) return "Set the project name before continuing.";
+      if (requireCompany && !meta.company) return "Company name is required before export.";
+      if (!meta.contractor_name) return "Set the contractor name before continuing.";
+      if (!meta.consultant_name) return "Set the consultant name before continuing.";
+      return "";
+    }
+
+    async function postJSON(url, payload){
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok){
+        const t = await res.text().catch(() => "");
+        throw new Error(t || `${res.status} ${res.statusText}`);
+      }
+      return res;
+    }
+    async function fetchAuthed(url, init = {}){
+      const headers = new Headers(init.headers || {});
+      return fetch(url, { ...init, headers, credentials: "same-origin" });
+    }
+    function hasAuthToken(){
+      if (window.ProductFinderAuth?.hasSession) return !!window.ProductFinderAuth.hasSession();
+      return !!readAuthUser();
+    }
+    function readAuthUser(){
+      return window.ProductFinderQuoteUtils?.readSessionAuthUser?.() || null;
+    }
+
+    function escapeCsv(v){
+      const s = String(v ?? "");
+      if (/[",\n]/.test(s)) return `"${s.replaceAll('"','""')}"`;
+      return s;
+    }
+    function quoteDatasheetUrl(code){
+      const c = String(code || "").trim();
+      if (!c) return "";
+      const q = encodeURIComponent(c);
+      return `https://www.disano.it/download/mediafiles/-1_${q}.pdf/EN_${q}.pdf`;
+    }
+    function compactCode(v){
+      return String(v || "").toLowerCase().replace(/[^0-9a-z]/g, "");
+    }
+    function setQuickAddHint(msg, isError = false){
+      const el = $("quoteCodeHint");
+      if (!el) return;
+      el.textContent = String(msg || "");
+      el.style.color = isError ? "#b91c1c" : "";
+    }
+    function renderCodeSuggestions(items){
+      const dl = $("quoteCodeSuggestions");
+      if (!dl) return;
+      const rows = Array.isArray(items) ? items : [];
+      dl.innerHTML = rows.map(r => {
+        const code = String(r?.product_code || "").trim();
+        const name = String(r?.product_name || "").trim();
+        const mfr = String(r?.manufacturer || "").trim();
+        const label = [name, mfr].filter(Boolean).join(" | ");
+        return `<option value="${esc(code)}" label="${esc(label)}"></option>`;
+      }).join("");
+    }
+    async function fetchCodeSuggestions(q, limit = 25){
+      const u = `/codes/suggest?q=${encodeURIComponent(String(q || ""))}&limit=${Math.max(1, Math.min(100, Number(limit) || 25))}`;
+      const res = await fetch(u, { method: "GET" });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      return Array.isArray(data?.items) ? data.items : [];
+    }
+    let quoteSuggestTimer = null;
+    let quoteSuggestSeq = 0;
+    let lastCodeSuggestions = [];
+    async function updateQuickCodeSuggestionsNow(){
+      const input = $("quoteCodeQuick");
+      if (!input) return;
+      const mySeq = ++quoteSuggestSeq;
+      const q = String(input.value || "").trim();
+      try{
+        const items = await fetchCodeSuggestions(q, q ? 25 : 40);
+        if (mySeq !== quoteSuggestSeq) return;
+        lastCodeSuggestions = items;
+        renderCodeSuggestions(items);
+      }catch(_e){
+        if (mySeq !== quoteSuggestSeq) return;
+        lastCodeSuggestions = [];
+        renderCodeSuggestions([]);
+      }
+    }
+    function updateQuickCodeSuggestionsDebounced(){
+      clearTimeout(quoteSuggestTimer);
+      quoteSuggestTimer = setTimeout(updateQuickCodeSuggestionsNow, 180);
+    }
+    function findExactSuggestedByCode(code, rows){
+      const wantRaw = String(code || "").trim();
+      const wantCompact = compactCode(wantRaw);
+      if (!wantRaw || !wantCompact) return null;
+      const list = Array.isArray(rows) ? rows : [];
+      for (const r of list){
+        const c = String(r?.product_code || "").trim();
+        if (!c) continue;
+        if (c.toLowerCase() === wantRaw.toLowerCase()) return r;
+        if (compactCode(c) === wantCompact) return r;
+      }
+      return null;
+    }
+    function nextQuoteSortOrder(){
+      let maxOrder = -1;
+      for (const row of quoteCart.values()){
+        const n = Number(row?.sort_order);
+        if (Number.isFinite(n) && n > maxOrder) maxOrder = n;
+      }
+      return maxOrder + 1;
+    }
+    function getQuoteRowsInDisplayOrder(){
+      return Array.from(quoteCart.values()).sort((a, b) => {
+        const aOrder = Number(a?.sort_order);
+        const bOrder = Number(b?.sort_order);
+        if (Number.isFinite(aOrder) || Number.isFinite(bOrder)){
+          return (Number.isFinite(aOrder) ? aOrder : 0) - (Number.isFinite(bOrder) ? bOrder : 0);
+        }
+        return String(a?.product_code || "").localeCompare(String(b?.product_code || ""));
+      });
+    }
+    function buildQuoteCompareSheetUrl(row){
+      const compareSheet = (row?.compare_sheet && typeof row.compare_sheet === "object") ? row.compare_sheet : null;
+      const idealSpec = (compareSheet?.ideal_spec && typeof compareSheet.ideal_spec === "object") ? compareSheet.ideal_spec : null;
+      const code = String(row?.product_code || compareSheet?.product_code || "").trim();
+      if (!idealSpec || !Object.keys(idealSpec).length || !code) return "";
+      const params = new URLSearchParams();
+      params.set("fresh", "1");
+      params.set("cmpA", "Project requirement");
+      params.set("cmpB", code);
+      params.set("cmpAuto", "1");
+      params.set("finderSeedSpec", JSON.stringify(idealSpec));
+      return `/frontend/tools.html?${params.toString()}`;
+    }
+    function renderQuoteContext(row){
+      const compareSheet = (row?.compare_sheet && typeof row.compare_sheet === "object") ? row.compare_sheet : null;
+      if (!compareSheet) return "";
+      const source = String(compareSheet?.source || row?.source || "compare").trim().replaceAll("-", " ");
+      const idealSpec = (compareSheet?.ideal_spec && typeof compareSheet.ideal_spec === "object") ? compareSheet.ideal_spec : {};
+      const specCount = Object.keys(idealSpec).length;
+      const compareUrl = buildQuoteCompareSheetUrl(row);
+      return `
+        <div class="quoteContext">
+          <div class="quoteContextMeta">Context: ${esc(source)}${specCount ? ` | ${specCount} requirement fields` : ""}</div>
+          ${compareUrl ? `<a class="quoteMiniBtn" href="${esc(compareUrl)}">Open compare</a>` : ``}
+        </div>
+      `;
+    }
+    async function promptQuoteEntryData(existingRow){
+      return await window.ProductFinderQuoteUtils?.promptQuoteEntry?.(existingRow, {
+        title: "Add to quote",
+        confirmLabel: "Add",
+        cancelLabel: "Cancel",
+        projectReferencePlaceholder: "L1",
+      }) || null;
+    }
+    async function addToQuoteByCode(){
+      const input = $("quoteCodeQuick");
+      if (!input) return;
+      const typed = String(input.value || "").trim();
+      if (!typed){
+        setQuickAddHint("Type a product code first", true);
+        return;
+      }
+      let found = findExactSuggestedByCode(typed, lastCodeSuggestions);
+      if (!found){
+        try{
+          const fresh = await fetchCodeSuggestions(typed, 30);
+          lastCodeSuggestions = fresh;
+          renderCodeSuggestions(fresh);
+          found = findExactSuggestedByCode(typed, fresh);
+        }catch(_e){}
+      }
+      if (!found){
+        setQuickAddHint(`Code not found: ${typed}`, true);
+        return;
+      }
+      const code = String(found.product_code || "").trim();
+      if (!code){
+        setQuickAddHint(`Code not found: ${typed}`, true);
+        return;
+      }
+      if (quoteCart.has(code)){
+        const row = quoteCart.get(code);
+        row.qty = Math.max(1, Math.round(Number(row.qty) || 1)) + 1;
+        quoteCart.set(code, row);
+        setQuickAddHint(`${code} already in quote, quantity increased`);
+      } else {
+        const entry = await promptQuoteEntryData(null);
+        if (!entry){
+          setQuickAddHint("Add cancelled", true);
+          return;
+        }
+        quoteCart.set(code, {
+          product_code: code,
+          product_name: String(found.product_name || ""),
+          manufacturer: String(found.manufacturer || ""),
+          qty: entry.qty,
+          notes: entry.notes,
+          project_reference: entry.project_reference,
+          source: "manual-code",
+          sort_order: nextQuoteSortOrder(),
+          compare_sheet: {},
+        });
+        setQuickAddHint(`Added ${code} to quote`);
+      }
+      saveQuoteCart();
+      renderQuoteCart();
+      input.value = "";
+      input.focus();
+      updateQuickCodeSuggestionsNow();
+    }
+    function buildQuotePrintHtml(company, project, rows, projectStatus, contractorName, consultantName, projectNotes){
+      const sorted = [...rows].sort((a,b)=> (Number(a?.sort_order) || 0) - (Number(b?.sort_order) || 0));
+      const disanoRows = sorted.filter(r => !/fosnova/i.test(String(r.manufacturer || "")));
+      const fosnovaRows = sorted.filter(r => /fosnova/i.test(String(r.manufacturer || "")));
+      const exportedAt = new Date().toLocaleString();
+      const totalQty = sorted.reduce((sum, row) => sum + Math.max(1, Math.round(Number(row?.qty) || 1)), 0);
+      const groupTable = (title, groupRows) => {
+        if (!groupRows.length) return "";
+        const groupQty = groupRows.reduce((sum, row) => sum + Math.max(1, Math.round(Number(row?.qty) || 1)), 0);
+        return `
+          <h3>${esc(title)} (${groupRows.length})</h3>
+          <div class="groupMeta">Products: ${groupRows.length} | Total quantity: ${groupQty}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Qty</th>
+                <th>Notes</th>
+                <th>Project Ref</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${groupRows.map((r, i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td>${r.product_code ? `<a class="quoteCodeLink" href="${esc(quoteDatasheetUrl(r.product_code))}" target="_blank" rel="noopener" title="Open datasheet">${esc(r.product_code)}</a>` : ""}</td>
+                  <td>
+                    <div>${esc(r.product_name || "")}</div>
+                    ${renderQuoteContext(r)}
+                  </td>
+                  <td>${esc(r.qty)}</td>
+                  <td>${esc(r.notes || "")}</td>
+                  <td>${esc(r.project_reference || "")}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      };
+      return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quote - ${esc(company)} - ${esc(project)}</title>
+  <style>
+    body{font-family:Segoe UI,Arial,sans-serif;margin:24px;color:#111}
+    h1{margin:0 0 8px;font-size:22px}
+    h2{margin:14px 0 6px;font-size:15px;color:#444}
+    h3{margin:18px 0 8px;font-size:14px}
+    .meta{font-size:12px;color:#555;margin-bottom:14px}
+    .summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;background:#f8fafc;border:1px solid #dbe4ee;border-radius:12px;padding:12px;margin:10px 0 14px}
+    .summaryItem{font-size:12px}
+    .summaryLabel{display:block;color:#64748b;font-weight:700;margin-bottom:2px}
+    .notesBox{margin:12px 0;padding:12px;border:1px solid #dbe4ee;border-radius:12px;background:#fffdf5}
+    .groupMeta{font-size:12px;color:#555;margin:-4px 0 8px}
+    table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0 16px}
+    th,td{border:1px solid #d9d9d9;padding:6px;text-align:left;vertical-align:top}
+    th{background:#f5f5f5}
+    .hint{font-size:12px;color:#666;margin-top:8px}
+    @media print{ .hint{display:none} body{margin:12mm} }
+  </style>
+</head>
+<body>
+  <h1>Quote</h1>
+  <h2>${esc(company)} - ${esc(project)}</h2>
+    <div class="summary">
+    <div class="summaryItem"><span class="summaryLabel">Status</span>${esc(quoteStatusLabel(projectStatus))}</div>
+    <div class="summaryItem"><span class="summaryLabel">Generated</span>${esc(exportedAt)}</div>
+    <div class="summaryItem"><span class="summaryLabel">Contractor</span>${esc(contractorName || "")}</div>
+    <div class="summaryItem"><span class="summaryLabel">Consultant</span>${esc(consultantName || "")}</div>
+    <div class="summaryItem"><span class="summaryLabel">Products</span>${sorted.length}</div>
+    <div class="summaryItem"><span class="summaryLabel">Total quantity</span>${totalQty}</div>
+  </div>
+  ${projectNotes ? `<div class="notesBox"><b>Project notes</b><div class="meta" style="margin:8px 0 0">${esc(projectNotes)}</div></div>` : ``}
+  ${groupTable("Disano", disanoRows)}
+  ${groupTable("Fosnova", fosnovaRows)}
+  <div class="hint">Use Print and choose "Save as PDF".</div>
+  <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),200));<\/script>
+</body>
+</html>`;
+    }
+    function downloadBlob(blob, filename){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+    function pdfSafeText(s){
+      return String(s ?? "")
+        .replace(/[^\x20-\x7E]/g, "?")
+        .replaceAll("\\", "\\\\")
+        .replaceAll("(", "\\(")
+        .replaceAll(")", "\\)");
+    }
+    function makeSimplePdf(pages){
+      const objs = [];
+      const addObj = (body) => { objs.push(body); return objs.length; };
+
+      const catalogId = addObj("<< /Type /Catalog /Pages 2 0 R >>");
+      // Placeholder for pages object (always object 2).
+      objs.push(null);
+      const fontId = addObj("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+      const pageObjIds = [];
+      const contentObjIds = [];
+
+      for (const streamText of pages){
+        const stream = `%PDF-text\n${streamText}`;
+        const contentId = addObj(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+        contentObjIds.push(contentId);
+        const pageId = addObj(
+          `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`
+        );
+        pageObjIds.push(pageId);
+      }
+
+      objs[1] = `<< /Type /Pages /Count ${pageObjIds.length} /Kids [${pageObjIds.map(id => `${id} 0 R`).join(" ")}] >>`;
+
+      let pdf = "%PDF-1.4\n";
+      const offsets = [0];
+      for (let i = 0; i < objs.length; i++){
+        offsets.push(pdf.length);
+        pdf += `${i + 1} 0 obj\n${objs[i]}\nendobj\n`;
+      }
+      const xrefPos = pdf.length;
+      pdf += `xref\n0 ${objs.length + 1}\n`;
+      pdf += `0000000000 65535 f \n`;
+      for (let i = 1; i <= objs.length; i++){
+        pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
+      }
+      pdf += `trailer\n<< /Size ${objs.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefPos}\n%%EOF`;
+      return new Blob([pdf], { type: "application/pdf" });
+    }
+    function buildQuotePdfLines(company, project, rows, projectStatus, contractorName, consultantName, projectNotes){
+      const sorted = [...rows].sort((a,b)=> (Number(a?.sort_order) || 0) - (Number(b?.sort_order) || 0));
+      const disanoRows = sorted.filter(r => !/fosnova/i.test(String(r.manufacturer || "")));
+      const fosnovaRows = sorted.filter(r => /fosnova/i.test(String(r.manufacturer || "")));
+      const lines = [];
+      const totalQty = sorted.reduce((sum, row) => sum + Math.max(1, Math.round(Number(row?.qty) || 1)), 0);
+      lines.push("QUOTE PROPOSAL");
+      lines.push(`Company: ${company}`);
+      lines.push(`Project: ${project}`);
+      lines.push(`Status: ${quoteStatusLabel(projectStatus)}`);
+      lines.push(`Generated: ${new Date().toLocaleString()}`);
+      lines.push(`Contractor: ${contractorName}`);
+      lines.push(`Consultant: ${consultantName}`);
+      lines.push(`Products: ${sorted.length} | Total quantity: ${totalQty}`);
+      if (projectNotes){
+        lines.push(`Project notes: ${String(projectNotes).replace(/\s+/g, " ").slice(0, 110)}`);
+      }
+      lines.push("");
+      const addGroup = (title, groupRows) => {
+        if (!groupRows.length) return;
+        lines.push(`${title} (${groupRows.length})`);
+        lines.push("No  Code              Qty  Name                           Project Ref        Notes");
+        lines.push("--  ----------------  ---  -----------------------------  -----------------  -------------------------");
+        groupRows.forEach((r, idx) => {
+          const no = String(idx + 1).padStart(2, " ");
+          const code = String(r.product_code || "").slice(0,16).padEnd(16, " ");
+          const qty = String(r.qty ?? "").slice(0,3).padStart(3, " ");
+          const name = String(r.product_name || "").replace(/\s+/g, " ").slice(0,29).padEnd(29, " ");
+          const pref = String(r.project_reference || "").replace(/\s+/g, " ").slice(0,17).padEnd(17, " ");
+          const notes = String(r.notes || "").replace(/\s+/g, " ").slice(0,25);
+          lines.push(`${no}  ${code}  ${qty}  ${name}  ${pref}  ${notes}`);
+        });
+        lines.push("");
+      };
+      addGroup("Disano", disanoRows);
+      addGroup("Fosnova", fosnovaRows);
+      return lines;
+    }
+    function downloadQuotePdfClient(company, project, rows, projectStatus, contractorName, consultantName, projectNotes){
+      const allLines = buildQuotePdfLines(company, project, rows, projectStatus, contractorName, consultantName, projectNotes);
+      const linesPerPage = 50;
+      const pages = [];
+      for (let i = 0; i < allLines.length; i += linesPerPage){
+        const chunk = allLines.slice(i, i + linesPerPage);
+        let content = "BT\n/F1 10 Tf\n";
+        let y = 800;
+        for (const line of chunk){
+          content += `1 0 0 1 40 ${y} Tm (${pdfSafeText(line)}) Tj\n`;
+          y -= 14;
+        }
+        content += "ET\n";
+        pages.push(content);
+      }
+      const blob = makeSimplePdf(pages.length ? pages : ["BT /F1 10 Tf 1 0 0 1 40 800 Tm (Quote) Tj ET\n"]);
+      const filename = `quote_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.pdf`;
+      downloadBlob(blob, filename);
+      return true;
+    }
+    function openQuotePrintPreview(company, project, rows, projectStatus, contractorName, consultantName, projectNotes){
+      const html = buildQuotePrintHtml(company, project, rows, projectStatus, contractorName, consultantName, projectNotes);
+      const w = window.open("", "_blank");
+      if (!w){
+        toast(tq("popup_blocked"));
+        return false;
+      }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      return true;
+    }
+
+    function saveQuoteCart(){
+      try{
+        const rows = Array.from(quoteCart.values());
+        sessionStorage.setItem(getQuoteCartStorageKey(), JSON.stringify(rows));
+      }catch(_e){}
+    }
+
+    function loadQuoteCart(){
+      try{
+        const raw = sessionStorage.getItem(getQuoteCartStorageKey());
+        if (!raw) return;
+        const rows = JSON.parse(raw);
+        if (!Array.isArray(rows)) return;
+        quoteCart.clear();
+        for (const r of rows){
+          const code = String(r?.product_code || "").trim();
+          if (!code) continue;
+          quoteCart.set(code, {
+            product_code: code,
+            product_name: String(r?.product_name || ""),
+            manufacturer: String(r?.manufacturer || ""),
+            qty: Math.max(1, Math.round(Number(r?.qty) || 1)),
+            notes: String(r?.notes || ""),
+            project_reference: String(r?.project_reference || ""),
+            source: String(r?.source || ""),
+            sort_order: Number.isFinite(Number(r?.sort_order)) ? Number(r.sort_order) : quoteCart.size,
+            compare_sheet: (r?.compare_sheet && typeof r.compare_sheet === "object") ? r.compare_sheet : {},
+          });
+        }
+      }catch(_e){}
+    }
+
+    function saveQuoteMeta(){
+      try{
+        const payload = {
+          ...collectQuoteMeta(),
+          company: "",
+        };
+        sessionStorage.setItem(getQuoteMetaStorageKey(), JSON.stringify(payload));
+      }catch(_e){}
+    }
+
+    function loadQuoteMeta(){
+      try{
+        const raw = sessionStorage.getItem(getQuoteMetaStorageKey());
+        if (!raw) return;
+        const meta = JSON.parse(raw) || {};
+        if ($("quoteProject")) $("quoteProject").value = String(meta.project || "");
+        if ($("quoteStatus")) $("quoteStatus").value = String(meta.project_status || "design_phase") || "design_phase";
+        if ($("quoteContractorName")) $("quoteContractorName").value = String(meta.contractor_name || "");
+        if ($("quoteConsultantName")) $("quoteConsultantName").value = String(meta.consultant_name || "");
+        if ($("quoteProjectNotes")) $("quoteProjectNotes").value = String(meta.project_notes || "");
+      }catch(_e){}
+      syncQuoteCompanyFromAuth();
+    }
+
+    function syncQuoteCompanyFromAuth(detailUser){
+      try{
+        const user = detailUser || readAuthUser();
+        const role = String(user?.role || "").trim().toLowerCase();
+        const company = role === "admin"
+          ? "Laiting"
+          : String(user?.company_name || "").trim();
+        if ($("quoteCompany")) $("quoteCompany").value = company;
+      }catch(_e){}
+    }
+
+    async function hydrateQuoteCompanyFromSession(){
+      try{
+        if (!$("quoteCompany") || $("quoteCompany").value.trim()) return;
+        const res = await fetch("/auth/me", { credentials: "same-origin" });
+        if (!res.ok) return;
+        const user = await res.json();
+        syncQuoteCompanyFromAuth(user);
+      }catch(_e){}
+    }
+
+    async function reloadQuoteStateForUser(user){
+      currentQuoteStorageOwner = getQuoteStorageOwner(user);
+      clearVisibleQuoteState();
+      loadQuoteCart();
+      loadQuoteMeta();
+      renderQuoteCart();
+      updateQuickCodeSuggestionsNow();
+      await loadSavedQuotes();
+      syncQuoteCompanyFromAuth(user || null);
+      await hydrateQuoteCompanyFromSession();
+    }
+
+    function moveQuoteItem(code, direction){
+      const row = quoteCart.get(String(code || ""));
+      if (!row || !direction) return;
+      const manufacturer = /fosnova/i.test(String(row.manufacturer || "")) ? "fosnova" : "disano";
+      const groupRows = getQuoteRowsInDisplayOrder().filter(item => {
+        const itemManufacturer = /fosnova/i.test(String(item.manufacturer || "")) ? "fosnova" : "disano";
+        return itemManufacturer === manufacturer;
+      });
+      const idx = groupRows.findIndex(item => String(item.product_code || "") === String(code || ""));
+      const nextIdx = idx + (direction < 0 ? -1 : 1);
+      if (idx < 0 || nextIdx < 0 || nextIdx >= groupRows.length) return;
+      const other = groupRows[nextIdx];
+      const tmp = Number(row.sort_order) || 0;
+      row.sort_order = Number(other.sort_order) || 0;
+      other.sort_order = tmp;
+      quoteCart.set(String(row.product_code), row);
+      quoteCart.set(String(other.product_code), other);
+      saveQuoteCart();
+      renderQuoteCart();
+    }
+
+    async function downloadComparisonSheets(){
+      const rows = getQuoteRowsInDisplayOrder();
+      const eligible = rows.filter(r => r?.compare_sheet?.ideal_spec && Object.keys(r.compare_sheet.ideal_spec || {}).length);
+      if (!eligible.length){
+        toast("No comparison sheets available for the current quote.");
+        return;
+      }
+      let downloaded = 0;
+      const skipped = [];
+      for (const row of rows){
+        const compare = row?.compare_sheet;
+        if (!compare?.ideal_spec || !Object.keys(compare.ideal_spec || {}).length){
+          skipped.push(String(row?.product_code || ""));
+          continue;
+        }
+        try{
+          const res = await postJSON("/compare/export-pdf", {
+            ideal_spec: compare.ideal_spec,
+            codes: ["Project requirement", String(row.product_code || "")],
+          });
+          const blob = await res.blob();
+          const cd = res.headers.get("Content-Disposition") || "";
+          let filename = `comparison_${String(row.product_code || "item")}.pdf`;
+          const m = cd.match(/filename=\"?([^\";]+)\"?/i);
+          if (m && m[1]) filename = m[1];
+          downloadBlob(blob, filename);
+          downloaded += 1;
+        }catch(_e){
+          skipped.push(String(row?.product_code || ""));
+        }
+      }
+      const suffix = skipped.length ? ` Skipped: ${skipped.filter(Boolean).join(", ")}` : "";
+      toast(`Comparison sheets downloaded: ${downloaded}.${suffix}`);
+    }
+
+    async function loadSavedQuotes(){
+      const box = $("savedQuotesBox");
+      const list = $("savedQuotesList");
+      if (!box || !list || !hasAuthToken()){
+        if (box) box.style.display = "none";
+        return;
+      }
+      box.style.display = "";
+      try{
+        const res = await fetchAuthed("/auth/quotes");
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        const items = Array.isArray(data?.items) ? data.items : [];
+        if (!items.length){
+          list.innerHTML = "No saved quotes yet.";
+          return;
+        }
+        list.innerHTML = items.map(item => `
+          <div class="savedQuoteRow ${Number(currentSavedQuoteId || 0) === Number(item.id || 0) ? "active" : ""}">
+            <div>
+              <div class="row" style="gap:8px">
+                <b>${esc(item.project || "")}</b>
+                <span class="savedQuoteStatus">${esc(quoteStatusLabel(item.project_status || "design_phase"))}</span>
+              </div>
+              <div class="small">${esc(item.company || "")} | ${Number(item.item_count || 0)} items</div>
+              <div class="small">Contractor: ${esc(item.contractor_name || "Unavailable")} | Consultant: ${esc(item.consultant_name || "Unavailable")}</div>
+              ${item.project_notes ? `<div class="small">${esc(String(item.project_notes || "").slice(0, 140))}</div>` : ``}
+              <div class="small">Updated: ${esc(formatDate(item.updated_at || item.created_at || ""))}</div>
+            </div>
+            <div class="savedQuoteActions">
+              <button class="btn secondary" type="button" data-load-quote="${esc(item.id)}" style="padding:6px 10px">Load</button>
+              <button class="btn secondary" type="button" data-delete-quote="${esc(item.id)}" style="padding:6px 10px">Delete</button>
+            </div>
+          </div>
+        `).join("");
+        Array.from(list.querySelectorAll("button[data-load-quote]")).forEach(btn => {
+          btn.addEventListener("click", async ()=>{
+            try{
+              const res = await fetchAuthed(`/auth/quotes/${encodeURIComponent(btn.dataset.loadQuote || "")}`);
+              if (!res.ok) throw new Error(await res.text());
+              const quote = await res.json();
+              currentSavedQuoteId = Number(quote.id || 0) || null;
+              syncQuoteCompanyFromAuth();
+              if ($("quoteProject")) $("quoteProject").value = String(quote.project || "");
+              if ($("quoteStatus")) $("quoteStatus").value = String(quote.project_status || "design_phase") || "design_phase";
+              if ($("quoteContractorName")) $("quoteContractorName").value = String(quote.contractor_name || "");
+              if ($("quoteConsultantName")) $("quoteConsultantName").value = String(quote.consultant_name || "");
+              if ($("quoteProjectNotes")) $("quoteProjectNotes").value = String(quote.project_notes || "");
+              quoteCart.clear();
+              for (const row of (Array.isArray(quote.items) ? quote.items : [])){
+                const code = String(row?.product_code || "").trim();
+                if (!code) continue;
+                quoteCart.set(code, {
+                  product_code: code,
+                  product_name: String(row?.product_name || ""),
+                  manufacturer: String(row?.manufacturer || ""),
+                  qty: Math.max(1, Math.round(Number(row?.qty) || 1)),
+                  notes: String(row?.notes || ""),
+                  project_reference: String(row?.project_reference || ""),
+                  source: String(row?.source || ""),
+                  sort_order: Number.isFinite(Number(row?.sort_order)) ? Number(row.sort_order) : quoteCart.size,
+                  compare_sheet: (row?.compare_sheet && typeof row.compare_sheet === "object") ? row.compare_sheet : {},
+                });
+              }
+              saveQuoteMeta();
+              saveQuoteCart();
+              renderQuoteCart();
+              loadSavedQuotes();
+            }catch(e){
+              toast(String(e.message || e));
+            }
+          });
+        });
+        Array.from(list.querySelectorAll("button[data-delete-quote]")).forEach(btn => {
+          btn.addEventListener("click", async ()=>{
+            const quoteId = String(btn.dataset.deleteQuote || "").trim();
+            if (!quoteId) return;
+            const ok = window.confirm("Delete this saved quote?");
+            if (!ok) return;
+            try{
+              const res = await fetchAuthed(`/auth/quotes/${encodeURIComponent(quoteId)}`, { method: "DELETE" });
+              if (!res.ok) throw new Error(await res.text());
+              if (Number(currentSavedQuoteId || 0) === Number(quoteId)){
+                currentSavedQuoteId = null;
+              }
+              toast("Saved quote deleted.");
+              loadSavedQuotes();
+            }catch(e){
+              toast(`Could not delete quote: ${String(e.message || e)}`);
+            }
+          });
+        });
+      }catch(e){
+        list.innerHTML = `Could not load saved quotes: ${esc(String(e.message || e))}`;
+      }
+    }
+
+    async function saveCurrentQuote(){
+      const rows = getQuoteRowsInDisplayOrder();
+      if (!rows.length){
+        toast(tq("quote_empty"));
+        return;
+      }
+      const meta = collectQuoteMeta();
+      const metaError = validateRequiredQuoteMeta(meta);
+      if (metaError){
+        toast(metaError);
+        return;
+      }
+      if (!hasAuthToken()){
+        toast("Log in to save quotes.");
+        return;
+      }
+      const payload = {
+        company: meta.company,
+        project: meta.project,
+        project_status: meta.project_status,
+        contractor_name: meta.contractor_name,
+        consultant_name: meta.consultant_name,
+        project_notes: meta.project_notes,
+        items: rows,
+      };
+      try{
+        const url = currentSavedQuoteId ? `/auth/quotes/${encodeURIComponent(currentSavedQuoteId)}` : "/auth/quotes";
+        const method = currentSavedQuoteId ? "PUT" : "POST";
+        const res = await fetchAuthed(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        currentSavedQuoteId = Number(data?.quote?.id || 0) || currentSavedQuoteId;
+        toast("Quote saved.");
+        loadSavedQuotes();
+      }catch(e){
+        toast(`Could not save quote: ${String(e.message || e)}`);
+      }
+    }
+
+    function renderQuoteCart(){
+      const wrap = $("quoteTableWrap");
+      const stats = $("quoteStats");
+      const rows = getQuoteRowsInDisplayOrder();
+      if (stats) stats.textContent = tq("selected", { n: rows.length });
+      if (!wrap) return;
+      if (!rows.length){
+        wrap.innerHTML = `<span class="small">${esc(tq("no_products"))}</span>`;
+        return;
+      }
+
+      const disanoRows = rows.filter(r => !/fosnova/i.test(String(r.manufacturer || "")));
+      const fosnovaRows = rows.filter(r => /fosnova/i.test(String(r.manufacturer || "")));
+
+      const buildGroupTable = (title, logoUrl, groupRows) => {
+        if (!groupRows.length) return "";
+        return `
+        <div style="margin-top:10px">
+          <div class="h groupHead" style="margin:0 0 6px 0;font-size:13px">
+            <img src="${logoUrl}" alt="${esc(title)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+            <span style="display:none">${esc(title)}</span>
+            <span>(${groupRows.length})</span>
+          </div>
+          <table class="quoteTable">
+            <colgroup>
+              <col style="width:4%">
+              <col style="width:8%">
+              <col style="width:14%">
+              <col style="width:14%">
+              <col style="width:8%">
+              <col style="width:30%">
+              <col style="width:14%">
+              <col style="width:8%">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th></th>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Qty</th>
+                <th>Notes</th>
+                <th>Project Ref</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${groupRows.map((r, idx) => `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td class="quoteOrderCell">
+                    <button class="quoteOrderBtn" type="button" data-quote-move="${esc(r.product_code)}" data-direction="-1" aria-label="Move up" title="Move up">↑</button>
+                    <button class="quoteOrderBtn" type="button" data-quote-move="${esc(r.product_code)}" data-direction="1" aria-label="Move down" title="Move down">↓</button>
+                  </td>
+                  <td>${r.product_code ? `<a class="quoteCodeLink" href="${esc(quoteDatasheetUrl(r.product_code))}" target="_blank" rel="noopener" title="Open datasheet">${esc(r.product_code)}</a>` : ""}</td>
+                  <td>${esc(r.product_name || "")}</td>
+                  <td><input class="qty" type="number" min="1" step="1" data-quote-code="${esc(r.product_code)}" data-field="qty" value="${esc(r.qty)}" /></td>
+                  <td><input type="text" data-quote-code="${esc(r.product_code)}" data-field="notes" value="${esc(r.notes || "")}" placeholder="${esc(tq("optional_note"))}" /></td>
+                  <td><input type="text" data-quote-code="${esc(r.product_code)}" data-field="project_reference" value="${esc(r.project_reference || "")}" placeholder="${esc(tq("project_ref"))}" /></td>
+                  <td><button class="btn secondary" style="padding:6px 8px" data-quote-remove="${esc(r.product_code)}">${esc(tq("remove"))}</button></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>`;
+      };
+
+      wrap.innerHTML = `
+        ${buildGroupTable("Disano", DISANO_LOGO_URL, disanoRows)}
+        ${buildGroupTable("Fosnova", FOSNOVA_LOGO_URL, fosnovaRows)}
+      `;
+
+      Array.from(wrap.querySelectorAll("input[data-quote-code]")).forEach(el => {
+        el.addEventListener("input", ()=>{
+          const code = el.dataset.quoteCode;
+          const field = el.dataset.field;
+          const row = quoteCart.get(code);
+          if (!row) return;
+          if (field === "qty"){
+            row.qty = Math.max(1, Math.round(Number(el.value) || 1));
+          } else if (field === "notes"){
+            row.notes = String(el.value || "");
+          } else if (field === "project_reference"){
+            row.project_reference = String(el.value || "");
+          }
+          saveQuoteCart();
+        });
+      });
+
+      Array.from(wrap.querySelectorAll("button[data-quote-remove]")).forEach(btn => {
+        btn.addEventListener("click", ()=>{
+          const code = btn.dataset.quoteRemove;
+          quoteCart.delete(code);
+          saveQuoteCart();
+          renderQuoteCart();
+        });
+      });
+      Array.from(wrap.querySelectorAll("button[data-quote-move]")).forEach(btn => {
+        btn.addEventListener("click", ()=>{
+          moveQuoteItem(btn.dataset.quoteMove, Number(btn.dataset.direction || 0));
+        });
+      });
+    }
+
+    function exportQuoteCsv(){
+      const rows = getQuoteRowsInDisplayOrder();
+      if (!rows.length){ toast(tq("quote_empty")); return; }
+      const meta = collectQuoteMeta();
+      const metaError = validateRequiredQuoteMeta(meta, { requireCompany: true });
+      if (metaError){
+        toast(metaError);
+        return;
+      }
+      const header = ["product_code","product_name","qty","notes","project_reference","source"];
+      const lines = [
+        `company,${escapeCsv(meta.company)}`,
+        `project,${escapeCsv(meta.project)}`,
+        `project_status,${escapeCsv(quoteStatusLabel(meta.project_status))}`,
+        `contractor_name,${escapeCsv(meta.contractor_name)}`,
+        `consultant_name,${escapeCsv(meta.consultant_name)}`,
+        `exported_at,${escapeCsv(new Date().toISOString())}`,
+        "",
+        header.join(",")
+      ];
+      for (const r of rows){
+        lines.push([
+          escapeCsv(r.product_code),
+          escapeCsv(r.product_name),
+          escapeCsv(r.qty),
+          escapeCsv(r.notes || ""),
+          escapeCsv(r.project_reference || ""),
+          escapeCsv(r.source || ""),
+        ].join(","));
+      }
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `quote_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function exportQuotePdf(){
+      const rows = getQuoteRowsInDisplayOrder();
+      if (!rows.length){ toast(tq("quote_empty")); return; }
+      const meta = collectQuoteMeta();
+      const metaError = validateRequiredQuoteMeta(meta, { requireCompany: true });
+      if (metaError){
+        toast(metaError);
+        return;
+      }
+      try{
+        const payload = {
+          company: meta.company,
+          project: meta.project,
+          project_status: meta.project_status,
+          contractor_name: meta.contractor_name,
+          consultant_name: meta.consultant_name,
+          project_notes: meta.project_notes,
+          items: rows,
+        };
+        const res = await postJSON("/quote/export-pdf", payload);
+        const blob = await res.blob();
+        const cd = res.headers.get("Content-Disposition") || "";
+        let filename = `quote_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.pdf`;
+        const m = cd.match(/filename=\"?([^\";]+)\"?/i);
+        if (m && m[1]) filename = m[1];
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }catch(e){
+        const msg = String(e.message || e);
+        try{
+          downloadQuotePdfClient(meta.company, meta.project, rows, meta.project_status, meta.contractor_name, meta.consultant_name, meta.project_notes);
+          toast(tq("pdf_backend_fallback"));
+          return;
+        }catch(_clientPdfError){
+          const opened = openQuotePrintPreview(meta.company, meta.project, rows, meta.project_status, meta.contractor_name, meta.consultant_name, meta.project_notes);
+          if (opened){
+            toast(tq("pdf_print_fallback"));
+            return;
+          }
+        }
+        toast(tq("pdf_failed", { msg }));
+      }
+    }
+
+    async function exportQuoteDatasheetsZip(){
+      const rows = getQuoteRowsInDisplayOrder();
+      if (!rows.length){ toast(tq("quote_empty")); return; }
+      try{
+        const res = await postJSON("/quote/datasheets-zip", { items: rows });
+        const blob = await res.blob();
+        const cd = res.headers.get("Content-Disposition") || "";
+        let filename = `datasheets_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.zip`;
+        const m = cd.match(/filename=\"?([^\";]+)\"?/i);
+        if (m && m[1]) filename = m[1];
+        downloadBlob(blob, filename);
+      }catch(e){
+        toast(tq("zip_failed", { msg: String(e.message || e) }));
+      }
+    }
+
+    $("btnBack").addEventListener("click", ()=>{
+      saveQuoteMeta();
+      saveQuoteCart();
+      window.location.href = "/";
+    });
+    $("btnTools").addEventListener("click", ()=>{
+      saveQuoteMeta();
+      saveQuoteCart();
+      window.location.href = "/frontend/tools.html?fresh=1";
+    });
+    $("btnQuoteExport").addEventListener("click", ()=> exportQuoteCsv());
+    $("btnQuoteSave")?.addEventListener("click", ()=> saveCurrentQuote());
+    $("btnQuoteExportPdf").addEventListener("click", ()=>{
+      const ok = window.confirm(tq("pdf_accessory_confirm"));
+      if (!ok) return;
+      exportQuotePdf();
+    });
+    $("btnQuoteCompareSheets")?.addEventListener("click", ()=> downloadComparisonSheets());
+    $("btnQuoteDatasheetsZip")?.addEventListener("click", ()=> exportQuoteDatasheetsZip());
+    $("btnQuoteClear").addEventListener("click", ()=>{
+      quoteCart.clear();
+      currentSavedQuoteId = null;
+      saveQuoteCart();
+      saveQuoteMeta();
+      renderQuoteCart();
+      setQuickAddHint("");
+    });
+    $("quoteProject").addEventListener("input", saveQuoteMeta);
+    $("quoteStatus")?.addEventListener("change", saveQuoteMeta);
+    $("quoteContractorName")?.addEventListener("input", saveQuoteMeta);
+    $("quoteConsultantName")?.addEventListener("input", saveQuoteMeta);
+    $("quoteProjectNotes")?.addEventListener("input", saveQuoteMeta);
+    $("btnQuoteContractorUnavailable")?.addEventListener("click", ()=> markUnavailable("quoteContractorName"));
+    $("btnQuoteConsultantUnavailable")?.addEventListener("click", ()=> markUnavailable("quoteConsultantName"));
+    $("btnQuoteAddCode")?.addEventListener("click", ()=> addToQuoteByCode());
+    $("quoteCodeQuick")?.addEventListener("input", ()=>{
+      setQuickAddHint("");
+      updateQuickCodeSuggestionsDebounced();
+    });
+    $("quoteCodeQuick")?.addEventListener("focus", ()=> updateQuickCodeSuggestionsNow());
+    $("quoteCodeQuick")?.addEventListener("keydown", (e)=>{
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      addToQuoteByCode();
+    });
+
+    const ql = $("quoteLang");
+    quoteLang = detectQuoteLang();
+    if (ql){
+      ql.innerHTML = QUOTE_LANGS.map(([c,l])=>`<option value="${c}">${l}</option>`).join("");
+      ql.value = quoteLang;
+      ql.addEventListener("change", ()=>{ quoteLang = ql.value; try{ localStorage.setItem(UI_LANG_KEY, quoteLang); }catch(_e){} applyQuoteI18n(); renderQuoteCart(); });
+    }
+    document.addEventListener("productfinder:auth-changed", (event) => {
+      const nextUser = event?.detail?.user || null;
+      const nextOwner = getQuoteStorageOwner(nextUser);
+      if (nextOwner !== currentQuoteStorageOwner) {
+        reloadQuoteStateForUser(nextUser);
+        return;
+      }
+      syncQuoteCompanyFromAuth(nextUser);
+    });
+    applyQuoteI18n();
+    reloadQuoteStateForUser(readAuthUser());
+  </script>
+</body>
+</html>

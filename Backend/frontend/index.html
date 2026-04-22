@@ -1,0 +1,438 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Laiting Workspace</title>
+  <link rel="stylesheet" href="/frontend/assets/index.css?v=2026-04-01-visual-polish-1" />
+</head>
+<body data-page="finder">
+  <div id="welcomeGate" class="welcomeGate isHidden" aria-hidden="true">
+    <div class="welcomeGateInner">
+      <img class="welcomeLogo" src="/frontend/laiting-logo-ai.png" alt="Laiting logo" width="761" height="322" fetchpriority="high" decoding="async" />
+      <div class="welcomeCopy">Welcome to Laiting</div>
+      <div class="welcomeSub">Search, compare, and quote from one workspace.</div>
+      <button id="btnWelcomeNext" class="btn welcomeBtn" type="button">Next</button>
+    </div>
+  </div>
+  <header>
+    <div class="brand">
+      <img src="/frontend/laiting-logo-ai.png" alt="Laiting logo" width="761" height="322" fetchpriority="high" decoding="async" />
+    </div>
+    <div class="right">
+      <div id="uiLangMount"></div>
+      <div id="authMount"></div>
+      <button id="btnTools" class="btn secondary" title="Open compare workspace" aria-label="Open compare workspace" style="display:none">Compare</button>
+      <div id="toolsComparePreview" class="toolsComparePreview" aria-live="polite" style="display:none"></div>
+      <button id="btnQuote" class="btn secondary" title="Open quote cart" aria-label="Open quote cart" style="display:none">Quote cart</button>
+      <button id="btnOpenFilters" class="btn secondary mobileOnly" title="Open filters" aria-label="Open filters panel">Filters</button>
+      <button id="btnClearAll" class="btn secondary" title="Clear query + filters" aria-label="Reset query and filters">Reset</button>
+      <div class="mobileQueryWrap">
+        <textarea id="qMobile" placeholder="Type your query..."></textarea>
+      </div>
+      <button id="btnRun" class="btn" aria-label="Run search">Search</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- LEFT -->
+    <section class="card filterPanel" id="filterPanel">
+      <div class="filterPanelHead mobileOnly">
+        <div class="filterPanelTitle">Filters</div>
+        <button id="btnCloseFilters" class="btn secondary compact" type="button" aria-label="Close filters panel">Close</button>
+      </div>
+      <div id="finderQueryTitle" class="h">Catalog search</div>
+      <textarea id="q" placeholder="e.g. 154839, downlight, emergency, linear"></textarea>
+      <div id="finderQueryHint" class="small" style="margin-top:8px">
+        Search by product name, product code, or family. Use the filters below to narrow the catalog.
+      </div>
+      <div id="finderQueryHelp" class="small">Use Enter to run search.</div>
+      <div id="finderImportRow" class="row importFilesRow" style="display:none;margin-top:8px;align-items:stretch">
+        <input id="finderPdfFile" type="file" accept=".pdf,application/pdf" />
+        <input id="finderImageFile" type="file" accept="image/*" />
+      <button id="btnFinderFilesParse" class="btn secondary compact" type="button">Analyze brief</button>
+      </div>
+      <div id="visionInfo" class="visionInfo" style="display:none"></div>
+
+      <div class="hr"></div>
+
+      <div class="h">Selected filters</div>
+      <div id="selected" class="row wrap"></div>
+      <div class="small" style="margin-top:8px">Click a chip to remove it. Search auto-runs.</div>
+
+      <div class="hr"></div>
+      <div class="groupNav" id="groupNav">
+        <button class="groupBtn" data-group="families">Product families</button>
+        <button class="groupBtn" data-group="protection">Protection</button>
+        <button class="groupBtn" data-group="light">Photometric</button>
+        <button class="groupBtn" data-group="electrical">Electrical</button>
+        <button class="groupBtn" data-group="mechanical">Mechanical</button>
+        <button class="groupBtn" data-group="quality">Lifetime</button>
+        <button class="groupBtn" data-group="all">All</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="filterGroup" data-group="families">
+      <div class="h">Product families</div>
+      <div style="margin-top:10px">
+        <div class="filterLabel">Manufacturer</div>
+        <div class="filterHint">Search / select</div>
+        <input id="mfrSearch" class="facetSearch" type="text" placeholder="Manufacturer..." />
+        <div id="manufacturer" class="facet-list"></div>
+      </div>
+      <div class="hr"></div>
+      <div class="grid2">
+        <div>
+          <div class="filterLabel">Family</div>
+          <div class="filterHint">Search / select</div>
+          <input id="famSearch" class="facetSearch" type="text" placeholder="Search families..." />
+          <div id="families" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="filterLabel">Product name</div>
+          <div class="filterHint">Search / select</div>
+          <input id="simSearch" class="facetSearch" type="text" placeholder="Search product name..." />
+          <div id="product_name_short" class="facet-list"></div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      </div>
+
+
+      <div class="filterGroup" data-group="light">
+      <div class="h">Photometric</div>
+      <div class="grid2">
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div class="filterCardTitle">Lumen output</div>
+          <div class="filterLabel">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="lumMin" type="number" placeholder="min" />
+            <input id="lumMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="lumApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="lumReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div class="filterCardTitle">Power max (W)</div>
+          <div class="filterLabel">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="pwrMin" type="number" placeholder="min" />
+            <input id="pwrMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="pwrApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="pwrReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="box-shadow:none;border:1px solid #eef2f7;margin-top:10px">
+        <div class="filterCardTitle">Lumen efficacy (lm/W)</div>
+        <div class="filterLabel">Minimum value (equal or better)</div>
+        <div class="row" style="margin-top:8px">
+          <input id="effMin" type="number" placeholder="e.g. 120" />
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="effApply" class="btn" style="padding:8px 10px">Apply</button>
+          <button id="effReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+        </div>
+      </div>
+
+      
+      <div class="h">Photometric facets</div>
+      <div class="grid2">
+        <div>
+          <div class="filterLabel">CCT</div>
+          <div class="filterHint">Search / select</div>
+          <input id="cctSearch" class="facetSearch" type="text" placeholder="Search CCT..." />
+          <div id="cct_k" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="filterLabel">CRI</div>
+          <div class="filterHint">Search / select</div>
+          <input id="criSearch" class="facetSearch" type="text" placeholder="Search CRI..." />
+          <div id="cri" class="facet-list"></div>
+          <div class="row" style="margin-top:8px">
+            <input id="criExact" type="number" placeholder="Exact CRI (e.g. 9)" />
+            <button id="criExactApply" class="btn" style="padding:8px 10px">Exact</button>
+            <button id="criExactReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <div class="filterLabel">UGR</div>
+          <div class="filterHint">Search / select</div>
+          <input id="ugrSearch" class="facetSearch" type="text" placeholder="Search UGR..." />
+          <div id="ugr" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="filterLabel">Beam</div>
+          <div class="filterHint">Search / select</div>
+          <input id="beamSearch" class="facetSearch" type="text" placeholder="Search beam angle..." />
+          <div id="beam_angle_deg" class="facet-list"></div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      </div>
+
+      <div class="filterGroup" data-group="mechanical">
+      <div class="h">Mechanical</div>
+        <div class="grid2">
+          <div>
+            <div class="filterLabel">Color</div>
+            <div class="filterHint">Search / select</div>
+            <input id="colSearch" class="facetSearch" type="text" placeholder="Search color..." />
+            <div id="housing_color" class="facet-list"></div>
+          </div>
+          <div>
+            <div class="filterLabel">Shape</div>
+            <div class="filterHint">Search / select</div>
+            <input id="shapeSearch" class="facetSearch" type="text" placeholder="Search shape..." />
+            <div id="shape" class="facet-list"></div>
+          </div>
+      </div>
+      <div class="hr"></div>
+      </div>
+
+      <div class="filterGroup" data-group="protection">
+      <div class="h">Protection</div>
+      <div class="grid2">
+        <div>
+          <div class="filterLabel">IP total</div>
+          <div class="filterHint">Search / select</div>
+          <input id="ipTotalSearch" class="facetSearch" type="text" placeholder="Search IP total..." />
+          <div id="ip_rating" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="filterLabel">IK</div>
+          <div class="filterHint">Search / select</div>
+          <input id="ikSearch" class="facetSearch" type="text" placeholder="Search IK..." />
+          <div id="ik_rating" class="facet-list"></div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <div class="filterLabel">IP v.l. (visible)</div>
+          <div class="filterHint">Search / select</div>
+          <input id="ipVisibleSearch" class="facetSearch" type="text" placeholder="Search IP v.l...." />
+          <div id="ip_visible" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="filterLabel">IP v.a. (non visible)</div>
+          <div class="filterHint">Search / select</div>
+          <input id="ipNonVisibleSearch" class="facetSearch" type="text" placeholder="Search IP v.a...." />
+          <div id="ip_non_visible" class="facet-list"></div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      </div>
+
+      <div class="filterGroup" data-group="quality">
+      <div class="h">Lifetime</div>
+      <div class="grid2">
+        <div>
+          <div class="filterLabel">Lifetime h</div>
+          <div class="filterHint">Search / select</div>
+          <input id="ledLifeSearch" class="facetSearch" type="text" placeholder="Search LED life..." />
+          <div id="led_rated_life_h" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="filterLabel">Warranty</div>
+          <div class="filterHint">Search / select</div>
+          <input id="warrSearch" class="facetSearch" type="text" placeholder="Search warranty..." />
+          <div id="warranty_years" class="facet-list"></div>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <div class="filterLabel">Lumen maint.</div>
+        <div class="filterHint">Search / select</div>
+        <input id="lumMaintSearch" class="facetSearch" type="text" placeholder="Search lumen maintenance..." />
+        <div id="lumen_maintenance_pct" class="facet-list"></div>
+      </div>
+
+      <div class="hr"></div>
+      </div>
+
+      <div class="filterGroup" data-group="electrical">
+      <div class="h">Electrical / Control</div>
+      <div class="grid2">
+        <div>
+          <div class="filterLabel">Control</div>
+          <div class="filterHint">Search / select</div>
+          <input id="ctrlSearch" class="facetSearch" type="text" placeholder="Search protocol..." />
+          <div id="control_protocol" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="filterLabel">Interface (CP)</div>
+          <div class="filterHint">Search / select</div>
+          <input id="cpSearch" class="facetSearch" type="text" placeholder="Search interface..." />
+          <div id="interface" class="facet-list"></div>
+        </div>
+        <div>
+          <div class="filterLabel">Emergency</div>
+          <div class="filterHint">Select</div>
+          <div id="emergency_present" class="facet-list"></div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div class="filterCardTitle">Min ambient temp (°C)</div>
+          <div class="filterLabel">Lower bound</div>
+          <div class="row" style="margin-top:8px">
+            <input id="ambMinVal" type="number" placeholder="e.g. -20" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="ambMinApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="ambMinReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div class="filterCardTitle">Max ambient temp (°C)</div>
+          <div class="filterLabel">Upper bound</div>
+          <div class="row" style="margin-top:8px">
+            <input id="ambMaxVal" type="number" placeholder="e.g. 45" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="ambMaxApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="ambMaxReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      </div>
+
+      <div class="filterGroup" data-group="mechanical">
+      <div class="h">Mechanical dimensions</div>
+      <div class="grid2">
+      <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div class="filterCardTitle">Diameter</div>
+          <div class="filterLabel">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="diaMin" type="number" placeholder="min" />
+            <input id="diaMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="diaApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="diaReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div class="filterCardTitle">Height</div>
+          <div class="filterLabel">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="hMin" type="number" placeholder="min" />
+            <input id="hMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="hApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="hReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div class="filterCardTitle">Length</div>
+          <div class="filterLabel">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="lMin" type="number" placeholder="min" />
+            <input id="lMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="lApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="lReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+        <div class="card" style="box-shadow:none;border:1px solid #eef2f7">
+          <div class="filterCardTitle">Width</div>
+          <div class="filterLabel">From / To</div>
+          <div class="row" style="margin-top:8px">
+            <input id="wMin" type="number" placeholder="min" />
+            <input id="wMax" type="number" placeholder="max" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="wApply" class="btn" style="padding:8px 10px">Apply</button>
+            <button id="wReset" class="btn secondary" style="padding:8px 10px">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="card">
+      <div class="resultsTop">
+        <div class="resultsTabBar resultsTabBarTop">
+          <button id="btnTabExact" class="resultsTab active" type="button">Exact</button>
+          <button id="btnTabSimilar" class="resultsTab" type="button">Similar</button>
+        </div>
+        <div class="resultsTopRight">
+          <div class="row resultsOrderRow">
+            <label class="small">Sort</label>
+            <select id="sortSel" class="select">
+              <option value="score_desc">Score desc</option>
+              <option value="score_asc">Score asc</option>
+              <option value="code_asc">Code A-Z</option>
+              <option value="code_desc">Code Z-A</option>
+              <option value="price_asc">Price low-high</option>
+              <option value="price_desc">Price high-low</option>
+            </select>
+          </div>
+          <div class="pager resultsPagerTop">
+            <button id="btnPrevPageTop" class="btn secondary" style="padding:8px 10px">Prev</button>
+            <div id="pagerInfoTop" class="pagerInfo">Page 1/1</div>
+            <button id="btnNextPageTop" class="btn secondary" style="padding:8px 10px">Next</button>
+          </div>
+        </div>
+      </div>
+      <div id="onboardingBox" class="onboarding" style="display:none">
+        <div class="onbHead">
+          <div class="h" style="margin:0;font-size:14px">Quick start</div>
+          <button id="btnCloseOnboarding" class="btn secondary" style="padding:5px 8px" aria-label="Dismiss quick start">Dismiss</button>
+        </div>
+        <div class="small">1) Type a natural query like: <b>office downlight UGR&lt;19 4000K DALI</b>.</div>
+        <div class="small">2) Add filters from the left panel to narrow exact matches.</div>
+        <div class="small">3) Add products to <b>Quote</b> and export from the Quote page.</div>
+      </div>
+      <div id="recovery" class="recovery">
+        <div class="recoveryTitle">No exact matches. Try one of these:</div>
+        <div id="recoveryActions" class="recoveryActions"></div>
+      </div>
+      <div id="finderAiStatus" class="finderAiStatus" style="display:none" aria-live="polite"></div>
+
+      <div class="hr"></div>
+      <div id="exactPane" class="resultsPane">
+        <div id="exact" class="cards"></div>
+      </div>
+      <div id="similarPane" class="resultsPane hidden">
+        <div id="similar" class="cards"></div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="pager">
+        <button id="btnPrevPage" class="btn secondary" style="padding:8px 10px">Prev</button>
+        <span id="pagerInfo" class="pagerInfo">Page 1/1</span>
+        <button id="btnNextPage" class="btn secondary" style="padding:8px 10px">Next</button>
+      </div>
+    </section>
+  </main>
+  <div id="filtersBackdrop" class="filtersBackdrop"></div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="imgLightbox" class="imgLightbox" aria-hidden="true">
+    <div class="imgLightboxBackdrop" data-img-close="1"></div>
+    <div class="imgLightboxDialog" role="dialog" aria-modal="true" aria-label="Image preview">
+      <button id="btnImgLightboxClose" class="imgLightboxClose" type="button" aria-label="Close image preview">Close</button>
+      <img id="imgLightboxPreview" class="imgLightboxPreview" alt="Preview" />
+    </div>
+  </div>
+
+  <script src="/frontend/assets/index.js?v=2026-04-15-welcome-session-1"></script>
+</body>
+</html>

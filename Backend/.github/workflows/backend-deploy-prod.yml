@@ -1,0 +1,44 @@
+name: Backend Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_ref:
+        description: "Git ref to deploy"
+        required: false
+        default: "main"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_ref }}
+
+      - name: Copy Backend to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT || '22' }}
+          source: "Backend/*"
+          target: ${{ secrets.PROD_APP_PATH }}
+          strip_components: 1
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT || '22' }}
+          script_stop: true
+          script: |
+            cd "${{ secrets.PROD_APP_PATH }}"
+            chmod +x scripts/deploy_prod.sh
+            ./scripts/deploy_prod.sh "${{ secrets.PROD_APP_PATH }}"
