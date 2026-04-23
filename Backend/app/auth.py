@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from psycopg2.extras import RealDictCursor
 
 from app.admin_settings import CATEGORY_ORDER, SETTINGS_BY_KEY, SETTINGS_CATALOG, mask_secret_value, normalize_setting_value
+from app.db_runtime import normalize_postgres_url
 
 ROLE_USER = "user"
 ROLE_MANAGER = "manager"
@@ -309,7 +310,7 @@ class AnalyticsEventRequest(BaseModel):
 class AuthService:
     def __init__(self, db_path: str | None = None, database_url: str | None = None) -> None:
         self.db_path = db_path or os.getenv("AUTH_DB_PATH", "data/auth.db")
-        self.database_url = str(database_url or os.getenv("AUTH_DATABASE_URL", "")).strip()
+        self.database_url = normalize_postgres_url(str(database_url or os.getenv("AUTH_DATABASE_URL", "")).strip())
         self.backend = "postgres" if self.database_url.startswith(("postgres://", "postgresql://")) else "sqlite"
         self.jwt_secret = str(os.getenv("AUTH_JWT_SECRET", "dev-insecure-change-me")).strip() or "dev-insecure-change-me"
         self.jwt_algorithm = "HS256"

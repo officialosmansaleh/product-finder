@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.requests import Request
 from psycopg2.extras import RealDictCursor
 
+from app.db_runtime import normalize_postgres_url
 from app.runtime_config import cfg_bool, cfg_int, cfg_list
 
 
@@ -126,7 +127,7 @@ class SecurityManager:
         self.enable_debug_endpoints = env_bool("ENABLE_DEBUG_ENDPOINTS", cfg_bool("main.enable_debug_endpoints", False))
         self.admin_token = str(os.getenv("ADMIN_TOKEN", "")).strip()
         self.rate_limit_store_backend = str(os.getenv("RATE_LIMIT_STORE", "")).strip().lower()
-        self.rate_limit_database_url = (
+        self.rate_limit_database_url = normalize_postgres_url(
             str(os.getenv("RATE_LIMIT_DATABASE_URL", "")).strip()
             or str(os.getenv("AUTH_DATABASE_URL", "")).strip()
         )
