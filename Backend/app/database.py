@@ -99,10 +99,14 @@ class PostgresCompatConnection:
 class ProductDatabase:
     """Product database backed by SQLite or PostgreSQL."""
 
-    def __init__(self, db_path: str = "data/products.db", database_url: str = ""):
+    def __init__(self, db_path: str = "data/products.db", database_url: str = "", backend: str = ""):
         self.db_path = db_path
         self.database_url = str(database_url or "").strip()
-        self.backend = "postgres" if self.database_url.startswith(("postgres://", "postgresql://")) else "sqlite"
+        requested_backend = str(backend or "").strip().lower()
+        if requested_backend in {"postgres", "sqlite"}:
+            self.backend = requested_backend
+        else:
+            self.backend = "postgres" if self.database_url.startswith(("postgres://", "postgresql://")) else "sqlite"
         self.conn: Optional[Any] = None
         self.last_release_diff: Dict[str, Any] = {}
 

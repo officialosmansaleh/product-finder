@@ -1933,6 +1933,7 @@ def initialize_runtime_state() -> None:
             PRODUCT_DB = ProductDatabase(
                 db_path=db_runtime.product_db_path,
                 database_url=db_runtime.product_database_url,
+                backend=db_runtime.product_db_backend,
             )
             PRODUCT_DB.connect()
             preloaded_df = None if DB.empty else DB
