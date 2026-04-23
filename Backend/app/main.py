@@ -18,6 +18,7 @@ import re
 import html
 import json
 import time
+import tempfile
 import zipfile
 from collections import OrderedDict, Counter
 from urllib.parse import quote_plus, quote
@@ -2866,6 +2867,86 @@ def admin_catalog_release_diff_export(_lead_user: UserPublic = Depends(require_l
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@app.post("/admin/catalog-import")
+async def admin_catalog_import(
+    pim_file: UploadFile = File(...),
+    family_map_file: UploadFile | None = File(None),
+    _admin_user: UserPublic = Depends(require_admin_dep),
+):
+    global DB, PRODUCT_DB, ALLOWED_FAMILIES, ALLOWED_FAMILIES_NORM
+
+    if not HAS_DATABASE or ProductDatabase is None:
+        raise HTTPException(status_code=503, detail="Product database module is not available")
+    if not str(db_runtime.product_database_url or "").strip() and db_runtime.product_db_backend == "postgres":
+        raise HTTPException(status_code=503, detail="PRODUCT_DATABASE_URL is required for cloud catalog import")
+
+    def _require_xlsx(upload: UploadFile, label: str) -> str:
+        name = str(getattr(upload, "filename", "") or "").strip()
+        if not name.lower().endswith(".xlsx"):
+            raise HTTPException(status_code=400, detail=f"{label} must be an .xlsx file")
+        return re.sub(r"[^A-Za-z0-9._-]+", "-", os.path.basename(name)).strip("-") or f"{label}.xlsx"
+
+    pim_name = _require_xlsx(pim_file, "PIM file")
+    family_name = _require_xlsx(family_map_file, "Family map file") if family_map_file else ""
+
+    with tempfile.TemporaryDirectory(prefix="catalog-import-") as temp_dir:
+        pim_path = os.path.join(temp_dir, pim_name)
+        family_path = os.path.join(temp_dir, family_name) if family_map_file else None
+        new_db = None
+
+        try:
+            with open(pim_path, "wb") as fh:
+                fh.write(await pim_file.read())
+            if family_map_file and family_path:
+                with open(family_path, "wb") as fh:
+                    fh.write(await family_map_file.read())
+
+            imported_df = load_products(pim_path, family_map_path=family_path, verbose=PIM_VERBOSE)
+            if imported_df is None or imported_df.empty:
+                raise HTTPException(status_code=400, detail="Uploaded catalog produced zero rows")
+
+            new_db = ProductDatabase(
+                db_path=db_runtime.product_db_path,
+                database_url=db_runtime.product_database_url,
+                backend=db_runtime.product_db_backend,
+            )
+            new_db.connect()
+            count = new_db.recreate_database(pim_path, family_path, df=imported_df)
+
+            if PRODUCT_DB:
+                try:
+                    PRODUCT_DB.close()
+                except Exception:
+                    pass
+            PRODUCT_DB = new_db
+            new_db = None
+            DB = imported_df
+            ALLOWED_FAMILIES = PRODUCT_DB.get_distinct_families()
+            ALLOWED_FAMILIES_NORM = {str(f).strip().lower() for f in ALLOWED_FAMILIES if str(f).strip()}
+
+            return {
+                "success": True,
+                "message": f"Catalog imported with {count} products",
+                "count": count,
+                "pim_filename": pim_name,
+                "family_map_filename": family_name,
+                "database_backend": getattr(PRODUCT_DB, "backend", db_runtime.product_db_backend),
+                "catalog_health": catalog_health_impl(),
+                "release_diff": PRODUCT_DB.get_latest_release_diff() if PRODUCT_DB else {},
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("Catalog import failed: %s", e)
+            raise HTTPException(status_code=500, detail=f"Catalog import failed: {str(e)}")
+        finally:
+            if new_db:
+                try:
+                    new_db.close()
+                except Exception:
+                    pass
 
 def refresh_database_impl():
     global FAMILY_MAP_PATH

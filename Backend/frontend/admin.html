@@ -525,6 +525,24 @@
         <span class="sectionBadge">Foundation</span>
       </div>
       <div id="catalogHealthNotice" class="notice">Loading catalog health...</div>
+      <div id="catalogImportPanel" class="analyticsListCard" style="margin:12px 0">
+        <h3 class="panelTitle">Catalog import</h3>
+        <p class="panelSub">Upload the private PIM Excel files directly into the cloud database. Files are not stored in GitHub.</p>
+        <div class="settingsGrid">
+          <label>
+            <div class="settingLabel">PIM Excel</div>
+            <input id="catalogImportPim" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+          <label>
+            <div class="settingLabel">Family map Excel</div>
+            <input id="catalogImportFamily" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="btnImportCatalog" class="btn small" type="button">Import catalog</button>
+          <span id="catalogImportStatus" class="settingsSummary"></span>
+        </div>
+      </div>
       <div class="healthGrid">
         <div class="healthStat"><div class="k">Rows</div><div id="healthRows" class="v">-</div></div>
         <div class="healthStat"><div class="k">Families</div><div id="healthFamilies" class="v">-</div></div>
@@ -1418,6 +1436,20 @@
 
     async function deleteJSON(url){
       const res = await fetch(url, { method: "DELETE", credentials: "same-origin" });
+      let data = null;
+      try{ data = await res.json(); }catch(_e){}
+      if (!res.ok){
+        throw new Error(extractErrorText(data, res.statusText || "Request failed"));
+      }
+      return data;
+    }
+
+    async function postFormData(url, formData){
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        body: formData,
+      });
       let data = null;
       try{ data = await res.json(); }catch(_e){}
       if (!res.ok){
@@ -2361,6 +2393,36 @@
       }
     }
 
+    async function importCatalog(){
+      const me = window.ProductFinderAuth?.getUser?.();
+      currentViewer = me || null;
+      applyViewerLayout();
+      const status = $("catalogImportStatus");
+      const pimInput = $("catalogImportPim");
+      const familyInput = $("catalogImportFamily");
+      if (!me || !isAdminViewer()){
+        if (status) status.textContent = "Catalog import is available only to admins.";
+        return;
+      }
+      const pimFile = pimInput?.files?.[0];
+      if (!pimFile){
+        if (status) status.textContent = "Choose a PIM Excel file first.";
+        return;
+      }
+      const formData = new FormData();
+      formData.append("pim_file", pimFile);
+      if (familyInput?.files?.[0]) formData.append("family_map_file", familyInput.files[0]);
+      try{
+        if (status) status.textContent = "Importing catalog. This can take a minute...";
+        const data = await postFormData("/admin/catalog-import", formData);
+        if (status) status.textContent = data?.message || "Catalog import complete.";
+        await loadCatalogHealth();
+        await loadReleaseDiff();
+      }catch(error){
+        if (status) status.textContent = String(error.message || error);
+      }
+    }
+
     async function loadReleaseDiff(){
       try{
         const me = window.ProductFinderAuth?.getUser?.();
@@ -2430,6 +2492,9 @@
     });
     $("btnExportReleaseDiffCsv").addEventListener("click", () => {
       window.location.href = "/admin/catalog-release-diff/export";
+    });
+    $("btnImportCatalog").addEventListener("click", async () => {
+      await importCatalog();
     });
     $("analyticsDays").addEventListener("change", async () => {
       await loadAnalytics();
