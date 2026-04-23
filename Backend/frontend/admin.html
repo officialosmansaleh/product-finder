@@ -299,7 +299,6 @@
           <a class="adminMenuLink" href="#usersSection" data-admin-nav="usersSection"><span>Users</span><span class="adminMenuMeta">Approvals</span></a>
           <a class="adminMenuLink" href="#quotesSection" data-admin-nav="quotesSection"><span>Quotes</span><span class="adminMenuMeta">Projects</span></a>
           <a class="adminMenuLink" href="#analyticsSection" data-admin-nav="analyticsSection"><span>Analytics</span><span class="adminMenuMeta">Usage</span></a>
-          <a class="adminMenuLink" href="#catalogHealthSection" data-admin-nav="catalogHealthSection"><span>Catalog health</span><span class="adminMenuMeta">Quality</span></a>
           <a class="adminMenuLink" href="#releaseChangesSection" data-admin-nav="releaseChangesSection"><span>Release changes</span><span class="adminMenuMeta">Diff</span></a>
           <a class="adminMenuLink" href="#scoringSection" data-admin-nav="scoringSection"><span>Scoring</span><span class="adminMenuMeta">Weights</span></a>
           <a class="adminMenuLink" href="#settingsSection" data-admin-nav="settingsSection"><span>Settings</span><span class="adminMenuMeta">Control</span></a>
@@ -528,52 +527,6 @@
         <span class="sectionBadge">Foundation</span>
       </div>
       <div id="catalogHealthNotice" class="notice">Loading catalog health...</div>
-      <div id="catalogImportPanel" class="analyticsListCard" style="margin:12px 0">
-        <h3 class="panelTitle">Catalog import</h3>
-        <p class="panelSub">Upload the private PIM Excel files directly into the cloud database. Files are not stored in GitHub.</p>
-        <div class="settingsGrid">
-          <label>
-            <div class="settingLabel">PIM Excel</div>
-            <input id="catalogImportPim" class="settingInput" type="file" accept=".xlsx" />
-          </label>
-          <label>
-            <div class="settingLabel">Family map Excel</div>
-            <input id="catalogImportFamily" class="settingInput" type="file" accept=".xlsx" />
-          </label>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <button id="btnImportCatalog" class="btn small" type="button">Import catalog</button>
-          <span id="catalogImportStatus" class="settingsSummary"></span>
-        </div>
-      </div>
-      <div id="familyImportPanel" class="analyticsListCard" style="margin:12px 0">
-        <h3 class="panelTitle">Family map import</h3>
-        <p class="panelSub">Update product families on the existing cloud catalog without reloading the PIM.</p>
-        <div class="settingsGrid">
-          <label>
-            <div class="settingLabel">Family map Excel</div>
-            <input id="familyMapImportFile" class="settingInput" type="file" accept=".xlsx" />
-          </label>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <button id="btnImportFamilyMap" class="btn small" type="button">Import family map</button>
-          <span id="familyMapImportStatus" class="settingsSummary"></span>
-        </div>
-      </div>
-      <div id="priceImportPanel" class="analyticsListCard" style="margin:12px 0">
-        <h3 class="panelTitle">Price list import</h3>
-        <p class="panelSub">Update prices on the existing cloud catalog without reloading the PIM.</p>
-        <div class="settingsGrid">
-          <label>
-            <div class="settingLabel">Price list Excel</div>
-            <input id="priceListImportFile" class="settingInput" type="file" accept=".xlsx" />
-          </label>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <button id="btnImportPriceList" class="btn small" type="button">Import price list</button>
-          <span id="priceListImportStatus" class="settingsSummary"></span>
-        </div>
-      </div>
       <div class="healthGrid">
         <div class="healthStat"><div class="k">Rows</div><div id="healthRows" class="v">-</div></div>
         <div class="healthStat"><div class="k">Families</div><div id="healthFamilies" class="v">-</div></div>
@@ -649,6 +602,50 @@
         <span class="sectionBadge">Maintenance</span>
       </div>
       <div id="settingsNotice" class="notice">Loading settings...</div>
+      <div class="analyticsListCard" style="margin:12px 0">
+        <h3 class="panelTitle">Data imports</h3>
+        <p class="panelSub">Upload private catalog files directly into the cloud database. Files are not stored in GitHub and survive app redeploys.</p>
+        <div class="settingsGrid">
+          <label>
+            <div class="settingLabel">PIM Excel</div>
+            <input id="catalogImportPim" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+          <label>
+            <div class="settingLabel">Optional family map for full catalog import</div>
+            <input id="catalogImportFamily" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="btnImportCatalog" class="btn small" type="button">Import PIM catalog</button>
+          <span id="catalogImportStatus" class="settingsSummary"></span>
+        </div>
+      </div>
+      <div class="settingsGrid" style="margin:12px 0">
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Family map import</h3>
+          <p class="panelSub">Update product families on the existing cloud catalog without reloading the PIM.</p>
+          <label>
+            <div class="settingLabel">Family map Excel</div>
+            <input id="familyMapImportFile" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+          <div class="row" style="margin-top:10px">
+            <button id="btnImportFamilyMap" class="btn small" type="button">Import family map</button>
+            <span id="familyMapImportStatus" class="settingsSummary"></span>
+          </div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Price list import</h3>
+          <p class="panelSub">Update prices on the existing cloud catalog without reloading the PIM.</p>
+          <label>
+            <div class="settingLabel">Price list Excel</div>
+            <input id="priceListImportFile" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+          <div class="row" style="margin-top:10px">
+            <button id="btnImportPriceList" class="btn small" type="button">Import price list</button>
+            <span id="priceListImportStatus" class="settingsSummary"></span>
+          </div>
+        </div>
+      </div>
       <div class="settingsToolbar">
         <div class="settingsToolbarMain">
           <div id="settingsTabs" class="settingsTabs"></div>
@@ -983,7 +980,7 @@
       if (!currentViewer) return ["overviewSection"];
       if (isItViewer()) return ["settingsSection"];
       if (currentViewer && isStaffViewer()){
-        allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection", "catalogHealthSection");
+        allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection");
         if (isLeadershipViewer()) allowed.push("releaseChangesSection");
         if (isAdminViewer()) allowed.push("scoringSection", "settingsSection");
       }
