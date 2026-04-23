@@ -13,6 +13,7 @@
     .wrap{max-width:1200px;margin:0 auto;padding:18px}
     .topBar{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:16px}
     .brand{display:flex;align-items:center;gap:12px}
+    .brandLogoLink{display:inline-flex;align-items:center;line-height:0}
     .brand img{height:34px;width:auto}
     .title{font-size:18px;font-weight:800}
     .sub{font-size:12px;color:var(--muted)}
@@ -270,7 +271,9 @@
   <div class="wrap">
     <div class="topBar">
       <div class="brand">
-        <img src="/frontend/laiting-logo-ai.png" alt="Laiting logo" />
+        <a class="brandLogoLink" href="/frontend/" aria-label="Go to Laiting home">
+          <img src="/frontend/laiting-logo-ai.png" alt="Laiting logo" />
+        </a>
         <div>
           <div class="title">Admin Panel</div>
           <div class="sub">Approve access requests and monitor workspace users.</div>
@@ -278,7 +281,7 @@
       </div>
       <div class="topBarActions">
         <div class="navCluster">
-          <button id="btnBackFinder" class="btn ghost" type="button">Finder</button>
+          <button id="btnBackFinder" class="btn ghost" type="button">Home</button>
           <button id="btnBackTools" class="btn ghost" type="button">Compare</button>
         </div>
         <div class="utilityCluster">
@@ -308,7 +311,7 @@
           <div class="hero">
             <section class="heroCard">
               <h1 class="heroTitle">Manage workspace access with less friction</h1>
-              <div class="heroText">Review incoming requests, approve the right collaborators, and keep the Smart Finder workspace clean and controlled.</div>
+              <div class="heroText">Review incoming requests, approve the right collaborators, and keep the Laiting workspace clean and controlled.</div>
               <div class="heroList">
                 <span class="heroChip">Fast approvals</span>
                 <span class="heroChip">Pending queue</span>
@@ -978,6 +981,7 @@
     function permittedAdminSections(){
       const allowed = [];
       if (!currentViewer) return ["overviewSection"];
+      if (isItViewer()) return ["settingsSection"];
       if (currentViewer && isStaffViewer()){
         allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection", "catalogHealthSection");
         if (isLeadershipViewer()) allowed.push("releaseChangesSection");
@@ -1391,6 +1395,14 @@
       return viewerRole() === "admin";
     }
 
+    function isItViewer(){
+      return viewerRole() === "it";
+    }
+
+    function canViewSettings(){
+      return isAdminViewer() || isItViewer();
+    }
+
     function isDirectorViewer(){
       return viewerRole() === "director";
     }
@@ -1413,7 +1425,7 @@
         ["manager", "Manager"],
         ["director", "Director"],
       ];
-      if (isAdminViewer()) roles.push(["admin", "Admin"]);
+      if (isAdminViewer()) roles.push(["it", "IT"], ["admin", "Admin"]);
       return roles;
     }
 
@@ -1428,7 +1440,7 @@
       if (!isLeadershipViewer()) return false;
       if (Number(user?.id || 0) === Number(currentViewer?.id || 0)) return false;
       const targetRole = String(user?.role || "user").toLowerCase();
-      if (!isAdminViewer() && targetRole === "admin") return false;
+      if (!isAdminViewer() && ["admin", "it"].includes(targetRole)) return false;
       return true;
     }
 
@@ -2162,12 +2174,12 @@
     function renderSettings(items){
       const wrap = $("settingsWrap");
       if (!wrap) return;
-      if (!isAdminViewer()){
-        wrap.innerHTML = `<div class="empty">Settings are available only to admins.</div>`;
+      if (!canViewSettings()){
+        wrap.innerHTML = `<div class="empty">Settings are available only to admins or IT users.</div>`;
         const tabs = $("settingsTabs");
         const summary = $("settingsSummary");
         if (tabs) tabs.innerHTML = "";
-        if (summary) summary.textContent = "Read-only non-admin view.";
+        if (summary) summary.textContent = "No settings access for this role.";
         return;
       }
       const generalItems = (items || []).filter((item) => String(item.category || "General") !== "Scoring");
@@ -2299,11 +2311,16 @@
         const me = window.ProductFinderAuth?.getUser?.();
         currentViewer = me || null;
         if (!me){
-          setNotice("Log in with an admin, director, or manager account to open this page.", true);
+          setNotice("Log in with an admin, IT, director, or manager account to open this page.", true);
+          return;
+        }
+        if (isItViewer()){
+          applyViewerLayout();
+          setNotice("IT settings workspace is available. Other admin areas are hidden for this role.", false);
           return;
         }
         if (!isStaffViewer()){
-          setNotice("This page is available only to approved admin, director, or manager users.", true);
+          setNotice("This page is available only to approved admin, IT, director, or manager users.", true);
           return;
         }
         applyViewerLayout();
@@ -2331,21 +2348,21 @@
         const me = window.ProductFinderAuth?.getUser?.();
         currentViewer = me || null;
         applyViewerLayout();
-        if (!me || !isAdminViewer()){
-          setSettingsNotice("Settings are available only to admins.", true);
+        if (!me || !canViewSettings()){
+          setSettingsNotice("Settings are available only to admins or IT users.", true);
           setScoringNotice("Scoring controls are available only to admins.", true);
           renderScoringSettings([]);
           renderSettings([]);
           return;
         }
         setSettingsNotice("Loading settings...", false);
-        setScoringNotice("Loading scoring controls...", false);
+        setScoringNotice(isAdminViewer() ? "Loading scoring controls..." : "Scoring controls are available only to admins.", !isAdminViewer());
         const data = await getJSON("/admin/settings");
         allSettings = Array.isArray(data.items) ? data.items : [];
         renderRuntimeStatusPills(allSettings);
-        renderScoringSettings(allSettings);
+        renderScoringSettings(isAdminViewer() ? allSettings : []);
         renderSettings(allSettings);
-        setScoringNotice("Scoring controls are up to date.", false);
+        if (isAdminViewer()) setScoringNotice("Scoring controls are up to date.", false);
         setSettingsNotice("Settings are up to date.", false);
       }catch(error){
         setScoringNotice(String(error.message || error), true);
@@ -2533,6 +2550,19 @@
       }
     }
 
+    async function loadAdminPageData(){
+      await loadAdminData();
+      if (isItViewer()){
+        await loadSettings();
+        return;
+      }
+      await loadVisibleQuotes();
+      await loadSettings();
+      await loadAnalytics();
+      await loadReleaseDiff();
+      await loadCatalogHealth();
+    }
+
     function initAdminMenu(){
       document.querySelectorAll("[data-admin-nav]").forEach((link) => {
         link.addEventListener("click", (ev) => {
@@ -2597,23 +2627,13 @@
     $("quoteStatusFilter").addEventListener("change", applyVisibleQuoteFilters);
 
     document.addEventListener("productfinder:auth-changed", async () => {
-      await loadAdminData();
-      await loadVisibleQuotes();
-      await loadSettings();
-      await loadAnalytics();
-      await loadReleaseDiff();
-      await loadCatalogHealth();
+      await loadAdminPageData();
     });
 
     window.addEventListener("DOMContentLoaded", async () => {
       initAdminMenu();
       populateCountryFilter();
-      await loadAdminData();
-      await loadVisibleQuotes();
-      await loadSettings();
-      await loadAnalytics();
-      await loadReleaseDiff();
-      await loadCatalogHealth();
+      await loadAdminPageData();
     });
   </script>
 </body>

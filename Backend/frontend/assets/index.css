@@ -64,6 +64,7 @@
     }
     header{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.92);backdrop-filter:blur(18px);color:#010101;font-size:var(--fs-xl);padding:14px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid rgba(219,228,238,.9);box-shadow:0 10px 26px rgba(15,23,42,.04)}
     .brand{display:flex;align-items:center;gap:15px;min-width:0;flex:0 0 auto}
+    .brand a{display:inline-flex;align-items:center;line-height:0}
     #uiLangMount{display:inline-flex;align-items:center}
     #uiLangMount .select{min-width:132px;min-height:32px;padding:6px 10px;border-radius:10px}
     .brand img{height:58px;width:auto;max-width:min(42vw, 320px);object-fit:contain}

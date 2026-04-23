@@ -27,8 +27,9 @@ from app.db_runtime import normalize_postgres_url
 ROLE_USER = "user"
 ROLE_MANAGER = "manager"
 ROLE_DIRECTOR = "director"
+ROLE_IT = "it"
 ROLE_ADMIN = "admin"
-ROLE_ORDER = (ROLE_USER, ROLE_MANAGER, ROLE_DIRECTOR, ROLE_ADMIN)
+ROLE_ORDER = (ROLE_USER, ROLE_MANAGER, ROLE_DIRECTOR, ROLE_IT, ROLE_ADMIN)
 STAFF_ROLES = {ROLE_MANAGER, ROLE_DIRECTOR, ROLE_ADMIN}
 LEADERSHIP_ROLES = {ROLE_DIRECTOR, ROLE_ADMIN}
 
@@ -117,7 +118,7 @@ class UserStatusUpdateResponse(BaseModel):
 
 
 class UserApprovalRequest(BaseModel):
-    role: str = Field(default=ROLE_USER, pattern="^(admin|director|manager|user)$")
+    role: str = Field(default=ROLE_USER, pattern="^(admin|it|director|manager|user)$")
     assigned_countries: list[str] = Field(default_factory=list)
 
     @field_validator("role")
@@ -152,7 +153,7 @@ class AdminUserUpdateRequest(BaseModel):
     full_name: str = Field(default="", max_length=120)
     company_name: str = Field(default="", max_length=200)
     country: str = Field(default="", max_length=120)
-    role: str = Field(default=ROLE_USER, pattern="^(admin|director|manager|user)$")
+    role: str = Field(default=ROLE_USER, pattern="^(admin|it|director|manager|user)$")
     assigned_countries: list[str] = Field(default_factory=list)
 
     @field_validator("full_name", "company_name", "country")

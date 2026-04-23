@@ -25,6 +25,11 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
     router = APIRouter()
     get_current_user, require_admin, require_leadership, require_staff, _get_token_from_request = build_auth_dependencies(auth_service)
 
+    def require_settings_admin(user: UserPublic = Depends(get_current_user)) -> UserPublic:
+        if str(user.role or "").strip().lower() not in {"admin", "it"}:
+            raise HTTPException(status_code=403, detail="Admin or IT privileges required")
+        return user
+
     def get_optional_user(request: Request) -> UserPublic | None:
         token = _get_token_from_request(request, None)
         if not token:
@@ -292,8 +297,10 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
         return auth_service.delete_user(user_id, acting_admin_id=lead_user.id)
 
     @router.get("/admin/settings")
-    def admin_list_settings(_admin: UserPublic = Depends(require_admin)):
+    def admin_list_settings(settings_user: UserPublic = Depends(require_settings_admin)):
         items = auth_service.list_admin_settings()
+        if str(settings_user.role or "").strip().lower() == "it":
+            items = [item for item in items if str(item.category or "") != "Scoring"]
         return {"count": len(items), "items": [item.model_dump() for item in items]}
 
     @router.get("/admin/analytics/summary")
@@ -308,8 +315,12 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
     def admin_update_setting(
         setting_key: str,
         payload: AdminSettingUpdateRequest,
-        admin_user: UserPublic = Depends(require_admin),
+        admin_user: UserPublic = Depends(require_settings_admin),
     ):
+        if str(admin_user.role or "").strip().lower() == "it":
+            current = next((item for item in auth_service.list_admin_settings() if item.key == setting_key), None)
+            if current and str(current.category or "") == "Scoring":
+                raise HTTPException(status_code=403, detail="Scoring controls require admin privileges")
         setting = auth_service.update_admin_setting(setting_key, payload.value, acting_admin_id=admin_user.id)
         return {"success": True, "setting": setting.model_dump()}
 

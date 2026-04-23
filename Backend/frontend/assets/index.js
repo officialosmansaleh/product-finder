@@ -1417,6 +1417,23 @@ function resetRange(key, minId, maxId){
     delete selectedFilters[key];
     renderSelected();
   }
+  function clearSearchResults(){
+    allExactResults = [];
+    allSimilarResults = [];
+    lastInterpretedSearch = null;
+    lastProductNameShortFacet = [];
+    pendingFinderViewState = null;
+    hasRunSearchOnce = false;
+    currentPage = 1;
+    setResultsTab("exact", { resetPage: true, render: false });
+    renderFinderAIStatus(null);
+    showRecovery([]);
+    renderMetrics(NaN, 0, 0, 0);
+    if ($("stats")) $("stats").textContent = "";
+    if ($("interpretedLine")) $("interpretedLine").textContent = "";
+    if ($("understoodLine")) $("understoodLine").textContent = "";
+    renderPage();
+  }
   function clearAll(){
     for (const k of Object.keys(selectedFilters)) delete selectedFilters[k];
     ignoredAIFilterPairs = [];
@@ -1428,6 +1445,8 @@ function resetRange(key, minId, maxId){
     resetRangeInputs();
     renderSelected();
     hideVisionInfo();
+    clearSearchResults();
+    saveFinderState();
   }
 
   function filterDisplayLabel(key){
@@ -2955,7 +2974,6 @@ document.addEventListener("keydown", (ev)=>{
     });
     $("btnClearAll").addEventListener("click", ()=>{
       clearAll();
-      runSearch();
       if (isMobileViewport()) closeFiltersPanel();
     });
     $("sortSel").addEventListener("change", ()=>{
