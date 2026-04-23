@@ -1419,6 +1419,20 @@
       return data;
     }
 
+    async function postFormData(url, formData){
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        body: formData,
+      });
+      let data = null;
+      try{ data = await res.json(); }catch(_e){}
+      if (!res.ok){
+        throw new Error(extractErrorText(data, res.statusText || "Request failed"));
+      }
+      return data;
+    }
+
     async function putJSON(url, payload){
       const res = await fetch(url, {
         method: "PUT",
@@ -1436,20 +1450,6 @@
 
     async function deleteJSON(url){
       const res = await fetch(url, { method: "DELETE", credentials: "same-origin" });
-      let data = null;
-      try{ data = await res.json(); }catch(_e){}
-      if (!res.ok){
-        throw new Error(extractErrorText(data, res.statusText || "Request failed"));
-      }
-      return data;
-    }
-
-    async function postFormData(url, formData){
-      const res = await fetch(url, {
-        method: "POST",
-        credentials: "same-origin",
-        body: formData,
-      });
       let data = null;
       try{ data = await res.json(); }catch(_e){}
       if (!res.ok){

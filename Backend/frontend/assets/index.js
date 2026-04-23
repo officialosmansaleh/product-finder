@@ -1,5 +1,5 @@
 ﻿// ---------------- State ----------------
-  const UI_BUILD = "2026-04-15-welcome-session-1";
+  const UI_BUILD = "2026-04-09-performance-1";
   const selectedFilters = {}; // { key: Set(values as strings) }
   let hasRunSearchOnce = false;
   const $ = (id) => document.getElementById(id);
@@ -32,6 +32,7 @@
   const FINDER_STATE_KEY = "productFinderFinderStateV1";
   const FINDER_STATE_TTL_MS = 30 * 60 * 1000;
   const ONBOARDING_KEY = "productFinderOnboardingV1";
+  const WELCOME_GATE_KEY = "productFinderWelcomeGateSeenV1";
   const UI_LANG_KEY = "productFinderUiLangV1";
   const OPTIONAL_SCRIPT_URLS = [
     "/frontend/assets/countries.js?v=2026-03-25-country-list-1",
@@ -3043,10 +3044,13 @@ document.addEventListener("keydown", (ev)=>{
     const gate = $("welcomeGate");
     const nextBtn = $("btnWelcomeNext");
     if (!gate || !nextBtn) return;
-    gate.classList.add("isHidden");
-    gate.setAttribute("aria-hidden", "true");
-    gate.classList.remove("isHidden");
-    gate.setAttribute("aria-hidden", "false");
+    try{
+      if (localStorage.getItem(WELCOME_GATE_KEY) === "1"){
+        gate.classList.add("isHidden");
+        gate.setAttribute("aria-hidden", "true");
+        return;
+      }
+    }catch(_e){}
     welcomeGateActive = true;
     document.body.classList.add("welcomeActive");
     function closeGate(){
@@ -3054,6 +3058,7 @@ document.addEventListener("keydown", (ev)=>{
       gate.setAttribute("aria-hidden", "true");
       document.body.classList.remove("welcomeActive");
       welcomeGateActive = false;
+      try { localStorage.setItem(WELCOME_GATE_KEY, "1"); } catch(_e){}
       scheduleInitialFacetsWarmup();
       window.setTimeout(()=>{
         try { $("q")?.focus(); } catch(_e){}
