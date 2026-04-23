@@ -299,6 +299,7 @@
           <a class="adminMenuLink" href="#usersSection" data-admin-nav="usersSection"><span>Users</span><span class="adminMenuMeta">Approvals</span></a>
           <a class="adminMenuLink" href="#quotesSection" data-admin-nav="quotesSection"><span>Quotes</span><span class="adminMenuMeta">Projects</span></a>
           <a class="adminMenuLink" href="#analyticsSection" data-admin-nav="analyticsSection"><span>Analytics</span><span class="adminMenuMeta">Usage</span></a>
+          <a class="adminMenuLink" href="#catalogHealthSection" data-admin-nav="catalogHealthSection"><span>Catalog health</span><span class="adminMenuMeta">Quality</span></a>
           <a class="adminMenuLink" href="#releaseChangesSection" data-admin-nav="releaseChangesSection"><span>Release changes</span><span class="adminMenuMeta">Diff</span></a>
           <a class="adminMenuLink" href="#scoringSection" data-admin-nav="scoringSection"><span>Scoring</span><span class="adminMenuMeta">Weights</span></a>
           <a class="adminMenuLink" href="#settingsSection" data-admin-nav="settingsSection"><span>Settings</span><span class="adminMenuMeta">Control</span></a>
@@ -682,7 +683,6 @@
       Email: "Delivery settings for password reset emails and outbound app mail.",
       Security: "Authentication, cookies, session lifetime, and browser access controls.",
       Administration: "Bootstrap admin and maintenance access defaults.",
-      Catalog: "Dataset import paths and import behavior for catalog maintenance.",
       Operations: "Debugging and runtime operational behavior.",
       Deployment: "Deployment-side values that usually need restart or redeploy.",
     };
@@ -980,7 +980,7 @@
       if (!currentViewer) return ["overviewSection"];
       if (isItViewer()) return ["settingsSection"];
       if (currentViewer && isStaffViewer()){
-        allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection");
+        allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection", "catalogHealthSection");
         if (isLeadershipViewer()) allowed.push("releaseChangesSection");
         if (isAdminViewer()) allowed.push("scoringSection", "settingsSection");
       }
