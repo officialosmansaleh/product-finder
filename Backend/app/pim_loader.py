@@ -184,6 +184,7 @@ CANON_SPECS: List[CanonicalSpec] = [
         ["<Name>", "Product name", "name", "description", "descrizione"],
     ),
     CanonicalSpec("manufacturer", ["Manufacturer", "Brand", "Produttore"]),
+    CanonicalSpec("product_family", ["Product family", "family", "famiglia", "family name", "product line"]),
     # Family
       CanonicalSpec("etim_search_key", [
         "Etim Search Key", 
@@ -517,8 +518,9 @@ def load_products(
         pwr = _num(out["power_max_w"])        # "15 W" -> 15
         out["lumen_output"] = eff * pwr       # lm
 
-    # ---- Apply family mapping from Excel table (ALWAYS) ----
-    FAMILY_MAP_PATH = str(family_map_path or "").strip() or os.getenv(
+    # ---- Apply family mapping from Excel table when available ----
+    explicit_family_map = str(family_map_path or "").strip()
+    FAMILY_MAP_PATH = explicit_family_map or os.getenv(
         "FAMILY_MAP_XLSX",
         os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "family_map.xlsx"))
     )
@@ -526,7 +528,7 @@ def load_products(
         print(f"ðŸ§­ Using family map: {FAMILY_MAP_PATH} (exists={os.path.exists(FAMILY_MAP_PATH)})")
 
     try:
-        fam_map = load_family_map(FAMILY_MAP_PATH)
+        fam_map = load_family_map(FAMILY_MAP_PATH) if FAMILY_MAP_PATH and os.path.exists(FAMILY_MAP_PATH) else {}
         if verbose:
             print(f"ðŸ·ï¸ family_map loaded OK: {len(fam_map)} keys")
     except Exception as e:
@@ -534,6 +536,28 @@ def load_products(
         print(f"âŒ family_map load FAILED: {e}")
         import traceback
         traceback.print_exc()
+
+    if not fam_map:
+        fallback_family = (
+            out["product_family"].apply(_normalize_family_name)
+            if "product_family" in out.columns
+            else pd.Series([""] * len(out), index=out.index)
+        )
+        blank_family = fallback_family.isna() | fallback_family.astype(str).str.strip().eq("")
+        if blank_family.any():
+            fallback_family.loc[blank_family] = out.loc[blank_family, "product_name"].apply(_first_word)
+        fallback_keys = out["short_product_code"].astype(str).str.lower().str.strip()
+        fallback_name_keys = out["product_name"].apply(_first_word).astype(str).str.lower().str.strip()
+        fam_map = {}
+        for key, name_key, family in zip(fallback_keys, fallback_name_keys, fallback_family):
+            clean_family = _normalize_family_name(family)
+            if clean_family:
+                if key:
+                    fam_map.setdefault(key, clean_family)
+                if name_key:
+                    fam_map.setdefault(name_key, clean_family)
+        if verbose:
+            print(f"No family map available; derived {len(fam_map)} family keys from PIM/name")
 
     # ---- CREA product_family SOLO DAL MAPPING ----
     # Rule: short_product_code, otherwise first word of product_name.
@@ -579,9 +603,9 @@ def load_products(
         "emergency kit",
     ]
 
-    fam_txt = out["product_family"].apply(_norm_text) if "product_family" in out.columns else pd.Series("", index=out.index)
-    name_txt = out["product_name"].apply(_norm_text) if "product_name" in out.columns else pd.Series("", index=out.index)
-    etim_txt = out["etim_search_key"].apply(_norm_text) if "etim_search_key" in out.columns else pd.Series("", index=out.index)
+    fam_txt = (out["product_family"].apply(_norm_text) if "product_family" in out.columns else pd.Series("", index=out.index)).astype(str)
+    name_txt = (out["product_name"].apply(_norm_text) if "product_name" in out.columns else pd.Series("", index=out.index)).astype(str)
+    etim_txt = (out["etim_search_key"].apply(_norm_text) if "etim_search_key" in out.columns else pd.Series("", index=out.index)).astype(str)
 
     excl_mask = pd.Series(False, index=out.index)
     for kw in exclude_keywords:
