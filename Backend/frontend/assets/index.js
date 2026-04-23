@@ -2133,6 +2133,39 @@ function resetRange(key, minId, maxId){
     setVisible($("onboardingBox"), !publicMode, "");
   }
 
+  function priceSortValue(value){
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "number") return Number.isFinite(value) ? value : null;
+
+    let normalized = String(value).trim();
+    if (!normalized) return null;
+
+    normalized = normalized.replace(/[^\d,.\-]/g, "");
+    if (!normalized) return null;
+
+    const lastComma = normalized.lastIndexOf(",");
+    const lastDot = normalized.lastIndexOf(".");
+    if (lastComma >= 0 && lastDot >= 0) {
+      normalized = lastComma > lastDot
+        ? normalized.replace(/\./g, "").replace(",", ".")
+        : normalized.replace(/,/g, "");
+    } else if (lastComma >= 0) {
+      normalized = normalized.replace(",", ".");
+    }
+
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function comparePrice(a, b, direction = "asc"){
+    const av = priceSortValue(a?.preview?.price);
+    const bv = priceSortValue(b?.preview?.price);
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    return direction === "desc" ? bv - av : av - bv;
+  }
+
   function sortHits(hits, tab = activeResultsTab){
     const fallback = tab === "exact" ? "price_asc" : "score_desc";
     const mode = String(finderSortModes[tab] || fallback);
@@ -2141,8 +2174,8 @@ function resetRange(key, minId, maxId){
     if (mode === "score_desc") arr.sort((a,b)=> (b.score??0)-(a.score??0));
     if (mode === "code_asc") arr.sort((a,b)=> String(a.product_code||"").localeCompare(String(b.product_code||"")));
     if (mode === "code_desc") arr.sort((a,b)=> String(b.product_code||"").localeCompare(String(a.product_code||"")));
-    if (mode === "price_asc") arr.sort((a,b)=> Number(a?.preview?.price ?? Infinity) - Number(b?.preview?.price ?? Infinity));
-    if (mode === "price_desc") arr.sort((a,b)=> Number(b?.preview?.price ?? -Infinity) - Number(a?.preview?.price ?? -Infinity));
+    if (mode === "price_asc") arr.sort((a,b)=> comparePrice(a, b, "asc"));
+    if (mode === "price_desc") arr.sort((a,b)=> comparePrice(a, b, "desc"));
     return arr;
   }
 
