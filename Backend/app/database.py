@@ -524,6 +524,55 @@ class ProductDatabase:
         self.conn.commit()
         return self.init_db(xlsx_path, family_map_path, df=df)
 
+    def update_prices_from_map(self, price_df: pd.DataFrame) -> Dict[str, int]:
+        if not self.conn:
+            self.connect()
+        if price_df is None or price_df.empty:
+            return {"matched": 0, "cleared": 0, "price_rows": 0}
+
+        self._add_missing_columns(["price"])
+        lookup = {
+            str(row.get("compact_code") or "").strip().lower(): str(row.get("price") or "").strip()
+            for _, row in price_df.iterrows()
+            if str(row.get("compact_code") or "").strip() and str(row.get("price") or "").strip()
+        }
+        rows = self.conn.execute("SELECT product_code FROM products").fetchall()
+        cleared = len(rows)
+        matched = 0
+        ph = self._placeholder()
+        self.conn.execute("UPDATE products SET price = NULL")
+        for row in rows:
+            product_code = str(dict(row).get("product_code") or "").strip()
+            compact_code = re.sub(r"[^0-9A-Za-z]", "", product_code).lower()
+            price = lookup.get(compact_code)
+            if price:
+                self.conn.execute(f"UPDATE products SET price = {ph} WHERE product_code = {ph}", (price, product_code))
+                matched += 1
+        self.conn.commit()
+        return {"matched": matched, "cleared": cleared, "price_rows": len(lookup)}
+
+    def update_families_from_map(self, family_map: Dict[str, str]) -> Dict[str, int]:
+        if not self.conn:
+            self.connect()
+        if not family_map:
+            return {"matched": 0, "family_keys": 0}
+
+        self._add_missing_columns(["product_family"])
+        rows = self.conn.execute("SELECT product_code, short_product_code, product_name FROM products").fetchall()
+        matched = 0
+        ph = self._placeholder()
+        for row in rows:
+            data = dict(row)
+            product_code = str(data.get("product_code") or "").strip()
+            short_key = str(data.get("short_product_code") or "").strip().lower()
+            name_key = str(data.get("product_name") or "").strip().split()[0].lower() if str(data.get("product_name") or "").strip() else ""
+            family = family_map.get(short_key) or family_map.get(name_key)
+            if family and product_code:
+                self.conn.execute(f"UPDATE products SET product_family = {ph} WHERE product_code = {ph}", (str(family).strip(), product_code))
+                matched += 1
+        self.conn.commit()
+        return {"matched": matched, "family_keys": len(family_map)}
+
     def init_db(self, xlsx_path: str, family_map_path: str = None, df: Optional[pd.DataFrame] = None):
         if df is None:
             print(f"Initializing {self.backend} database from {xlsx_path}...")

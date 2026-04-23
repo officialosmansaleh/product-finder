@@ -543,6 +543,34 @@
           <span id="catalogImportStatus" class="settingsSummary"></span>
         </div>
       </div>
+      <div id="familyImportPanel" class="analyticsListCard" style="margin:12px 0">
+        <h3 class="panelTitle">Family map import</h3>
+        <p class="panelSub">Update product families on the existing cloud catalog without reloading the PIM.</p>
+        <div class="settingsGrid">
+          <label>
+            <div class="settingLabel">Family map Excel</div>
+            <input id="familyMapImportFile" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="btnImportFamilyMap" class="btn small" type="button">Import family map</button>
+          <span id="familyMapImportStatus" class="settingsSummary"></span>
+        </div>
+      </div>
+      <div id="priceImportPanel" class="analyticsListCard" style="margin:12px 0">
+        <h3 class="panelTitle">Price list import</h3>
+        <p class="panelSub">Update prices on the existing cloud catalog without reloading the PIM.</p>
+        <div class="settingsGrid">
+          <label>
+            <div class="settingLabel">Price list Excel</div>
+            <input id="priceListImportFile" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="btnImportPriceList" class="btn small" type="button">Import price list</button>
+          <span id="priceListImportStatus" class="settingsSummary"></span>
+        </div>
+      </div>
       <div class="healthGrid">
         <div class="healthStat"><div class="k">Rows</div><div id="healthRows" class="v">-</div></div>
         <div class="healthStat"><div class="k">Families</div><div id="healthFamilies" class="v">-</div></div>
@@ -2423,6 +2451,61 @@
       }
     }
 
+    async function importFamilyMap(){
+      const me = window.ProductFinderAuth?.getUser?.();
+      currentViewer = me || null;
+      applyViewerLayout();
+      const status = $("familyMapImportStatus");
+      const input = $("familyMapImportFile");
+      if (!me || !isAdminViewer()){
+        if (status) status.textContent = "Family map import is available only to admins.";
+        return;
+      }
+      const file = input?.files?.[0];
+      if (!file){
+        if (status) status.textContent = "Choose a family map Excel file first.";
+        return;
+      }
+      const formData = new FormData();
+      formData.append("family_map_file", file);
+      try{
+        if (status) status.textContent = "Importing family map...";
+        const data = await postFormData("/admin/family-map-import", formData);
+        if (status) status.textContent = data?.message || "Family map import complete.";
+        await loadCatalogHealth();
+        await loadReleaseDiff();
+      }catch(error){
+        if (status) status.textContent = String(error.message || error);
+      }
+    }
+
+    async function importPriceList(){
+      const me = window.ProductFinderAuth?.getUser?.();
+      currentViewer = me || null;
+      applyViewerLayout();
+      const status = $("priceListImportStatus");
+      const input = $("priceListImportFile");
+      if (!me || !isAdminViewer()){
+        if (status) status.textContent = "Price list import is available only to admins.";
+        return;
+      }
+      const file = input?.files?.[0];
+      if (!file){
+        if (status) status.textContent = "Choose a price list Excel file first.";
+        return;
+      }
+      const formData = new FormData();
+      formData.append("price_file", file);
+      try{
+        if (status) status.textContent = "Importing price list...";
+        const data = await postFormData("/admin/price-list-import", formData);
+        if (status) status.textContent = data?.message || "Price list import complete.";
+        await loadCatalogHealth();
+      }catch(error){
+        if (status) status.textContent = String(error.message || error);
+      }
+    }
+
     async function loadReleaseDiff(){
       try{
         const me = window.ProductFinderAuth?.getUser?.();
@@ -2495,6 +2578,12 @@
     });
     $("btnImportCatalog").addEventListener("click", async () => {
       await importCatalog();
+    });
+    $("btnImportFamilyMap").addEventListener("click", async () => {
+      await importFamilyMap();
+    });
+    $("btnImportPriceList").addEventListener("click", async () => {
+      await importPriceList();
     });
     $("analyticsDays").addEventListener("change", async () => {
       await loadAnalytics();

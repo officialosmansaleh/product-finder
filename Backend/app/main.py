@@ -40,7 +40,7 @@ from app.schema import (
 from app.scoring import score_product
 
 from app.alternatives_logic import handle_alternatives, handle_alternatives_from_spec
-from app.pim_loader import load_products
+from app.pim_loader import _load_price_map, load_family_map, load_products
 from app.local_parser import local_text_to_filters
 from app.llm_intent import (
     llm_image_to_filters,
@@ -2869,6 +2869,13 @@ def admin_catalog_release_diff_export(_lead_user: UserPublic = Depends(require_l
     )
 
 
+def _require_xlsx_upload(upload: UploadFile, label: str) -> str:
+    name = str(getattr(upload, "filename", "") or "").strip()
+    if not name.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail=f"{label} must be an .xlsx file")
+    return re.sub(r"[^A-Za-z0-9._-]+", "-", os.path.basename(name)).strip("-") or f"{label}.xlsx"
+
+
 @app.post("/admin/catalog-import")
 async def admin_catalog_import(
     pim_file: UploadFile = File(...),
@@ -2888,14 +2895,8 @@ async def admin_catalog_import(
             ),
         )
 
-    def _require_xlsx(upload: UploadFile, label: str) -> str:
-        name = str(getattr(upload, "filename", "") or "").strip()
-        if not name.lower().endswith(".xlsx"):
-            raise HTTPException(status_code=400, detail=f"{label} must be an .xlsx file")
-        return re.sub(r"[^A-Za-z0-9._-]+", "-", os.path.basename(name)).strip("-") or f"{label}.xlsx"
-
-    pim_name = _require_xlsx(pim_file, "PIM file")
-    family_name = _require_xlsx(family_map_file, "Family map file") if family_map_file else ""
+    pim_name = _require_xlsx_upload(pim_file, "PIM file")
+    family_name = _require_xlsx_upload(family_map_file, "Family map file") if family_map_file else ""
 
     with tempfile.TemporaryDirectory(prefix="catalog-import-") as temp_dir:
         pim_path = os.path.join(temp_dir, pim_name)
@@ -2953,6 +2954,88 @@ async def admin_catalog_import(
                     new_db.close()
                 except Exception:
                     pass
+
+
+@app.post("/admin/price-list-import")
+async def admin_price_list_import(
+    price_file: UploadFile = File(...),
+    _admin_user: UserPublic = Depends(require_admin_dep),
+):
+    global DB
+    if not PRODUCT_DB:
+        raise HTTPException(status_code=503, detail="Product database not available")
+    price_name = _require_xlsx_upload(price_file, "Price list file")
+    with tempfile.TemporaryDirectory(prefix="price-list-import-") as temp_dir:
+        price_path = os.path.join(temp_dir, price_name)
+        try:
+            with open(price_path, "wb") as fh:
+                fh.write(await price_file.read())
+            price_df = _load_price_map(price_path, verbose=PIM_VERBOSE)
+            if price_df is None or price_df.empty:
+                raise HTTPException(status_code=400, detail="Price list produced zero valid price rows")
+            result = PRODUCT_DB.update_prices_from_map(price_df)
+            if DB is not None and not DB.empty and "product_code" in DB.columns:
+                price_lookup = {
+                    str(row.get("compact_code") or "").strip().lower(): row.get("price")
+                    for _, row in price_df.iterrows()
+                    if str(row.get("compact_code") or "").strip()
+                }
+                DB["price"] = DB["product_code"].apply(
+                    lambda code: price_lookup.get(re.sub(r"[^0-9A-Za-z]", "", str(code or "")).lower())
+                )
+            return {
+                "success": True,
+                "message": f"Price list imported: matched {result.get('matched', 0)} products",
+                "filename": price_name,
+                **result,
+                "catalog_health": catalog_health_impl(),
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("Price list import failed: %s", e)
+            raise HTTPException(status_code=500, detail=f"Price list import failed: {str(e)}")
+
+
+@app.post("/admin/family-map-import")
+async def admin_family_map_import(
+    family_map_file: UploadFile = File(...),
+    _admin_user: UserPublic = Depends(require_admin_dep),
+):
+    global DB, ALLOWED_FAMILIES, ALLOWED_FAMILIES_NORM
+    if not PRODUCT_DB:
+        raise HTTPException(status_code=503, detail="Product database not available")
+    family_name = _require_xlsx_upload(family_map_file, "Family map file")
+    with tempfile.TemporaryDirectory(prefix="family-map-import-") as temp_dir:
+        family_path = os.path.join(temp_dir, family_name)
+        try:
+            with open(family_path, "wb") as fh:
+                fh.write(await family_map_file.read())
+            family_map = load_family_map(family_path)
+            if not family_map:
+                raise HTTPException(status_code=400, detail="Family map produced zero valid mappings")
+            result = PRODUCT_DB.update_families_from_map(family_map)
+            if DB is not None and not DB.empty:
+                short_keys = DB["short_product_code"].astype(str).str.lower().str.strip() if "short_product_code" in DB.columns else pd.Series([""] * len(DB), index=DB.index)
+                name_keys = DB["product_name"].apply(lambda value: str(value or "").strip().split()[0].lower() if str(value or "").strip() else "") if "product_name" in DB.columns else pd.Series([""] * len(DB), index=DB.index)
+                DB["product_family"] = [
+                    family_map.get(short_key) or family_map.get(name_key) or current
+                    for short_key, name_key, current in zip(short_keys, name_keys, DB.get("product_family", pd.Series([""] * len(DB), index=DB.index)))
+                ]
+            ALLOWED_FAMILIES = PRODUCT_DB.get_distinct_families()
+            ALLOWED_FAMILIES_NORM = {str(f).strip().lower() for f in ALLOWED_FAMILIES if str(f).strip()}
+            return {
+                "success": True,
+                "message": f"Family map imported: updated {result.get('matched', 0)} products",
+                "filename": family_name,
+                **result,
+                "catalog_health": catalog_health_impl(),
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("Family map import failed: %s", e)
+            raise HTTPException(status_code=500, detail=f"Family map import failed: {str(e)}")
 
 def refresh_database_impl():
     global FAMILY_MAP_PATH
