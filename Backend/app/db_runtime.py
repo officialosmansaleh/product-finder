@@ -15,12 +15,14 @@ def _first_env(*names: str) -> str:
 
 def normalize_postgres_url(value: str) -> str:
     raw = str(value or "").strip()
+    if raw.startswith("${{") or raw.endswith("}}"):
+        return ""
     if raw.startswith(("postgres://", "postgresql://")):
         return raw
 
     host = raw if raw and " " not in raw and "=" not in raw else ""
     if not host:
-        return raw
+        return ""
 
     user = _first_env("PGUSER", "POSTGRES_USER")
     password = _first_env("PGPASSWORD", "POSTGRES_PASSWORD")
@@ -28,7 +30,7 @@ def normalize_postgres_url(value: str) -> str:
     port = _first_env("PGPORT", "POSTGRES_PORT") or "5432"
 
     if not all([user, password, database]):
-        return raw
+        return ""
 
     return (
         f"postgresql://{quote_plus(user)}:{quote_plus(password)}"

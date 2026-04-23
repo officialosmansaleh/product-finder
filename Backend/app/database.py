@@ -11,6 +11,7 @@ import psycopg2
 from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 
+from app.db_runtime import normalize_postgres_url
 from app.runtime_config import cfg_float, cfg_list
 
 
@@ -101,7 +102,7 @@ class ProductDatabase:
 
     def __init__(self, db_path: str = "data/products.db", database_url: str = "", backend: str = ""):
         self.db_path = db_path
-        self.database_url = str(database_url or "").strip()
+        self.database_url = normalize_postgres_url(str(database_url or "").strip())
         requested_backend = str(backend or "").strip().lower()
         if requested_backend in {"postgres", "sqlite"}:
             self.backend = requested_backend
@@ -112,6 +113,8 @@ class ProductDatabase:
 
     def connect(self):
         if self.backend == "postgres":
+            if not self.database_url:
+                raise ValueError("PostgreSQL database URL is missing or unresolved")
             raw = psycopg2.connect(self.database_url)
             raw.autocommit = False
             self.conn = PostgresCompatConnection(raw)

@@ -2880,7 +2880,13 @@ async def admin_catalog_import(
     if not HAS_DATABASE or ProductDatabase is None:
         raise HTTPException(status_code=503, detail="Product database module is not available")
     if not str(db_runtime.product_database_url or "").strip() and db_runtime.product_db_backend == "postgres":
-        raise HTTPException(status_code=503, detail="PRODUCT_DATABASE_URL is required for cloud catalog import")
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "PRODUCT_DATABASE_URL is missing or unresolved. Set it to the full PostgreSQL URL "
+                "from the Railway Postgres service, not just postgres.railway.internal."
+            ),
+        )
 
     def _require_xlsx(upload: UploadFile, label: str) -> str:
         name = str(getattr(upload, "filename", "") or "").strip()
