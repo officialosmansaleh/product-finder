@@ -184,7 +184,7 @@ CANON_SPECS: List[CanonicalSpec] = [
         ["<Name>", "Product name", "name", "description", "descrizione"],
     ),
     CanonicalSpec("manufacturer", ["Manufacturer", "Brand", "Produttore"]),
-    CanonicalSpec("product_family", ["Product family", "family", "famiglia", "family name", "product line"]),
+    CanonicalSpec("product_family", ["Product family", "Product line", "Family code"]),
     # Family
       CanonicalSpec("etim_search_key", [
         "Etim Search Key", 
@@ -545,7 +545,10 @@ def load_products(
         )
         blank_family = fallback_family.isna() | fallback_family.astype(str).str.strip().eq("")
         if blank_family.any():
-            fallback_family.loc[blank_family] = out.loc[blank_family, "product_name"].apply(_first_word)
+            fallback_family.loc[blank_family] = out.loc[blank_family, "short_product_code"].astype(str).str.strip()
+        still_blank = fallback_family.isna() | fallback_family.astype(str).str.strip().eq("")
+        if still_blank.any():
+            fallback_family.loc[still_blank] = out.loc[still_blank, "product_name"].apply(_first_word)
         fallback_keys = out["short_product_code"].astype(str).str.lower().str.strip()
         fallback_name_keys = out["product_name"].apply(_first_word).astype(str).str.lower().str.strip()
         fam_map = {}
