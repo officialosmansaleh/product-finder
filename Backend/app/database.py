@@ -120,6 +120,9 @@ class ProductDatabase:
                 connect_timeout=int(os.getenv("PRODUCT_DB_CONNECT_TIMEOUT_SEC", "10") or "10"),
             )
             raw.autocommit = False
+            statement_timeout_ms = int(os.getenv("PRODUCT_DB_STATEMENT_TIMEOUT_MS", "10000") or "10000")
+            with raw.cursor() as cur:
+                cur.execute("SET statement_timeout = %s", (statement_timeout_ms,))
             self.conn = PostgresCompatConnection(raw)
             self._ensure_release_tables()
             return
