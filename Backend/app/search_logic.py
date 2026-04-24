@@ -189,6 +189,11 @@ def handle_search(
     user_filters = _normalize_product_family_filter(dict(user_filters), allowed_families)
     filters = {**parsed_filters, **user_filters}
     hard_filters = dict(user_filters)
+    ai_family = parsed_filters.get("product_family")
+    if ai_family not in (None, "", []):
+        # Treat AI-inferred family as a hard constraint so AI and UI family searches
+        # behave the same way in the exact-match path.
+        hard_filters.setdefault("product_family", ai_family)
     soft_filters: Dict[str, Any] = dict(parsed_filters)
     similar_score_filters = dict(filters)
     sql_filters = map_filters_to_sql(filters)
@@ -357,9 +362,17 @@ def handle_search(
                     name_seed_filters[key] = hard_filters[key]
             name_seed_sql = map_filters_to_sql(name_seed_filters) if name_seed_filters else {}
             name_seed = product_db.search_products(name_seed_sql, limit=candidate_limit) if name_seed_sql else []
+
+            family_seed_filters: Dict[str, Any] = {}
+            family_value = filters.get("product_family")
+            if family_value not in (None, "", []):
+                family_seed_filters["product_family"] = family_value
+            family_seed_sql = map_filters_to_sql(family_seed_filters) if family_seed_filters else {}
+            family_seed = product_db.search_products(family_seed_sql, limit=candidate_limit) if family_seed_sql else []
+
             text_seed = search_rows_by_text_db(req.text or "", limit=candidate_limit)
             broad_rows = product_db.search_products({}, limit=candidate_limit)
-            rows = dedupe_rows_by_product_code(exact_seed + name_seed + text_seed + broad_rows)[:candidate_limit]
+            rows = dedupe_rows_by_product_code(exact_seed + family_seed + name_seed + text_seed + broad_rows)[:candidate_limit]
         except Exception as e:
             print(f"Product database search failed: {e}")
             used_product_db = False

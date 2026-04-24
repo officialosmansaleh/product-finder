@@ -68,22 +68,22 @@ class SearchScoringFiltersTests(unittest.TestCase):
         self.assertTrue(exact_calls, msg=f"No exact scoring call captured: {calls}")
         self.assertTrue(similar_calls, msg=f"No similar scoring call captured: {calls}")
 
-        self.assertEqual(exact_calls[0][0], user_filters)
+        self.assertEqual(exact_calls[0][0], {**user_filters, "product_family": "uplight"})
         self.assertEqual(similar_calls[0][1], expected_filters)
 
-    def test_street_family_from_ai_is_weighted_not_hard(self):
+    def test_ai_family_filter_is_promoted_to_hard_filter(self):
         from app import main as main_mod
         from app.schema import SearchRequest
 
         parsed_filters = {
-            "product_family": "street lighting",
+            "product_family": "floodlight",
         }
 
         fake_rows_df = pd.DataFrame(
             [
                 {
                     "product_code": "X1",
-                    "product_name": "Street Sample",
+                    "product_name": "Flood Sample",
                     "manufacturer": "DISANO",
                     "product_family": "post top",
                 }
@@ -97,7 +97,7 @@ class SearchScoringFiltersTests(unittest.TestCase):
             return 1.0, {}, [], []
 
         req = SearchRequest(
-            text="street",
+            text="floodlight",
             filters={},
             limit=5,
             include_similar=True,
@@ -114,9 +114,11 @@ class SearchScoringFiltersTests(unittest.TestCase):
         self.assertGreaterEqual(len(calls), 2, msg=f"Expected scoring calls, got: {calls}")
         exact_calls = [c for c in calls if c[0] and not c[1]]
         similar_calls = [c for c in calls if not c[0] and c[1]]
-        self.assertFalse(exact_calls, msg=f"AI/text filters should not be hard filters anymore: {calls}")
+
+        self.assertTrue(exact_calls, msg=f"AI family filter should now be treated as hard: {calls}")
+        self.assertEqual(exact_calls[0][0], {"product_family": "floodlight"})
         self.assertTrue(similar_calls, msg=f"Expected similar scoring call, got: {calls}")
-        self.assertEqual(similar_calls[0][1], {"product_family": "street lighting"})
+        self.assertEqual(similar_calls[0][1], {"product_family": "floodlight"})
 
     def test_manual_filters_remain_on_off_for_similar_results(self):
         from app import main as main_mod
