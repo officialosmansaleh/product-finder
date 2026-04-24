@@ -438,6 +438,16 @@
       const headers = new Headers(init.headers || {});
       return fetch(url, { ...init, headers, credentials: "same-origin" });
     }
+    function currentAuthRole(){
+      return String(readAuthUser()?.role || "").trim().toLowerCase();
+    }
+    function redirectItUserToPanel(){
+      window.location.replace("/frontend/admin.html#settingsSection");
+    }
+    if (currentAuthRole() === "it"){
+      redirectItUserToPanel();
+      throw new Error("IT users cannot access the quote workspace.");
+    }
     function hasAuthToken(){
       if (window.ProductFinderAuth?.hasSession) return !!window.ProductFinderAuth.hasSession();
       return !!readAuthUser();
@@ -1392,6 +1402,10 @@
     }
     document.addEventListener("productfinder:auth-changed", (event) => {
       const nextUser = event?.detail?.user || null;
+      if (String(nextUser?.role || "").trim().toLowerCase() === "it"){
+        redirectItUserToPanel();
+        return;
+      }
       const nextOwner = getQuoteStorageOwner(nextUser);
       if (nextOwner !== currentQuoteStorageOwner) {
         reloadQuoteStateForUser(nextUser);

@@ -259,7 +259,6 @@
     if (!mount) return;
     mount.innerHTML = `
       <div class="authTriggerGroup">
-        <button id="btnAuthPanel" class="btn secondary compact" type="button">Panel</button>
         <button id="btnAuthAccount" class="authCompactTrigger" type="button" aria-label="Open account panel">
           <span class="authCompactBadge">${escapeHtml(userInitials(user))}</span>
           <span class="authCompactMeta">
@@ -270,9 +269,6 @@
       </div>
     `;
     mount.querySelector("#btnAuthAccount")?.addEventListener("click", () => openModal("account"));
-    mount.querySelector("#btnAuthPanel")?.addEventListener("click", () => {
-      window.location.href = "/frontend/admin.html";
-    });
   }
 
   function renderLoggedOutMount() {
