@@ -382,7 +382,7 @@ class AuthService:
     @contextmanager
     def connect(self) -> Iterator[Any]:
         if self.backend == "postgres":
-            conn = psycopg2.connect(self.database_url, connect_timeout=10)
+            conn = psycopg2.connect(self.database_url)
             try:
                 yield conn
                 conn.commit()
