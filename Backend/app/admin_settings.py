@@ -143,7 +143,7 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
         env_name="APP_DOMAIN",
         restart_required=True,
         immediate_apply=False,
-        placeholder="ProFinder.disano.it",
+        placeholder="laiting.disano.it",
     ),
     SettingDefinition(
         key="cors_allowed_origins",
