@@ -1,5 +1,5 @@
 ﻿// ---------------- State ----------------
-  const UI_BUILD = "2026-04-24-it-role-lockdown-1";
+  const UI_BUILD = "2026-04-24-price-sort-fallback-1";
   const selectedFilters = {}; // { key: Set(values as strings) }
   let hasRunSearchOnce = false;
   const $ = (id) => document.getElementById(id);
@@ -2190,9 +2190,18 @@ function resetRange(key, minId, maxId){
     return Number.isFinite(parsed) ? parsed : null;
   }
 
+  function hitPriceValue(hit){
+    return priceSortValue(
+      hit?.preview?.price
+      ?? hit?.price
+      ?? hit?.raw?.price
+      ?? hit?.raw?.preview?.price
+    );
+  }
+
   function comparePrice(a, b, direction = "asc"){
-    const av = priceSortValue(a?.preview?.price);
-    const bv = priceSortValue(b?.preview?.price);
+    const av = hitPriceValue(a);
+    const bv = hitPriceValue(b);
     if (av === null && bv === null) return 0;
     if (av === null) return 1;
     if (bv === null) return -1;
