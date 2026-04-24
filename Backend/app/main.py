@@ -1910,6 +1910,7 @@ def initialize_runtime_state() -> None:
 def initialize_runtime_state() -> None:
     global DB, PRODUCT_DB, ALLOWED_FAMILIES, ALLOWED_FAMILIES_NORM
     global XLSX_PATH, FAMILY_MAP_PATH
+    minimal_product_columns = ["product_code", "product_name", "manufacturer", "product_family", "price"]
     XLSX_PATH = _resolve_pim_xlsx_path()
     FAMILY_MAP_PATH = _resolve_family_map_path()
     has_local_pim = bool(XLSX_PATH and os.path.exists(XLSX_PATH))
@@ -1961,16 +1962,24 @@ def initialize_runtime_state() -> None:
             logger.info("Existing product DB columns: %s", columns)
 
             if columns and "product_family" not in columns:
-                logger.warning("'product_family' missing in DB. Recreating database")
+                logger.warning("'product_family' missing in DB.")
                 if preloaded_df is None and not has_local_pim:
-                    raise RuntimeError("Product DB schema is invalid and no local PIM is available to rebuild it.")
-                PRODUCT_DB.close()
-                PRODUCT_DB.connect()
-                count = PRODUCT_DB.recreate_database(
-                    XLSX_PATH,
-                    FAMILY_MAP_PATH if has_local_family_map else None,
-                    df=preloaded_df,
-                )
+                    logger.warning("No local PIM available. Adding baseline catalog columns and continuing with existing DB.")
+                    PRODUCT_DB._add_missing_columns(minimal_product_columns)
+                    PRODUCT_DB.conn.commit()
+                    try:
+                        count = int((PRODUCT_DB.get_stats() or {}).get("total_products", 0))
+                    except Exception:
+                        count = 0
+                else:
+                    logger.warning("Recreating database from available catalog source")
+                    PRODUCT_DB.close()
+                    PRODUCT_DB.connect()
+                    count = PRODUCT_DB.recreate_database(
+                        XLSX_PATH,
+                        FAMILY_MAP_PATH if has_local_family_map else None,
+                        df=preloaded_df,
+                    )
             elif columns:
                 try:
                     count = int((PRODUCT_DB.get_stats() or {}).get("total_products", 0))
@@ -1979,12 +1988,16 @@ def initialize_runtime_state() -> None:
                 logger.info("Using existing product DB contents without local re-import")
             else:
                 if preloaded_df is None and not has_local_pim:
-                    raise RuntimeError("Product DB is empty and no local PIM is available to initialize it.")
-                count = PRODUCT_DB.init_db(
-                    XLSX_PATH,
-                    FAMILY_MAP_PATH if has_local_family_map else None,
-                    df=preloaded_df,
-                )
+                    logger.warning("Product DB is empty and no local PIM is available. Creating empty catalog table and continuing startup.")
+                    PRODUCT_DB._create_table_from_columns(minimal_product_columns)
+                    PRODUCT_DB.conn.commit()
+                    count = 0
+                else:
+                    count = PRODUCT_DB.init_db(
+                        XLSX_PATH,
+                        FAMILY_MAP_PATH if has_local_family_map else None,
+                        df=preloaded_df,
+                    )
             if PRODUCT_DB:
                 try:
                     sample = PRODUCT_DB.debug_sample(1)
