@@ -292,6 +292,11 @@ class PasswordResetConfirmRequest(BaseModel):
     password: str = Field(min_length=10, max_length=128)
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=10, max_length=128)
+
+
 class CookieConsentRequest(BaseModel):
     analytics: bool = False
     source: str = Field(default="banner", max_length=40)
@@ -1651,6 +1656,30 @@ class AuthService:
                 conn,
                 "UPDATE refresh_sessions SET revoked_at = COALESCE(revoked_at, ?) WHERE user_id = ?",
                 (now, int(row["user_id"])),
+            )
+        return {"success": True}
+
+    def change_password(self, user_id: int, current_password: str, new_password: str) -> dict[str, Any]:
+        current = str(current_password or "")
+        password = str(new_password or "")
+        if not re.search(r"[A-Za-z]", password) or not re.search(r"\d", password):
+            raise HTTPException(status_code=400, detail="Password must contain letters and numbers")
+        if current == password:
+            raise HTTPException(status_code=400, detail="New password must be different from the current password")
+        now = _utc_iso()
+        with self.connect() as conn:
+            row = self._fetchone(conn, "SELECT id, password_hash FROM users WHERE id = ?", (int(user_id),))
+            if not row or not _verify_password(current, str(row.get("password_hash") or "")):
+                raise HTTPException(status_code=400, detail="Current password is incorrect")
+            self._execute(
+                conn,
+                "UPDATE users SET password_hash = ? WHERE id = ?",
+                (_password_hash(password), int(user_id)),
+            )
+            self._execute(
+                conn,
+                "UPDATE refresh_sessions SET revoked_at = COALESCE(revoked_at, ?) WHERE user_id = ?",
+                (now, int(user_id)),
             )
         return {"success": True}
 

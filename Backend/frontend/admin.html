@@ -301,8 +301,10 @@
           <a class="adminMenuLink" href="#analyticsSection" data-admin-nav="analyticsSection"><span>Analytics</span><span class="adminMenuMeta">Usage</span></a>
           <a class="adminMenuLink" href="#catalogHealthSection" data-admin-nav="catalogHealthSection"><span>Catalog health</span><span class="adminMenuMeta">Quality</span></a>
           <a class="adminMenuLink" href="#releaseChangesSection" data-admin-nav="releaseChangesSection"><span>Release changes</span><span class="adminMenuMeta">Diff</span></a>
+          <a class="adminMenuLink" href="#administrationSection" data-admin-nav="administrationSection"><span>Administration</span><span class="adminMenuMeta">Bootstrap</span></a>
           <a class="adminMenuLink" href="#scoringSection" data-admin-nav="scoringSection"><span>Scoring</span><span class="adminMenuMeta">Weights</span></a>
           <a class="adminMenuLink" href="#settingsSection" data-admin-nav="settingsSection"><span>Settings</span><span class="adminMenuMeta">Control</span></a>
+          <a class="adminMenuLink" href="#passwordSection" data-admin-nav="passwordSection"><span>Password</span><span class="adminMenuMeta">Account</span></a>
         </nav>
       </aside>
 
@@ -528,6 +530,50 @@
         <span class="sectionBadge">Foundation</span>
       </div>
       <div id="catalogHealthNotice" class="notice">Loading catalog health...</div>
+      <div class="analyticsListCard" style="margin:12px 0">
+        <h3 class="panelTitle">Data imports</h3>
+        <p class="panelSub">Upload private catalog files directly into the cloud database. Files are not stored in GitHub and survive app redeploys.</p>
+        <div class="settingsGrid">
+          <label>
+            <div class="settingLabel">PIM Excel</div>
+            <input id="catalogImportPim" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+          <label>
+            <div class="settingLabel">Optional family map for full catalog import</div>
+            <input id="catalogImportFamily" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="btnImportCatalog" class="btn small" type="button">Import PIM catalog</button>
+          <span id="catalogImportStatus" class="settingsSummary"></span>
+        </div>
+      </div>
+      <div class="settingsGrid" style="margin:12px 0">
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Family map import</h3>
+          <p class="panelSub">Update product families on the existing cloud catalog without reloading the PIM.</p>
+          <label>
+            <div class="settingLabel">Family map Excel</div>
+            <input id="familyMapImportFile" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+          <div class="row" style="margin-top:10px">
+            <button id="btnImportFamilyMap" class="btn small" type="button">Import family map</button>
+            <span id="familyMapImportStatus" class="settingsSummary"></span>
+          </div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Price list import</h3>
+          <p class="panelSub">Update prices on the existing cloud catalog without reloading the PIM.</p>
+          <label>
+            <div class="settingLabel">Price list Excel</div>
+            <input id="priceListImportFile" class="settingInput" type="file" accept=".xlsx" />
+          </label>
+          <div class="row" style="margin-top:10px">
+            <button id="btnImportPriceList" class="btn small" type="button">Import price list</button>
+            <span id="priceListImportStatus" class="settingsSummary"></span>
+          </div>
+        </div>
+      </div>
       <div class="healthGrid">
         <div class="healthStat"><div class="k">Rows</div><div id="healthRows" class="v">-</div></div>
         <div class="healthStat"><div class="k">Families</div><div id="healthFamilies" class="v">-</div></div>
@@ -576,6 +622,18 @@
       </div>
     </section>
 
+    <section id="administrationSection" class="card settingsSection adminAnchorSection adminWorkspaceSection">
+      <div class="sectionHeader">
+        <div>
+          <h2 class="panelTitle">Administration</h2>
+          <p class="panelSub">Bootstrap and maintenance controls that should stay separate from everyday app settings.</p>
+        </div>
+        <span class="sectionBadge">Restricted</span>
+      </div>
+      <div id="administrationNotice" class="notice">Loading administration settings...</div>
+      <div id="administrationWrap" class="settingsGrid" style="margin-top:12px"></div>
+    </section>
+
     <section id="scoringSection" class="card settingsSection adminAnchorSection adminWorkspaceSection">
       <div class="sectionHeader">
         <div>
@@ -598,55 +656,11 @@
       <div class="sectionHeader">
         <div>
           <h2 class="panelTitle">Settings</h2>
-          <p class="panelSub">Maintain app configuration outside scoring. Sensitive values stay masked.</p>
+          <p class="panelSub">Maintain app configuration outside scoring and administration. Sensitive values stay masked.</p>
         </div>
         <span class="sectionBadge">Maintenance</span>
       </div>
       <div id="settingsNotice" class="notice">Loading settings...</div>
-      <div class="analyticsListCard" style="margin:12px 0">
-        <h3 class="panelTitle">Data imports</h3>
-        <p class="panelSub">Upload private catalog files directly into the cloud database. Files are not stored in GitHub and survive app redeploys.</p>
-        <div class="settingsGrid">
-          <label>
-            <div class="settingLabel">PIM Excel</div>
-            <input id="catalogImportPim" class="settingInput" type="file" accept=".xlsx" />
-          </label>
-          <label>
-            <div class="settingLabel">Optional family map for full catalog import</div>
-            <input id="catalogImportFamily" class="settingInput" type="file" accept=".xlsx" />
-          </label>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <button id="btnImportCatalog" class="btn small" type="button">Import PIM catalog</button>
-          <span id="catalogImportStatus" class="settingsSummary"></span>
-        </div>
-      </div>
-      <div class="settingsGrid" style="margin:12px 0">
-        <div class="analyticsListCard">
-          <h3 class="panelTitle">Family map import</h3>
-          <p class="panelSub">Update product families on the existing cloud catalog without reloading the PIM.</p>
-          <label>
-            <div class="settingLabel">Family map Excel</div>
-            <input id="familyMapImportFile" class="settingInput" type="file" accept=".xlsx" />
-          </label>
-          <div class="row" style="margin-top:10px">
-            <button id="btnImportFamilyMap" class="btn small" type="button">Import family map</button>
-            <span id="familyMapImportStatus" class="settingsSummary"></span>
-          </div>
-        </div>
-        <div class="analyticsListCard">
-          <h3 class="panelTitle">Price list import</h3>
-          <p class="panelSub">Update prices on the existing cloud catalog without reloading the PIM.</p>
-          <label>
-            <div class="settingLabel">Price list Excel</div>
-            <input id="priceListImportFile" class="settingInput" type="file" accept=".xlsx" />
-          </label>
-          <div class="row" style="margin-top:10px">
-            <button id="btnImportPriceList" class="btn small" type="button">Import price list</button>
-            <span id="priceListImportStatus" class="settingsSummary"></span>
-          </div>
-        </div>
-      </div>
       <div class="settingsToolbar">
         <div class="settingsToolbarMain">
           <div id="settingsTabs" class="settingsTabs"></div>
@@ -655,6 +669,34 @@
         <div id="settingsSummary" class="settingsSummary"></div>
       </div>
       <div id="settingsWrap" class="settingsGrid" style="margin-top:12px"></div>
+    </section>
+
+    <section id="passwordSection" class="card settingsSection adminAnchorSection adminWorkspaceSection">
+      <div class="sectionHeader">
+        <div>
+          <h2 class="panelTitle">Password</h2>
+          <p class="panelSub">Change your own account password directly from the admin panel.</p>
+        </div>
+        <span class="sectionBadge">Account</span>
+      </div>
+      <div id="passwordNotice" class="notice">Use a strong password with letters and numbers.</div>
+      <div class="settingsGrid" style="margin-top:12px">
+        <label>
+          <div class="settingLabel">Current password</div>
+          <input id="currentPassword" class="settingInput" type="password" autocomplete="current-password" />
+        </label>
+        <label>
+          <div class="settingLabel">New password</div>
+          <input id="newPassword" class="settingInput" type="password" autocomplete="new-password" />
+        </label>
+        <label>
+          <div class="settingLabel">Confirm new password</div>
+          <input id="confirmPassword" class="settingInput" type="password" autocomplete="new-password" />
+        </label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button id="btnChangePassword" class="btn small" type="button">Update password</button>
+      </div>
     </section>
       </div>
     </div>
@@ -910,8 +952,22 @@
       box.className = `notice${isError ? " error" : ""}`;
     }
 
+    function setAdministrationNotice(message, isError){
+      const box = $("administrationNotice");
+      if (!box) return;
+      box.textContent = message;
+      box.className = `notice${isError ? " error" : ""}`;
+    }
+
     function setScoringNotice(message, isError){
       const box = $("scoringNotice");
+      if (!box) return;
+      box.textContent = message;
+      box.className = `notice${isError ? " error" : ""}`;
+    }
+
+    function setPasswordNotice(message, isError){
+      const box = $("passwordNotice");
       if (!box) return;
       box.textContent = message;
       box.className = `notice${isError ? " error" : ""}`;
@@ -978,11 +1034,11 @@
     function permittedAdminSections(){
       const allowed = [];
       if (!currentViewer) return ["overviewSection"];
-      if (isItViewer()) return ["settingsSection"];
+      if (isItViewer()) return ["settingsSection", "passwordSection"];
       if (currentViewer && isStaffViewer()){
-        allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection", "catalogHealthSection");
+        allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection", "catalogHealthSection", "passwordSection");
         if (isLeadershipViewer()) allowed.push("releaseChangesSection");
-        if (isAdminViewer()) allowed.push("scoringSection", "settingsSection");
+        if (isAdminViewer()) allowed.push("administrationSection", "scoringSection", "settingsSection");
       }
       return allowed;
     }
@@ -2102,6 +2158,37 @@
       summary.textContent = `${visible.length} settings shown, ${configured} configured, ${restartRequired} restart-sensitive${searchLabel}.`;
     }
 
+    function renderSettingCards(items){
+      return `<div class="settingsGrid">
+        ${items.map((item) => `
+          <div class="settingCard">
+            <div class="settingTop">
+              <div>
+                <div class="settingLabel">${esc(item.label || item.key)}</div>
+                <div class="settingMeta">${esc(item.key || "")}</div>
+              </div>
+              <span class="sectionBadge">${item.secret ? "Secret" : "Config"}</span>
+            </div>
+            <div class="settingHint">${esc(item.description || "")}</div>
+            <div class="settingFlags">
+              <span class="settingFlag ${item.configured ? "ok" : ""}">${item.configured ? "Configured" : "Not set"}</span>
+              ${item.restart_required ? '<span class="settingFlag warn">Restart needed</span>' : '<span class="settingFlag">Hot apply</span>'}
+              ${item.secret ? '<span class="settingFlag">Masked</span>' : ""}
+            </div>
+            <div class="settingValue">${esc(item.secret ? (item.masked_value || (item.configured ? "Configured" : "Missing")) : (item.value || "Not set"))}</div>
+            ${item.multiline
+              ? `<textarea class="settingTextarea" data-setting-input="${esc(item.key)}" placeholder="${esc(item.placeholder || "")}" autocomplete="off" autocapitalize="off" spellcheck="false">${esc(item.secret ? "" : (item.value || ""))}</textarea>`
+              : `<input class="settingInput" data-setting-input="${esc(item.key)}" type="text" value="${esc(item.secret ? "" : (item.value || ""))}" placeholder="${esc(item.secret ? ((item.configured ? "Paste new secret here or leave blank to keep current secret" : "Paste new secret here") || "") : (item.placeholder || ""))}" autocomplete="off" autocapitalize="off" spellcheck="false" />`
+            }
+            <div class="settingActions">
+              <div class="settingStatus">${item.updated_at ? `Updated ${esc(formatDate(item.updated_at))}` : "No recorded update yet."}</div>
+              <button class="btn small" type="button" data-save-setting="${esc(item.key)}">Save</button>
+            </div>
+          </div>
+        `).join("")}
+      </div>`;
+    }
+
     function bindSettingSaveButtons(root){
       root?.querySelectorAll?.("[data-save-setting]")?.forEach((btn) => {
         btn.addEventListener("click", async () => {
@@ -2110,20 +2197,25 @@
           const value = String(input?.value || "");
           btn.disabled = true;
           const isScoring = key.startsWith("scoring_");
-          (isScoring ? setScoringNotice : setSettingsNotice)(`Saving ${key}...`, false);
+          const category = String(allSettings.find((item) => item.key === key)?.category || "");
+          const setNoticeForKey = isScoring
+            ? setScoringNotice
+            : (category === "Administration" ? setAdministrationNotice : setSettingsNotice);
+          setNoticeForKey(`Saving ${key}...`, false);
           try{
             const data = await putJSON(`/admin/settings/${encodeURIComponent(key)}`, { value });
             const updated = data?.setting || null;
             allSettings = allSettings.map((item) => item.key === key ? updated : item);
             if (!allSettings.find((item) => item.key === key) && updated) allSettings.push(updated);
+            renderAdministration(allSettings);
             renderScoringSettings(allSettings);
             renderSettings(allSettings);
-            (isScoring ? setScoringNotice : setSettingsNotice)(`Saved ${updated?.label || key}.`, false);
+            setNoticeForKey(`Saved ${updated?.label || key}.`, false);
             if (updated?.secret) {
               alert(`Saved ${updated?.label || key}.`);
             }
           }catch(error){
-            (isScoring ? setScoringNotice : setSettingsNotice)(String(error.message || error), true);
+            setNoticeForKey(String(error.message || error), true);
             alert(String(error.message || error));
             btn.disabled = false;
           }
@@ -2168,6 +2260,22 @@
       bindSettingSaveButtons(wrap);
     }
 
+    function renderAdministration(items){
+      const wrap = $("administrationWrap");
+      if (!wrap) return;
+      if (!isAdminViewer()){
+        wrap.innerHTML = `<div class="empty">Administration controls are available only to admins.</div>`;
+        return;
+      }
+      const adminItems = (items || []).filter((item) => String(item.category || "General") === "Administration");
+      if (!adminItems.length){
+        wrap.innerHTML = `<div class="empty">No administration settings available.</div>`;
+        return;
+      }
+      wrap.innerHTML = renderSettingCards(adminItems);
+      bindSettingSaveButtons(wrap);
+    }
+
     function renderSettings(items){
       const wrap = $("settingsWrap");
       if (!wrap) return;
@@ -2179,7 +2287,10 @@
         if (summary) summary.textContent = "No settings access for this role.";
         return;
       }
-      const generalItems = (items || []).filter((item) => String(item.category || "General") !== "Scoring");
+      const generalItems = (items || []).filter((item) => {
+        const category = String(item.category || "General");
+        return category !== "Scoring" && category !== "Administration";
+      });
       renderSettingsTabs(generalItems);
       if (!generalItems.length){
         wrap.innerHTML = `<div class="empty">No settings available.</div>`;
@@ -2215,34 +2326,7 @@
         const isExpanded = selectedSettingsCategory !== "All" || expandedSettingsCategories.has(category);
         const categoryBody = category === "Scoring"
           ? renderScoringGroups(categoryItems)
-          : `<div class="settingsGrid">
-            ${categoryItems.map((item) => `
-              <div class="settingCard">
-                <div class="settingTop">
-                  <div>
-                    <div class="settingLabel">${esc(item.label || item.key)}</div>
-                    <div class="settingMeta">${esc(item.key || "")}</div>
-                  </div>
-                  <span class="sectionBadge">${item.secret ? "Secret" : "Config"}</span>
-                </div>
-                <div class="settingHint">${esc(item.description || "")}</div>
-                <div class="settingFlags">
-                  <span class="settingFlag ${item.configured ? "ok" : ""}">${item.configured ? "Configured" : "Not set"}</span>
-                  ${item.restart_required ? '<span class="settingFlag warn">Restart needed</span>' : '<span class="settingFlag">Hot apply</span>'}
-                  ${item.secret ? '<span class="settingFlag">Masked</span>' : ""}
-                </div>
-                <div class="settingValue">${esc(item.secret ? (item.masked_value || (item.configured ? "Configured" : "Missing")) : (item.value || "Not set"))}</div>
-                ${item.multiline
-                  ? `<textarea class="settingTextarea" data-setting-input="${esc(item.key)}" placeholder="${esc(item.placeholder || "")}" autocomplete="off" autocapitalize="off" spellcheck="false">${esc(item.secret ? "" : (item.value || ""))}</textarea>`
-                  : `<input class="settingInput" data-setting-input="${esc(item.key)}" type="text" value="${esc(item.secret ? "" : (item.value || ""))}" placeholder="${esc(item.secret ? ((item.configured ? "Paste new secret here or leave blank to keep current secret" : "Paste new secret here") || "") : (item.placeholder || ""))}" autocomplete="off" autocapitalize="off" spellcheck="false" />`
-                }
-                <div class="settingActions">
-                  <div class="settingStatus">${item.updated_at ? `Updated ${esc(formatDate(item.updated_at))}` : "No recorded update yet."}</div>
-                  <button class="btn small" type="button" data-save-setting="${esc(item.key)}">Save</button>
-                </div>
-              </div>
-            `).join("")}
-          </div>`;
+          : renderSettingCards(categoryItems);
         return `
         <section class="settingsCategory ${isExpanded ? "expanded" : ""}" data-settings-category="${esc(category)}">
           <div class="settingsCategoryHead">
@@ -2347,23 +2431,66 @@
         applyViewerLayout();
         if (!me || !canViewSettings()){
           setSettingsNotice("Settings are available only to admins or IT users.", true);
+          setAdministrationNotice("Administration controls are available only to admins.", true);
           setScoringNotice("Scoring controls are available only to admins.", true);
+          renderAdministration([]);
           renderScoringSettings([]);
           renderSettings([]);
           return;
         }
         setSettingsNotice("Loading settings...", false);
+        setAdministrationNotice(isAdminViewer() ? "Loading administration settings..." : "Administration controls are available only to admins.", !isAdminViewer());
         setScoringNotice(isAdminViewer() ? "Loading scoring controls..." : "Scoring controls are available only to admins.", !isAdminViewer());
         const data = await getJSON("/admin/settings");
         allSettings = Array.isArray(data.items) ? data.items : [];
         renderRuntimeStatusPills(allSettings);
+        renderAdministration(allSettings);
         renderScoringSettings(isAdminViewer() ? allSettings : []);
         renderSettings(allSettings);
+        if (isAdminViewer()) setAdministrationNotice("Administration settings are up to date.", false);
         if (isAdminViewer()) setScoringNotice("Scoring controls are up to date.", false);
         setSettingsNotice("Settings are up to date.", false);
       }catch(error){
+        setAdministrationNotice(String(error.message || error), true);
         setScoringNotice(String(error.message || error), true);
         setSettingsNotice(String(error.message || error), true);
+      }
+    }
+
+    async function changeOwnPassword(){
+      const me = window.ProductFinderAuth?.getUser?.();
+      currentViewer = me || null;
+      applyViewerLayout();
+      if (!me){
+        setPasswordNotice("Log in first to change your password.", true);
+        return;
+      }
+      const currentInput = $("currentPassword");
+      const newInput = $("newPassword");
+      const confirmInput = $("confirmPassword");
+      const currentPassword = String(currentInput?.value || "");
+      const newPassword = String(newInput?.value || "");
+      const confirmPassword = String(confirmInput?.value || "");
+      if (!currentPassword || !newPassword || !confirmPassword){
+        setPasswordNotice("Fill in current password, new password, and confirmation.", true);
+        return;
+      }
+      if (newPassword !== confirmPassword){
+        setPasswordNotice("New password and confirmation do not match.", true);
+        return;
+      }
+      try{
+        setPasswordNotice("Updating password...", false);
+        await postJSON("/auth/password/change", {
+          current_password: currentPassword,
+          new_password: newPassword,
+        });
+        if (currentInput) currentInput.value = "";
+        if (newInput) newInput.value = "";
+        if (confirmInput) confirmInput.value = "";
+        setPasswordNotice("Password updated successfully. You may need to log in again on other devices.", false);
+      }catch(error){
+        setPasswordNotice(String(error.message || error), true);
       }
     }
 
@@ -2551,6 +2678,7 @@
       await loadAdminData();
       if (isItViewer()){
         await loadSettings();
+        setPasswordNotice("Change your own password here.", false);
         return;
       }
       await loadVisibleQuotes();
@@ -2558,6 +2686,7 @@
       await loadAnalytics();
       await loadReleaseDiff();
       await loadCatalogHealth();
+      if (currentViewer) setPasswordNotice("Change your own password here.", false);
     }
 
     function initAdminMenu(){
@@ -2611,6 +2740,9 @@
     });
     $("btnImportPriceList").addEventListener("click", async () => {
       await importPriceList();
+    });
+    $("btnChangePassword").addEventListener("click", async () => {
+      await changeOwnPassword();
     });
     $("analyticsDays").addEventListener("change", async () => {
       await loadAnalytics();

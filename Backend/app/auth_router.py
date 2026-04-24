@@ -11,6 +11,7 @@ from app.auth import (
     AuthService,
     CookieConsentRequest,
     LoginRequest,
+    PasswordChangeRequest,
     PasswordResetConfirmRequest,
     PasswordResetRequest,
     SavedQuoteUpsertRequest,
@@ -162,6 +163,14 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
         result = auth_service.confirm_password_reset(payload.token, payload.password)
         auth_service.clear_auth_cookies(response)
         return result
+
+    @router.post("/auth/password/change")
+    def password_change(payload: PasswordChangeRequest, current_user: UserPublic = Depends(get_current_user)):
+        return auth_service.change_password(
+            current_user.id,
+            current_password=payload.current_password,
+            new_password=payload.new_password,
+        )
 
     @router.get("/auth/me")
     def me(current_user: UserPublic = Depends(get_current_user)):
