@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import psycopg2
 from psycopg2 import sql
-from psycopg2.extras import RealDictCursor, execute_values
+from psycopg2.extras import RealDictCursor
 
 from app.db_runtime import normalize_postgres_url
 from app.runtime_config import cfg_float, cfg_list
@@ -597,6 +597,10 @@ class ProductDatabase:
 
     def recreate_database(self, xlsx_path: str, family_map_path: str = None, df: Optional[pd.DataFrame] = None):
         print("Recreating database from scratch...")
+        if not self.conn:
+            self.connect()
+        self.conn.execute("DROP TABLE IF EXISTS products")
+        self.conn.commit()
         return self.init_db(xlsx_path, family_map_path, df=df)
 
     def update_prices_from_map(self, price_df: pd.DataFrame) -> Dict[str, int]:
@@ -684,7 +688,10 @@ class ProductDatabase:
         self._create_table_from_columns(columns)
         self._add_missing_columns(columns)
         current_release_rows: Dict[str, Dict[str, Any]] = {}
-        prepared_rows: List[Dict[str, Any]] = []
+
+        product_code_ph = self._placeholder()
+        inserted = 0
+        updated = 0
         errors = 0
 
         for idx, row_values in enumerate(df.itertuples(index=False, name=None)):
@@ -696,40 +703,33 @@ class ProductDatabase:
                 product_code = row_data.get("product_code", "")
                 if not product_code:
                     continue
-
                 current_release_rows[product_code] = self._normalize_release_row(row_data)
-                prepared_rows.append(row_data)
+
+                cursor = self.conn.execute(
+                    f"SELECT id FROM products WHERE product_code = {product_code_ph}",
+                    (product_code,),
+                )
+                if cursor.fetchone():
+                    update_parts = [f'"{col}" = {self._placeholder()}' for col in row_data.keys()]
+                    values = list(row_data.values()) + [product_code]
+                    self.conn.execute(
+                        f'UPDATE products SET {", ".join(update_parts)} WHERE product_code = {product_code_ph}',
+                        values,
+                    )
+                    updated += 1
+                else:
+                    cols = ", ".join([f'"{c}"' for c in row_data.keys()])
+                    placeholders = ", ".join([self._placeholder()] * len(row_data))
+                    self.conn.execute(
+                        f'INSERT INTO products ({cols}) VALUES ({placeholders})',
+                        list(row_data.values()),
+                    )
+                    inserted += 1
             except Exception as e:
                 errors += 1
                 if errors <= 5:
-                    print(f"Row {idx} preparation failed: {e}")
+                    print(f"Row {idx} insert/update failed: {e}")
                 continue
-
-        inserted = 0
-        updated = 0
-        if prepared_rows:
-            if self.backend == "postgres":
-                cols_sql = ", ".join([f'"{c}"' for c in columns])
-                template = "(" + ", ".join(["%s"] * len(columns)) + ")"
-                values = [tuple(row.get(col) for col in columns) for row in prepared_rows]
-                with self.conn.cursor() as cur:
-                    execute_values(
-                        cur,
-                        f"INSERT INTO products ({cols_sql}) VALUES %s",
-                        values,
-                        template=template,
-                        page_size=1000,
-                    )
-                inserted = len(prepared_rows)
-            else:
-                cols_sql = ", ".join([f'"{c}"' for c in columns])
-                placeholders = ", ".join([self._placeholder()] * len(columns))
-                values = [tuple(row.get(col) for col in columns) for row in prepared_rows]
-                self.conn.executemany(
-                    f'INSERT INTO products ({cols_sql}) VALUES ({placeholders})',
-                    values,
-                )
-                inserted = len(prepared_rows)
 
         key_fields = ["ip_rating", "ik_rating", "cct_k", "power_max_w", "lumen_output", "efficacy_lm_w", "product_family"]
         for field in key_fields:
