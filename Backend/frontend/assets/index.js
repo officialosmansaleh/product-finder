@@ -2094,6 +2094,18 @@ function resetRange(key, minId, maxId){
     }
   }
 
+  function currentUserRole(){
+    try{
+      return String(window.ProductFinderAuth?.getUser?.()?.role || "").trim().toLowerCase();
+    }catch(_e){
+      return "";
+    }
+  }
+
+  function canAccessAdminWorkspace(){
+    return ["admin", "director", "manager", "it"].includes(currentUserRole());
+  }
+
   function isPublicCatalogMode(){
     return !hasAuthenticatedSession();
   }
@@ -2144,6 +2156,7 @@ function resetRange(key, minId, maxId){
         : "search, compare, and quote from one workspace";
     }
 
+    setVisible($("btnAdmin"), canAccessAdminWorkspace(), "");
     setVisible($("btnTools"), !publicMode, "");
     setVisible($("btnQuote"), !publicMode, "");
     setVisible($("toolsComparePreview"), !publicMode, "");
@@ -2937,6 +2950,9 @@ document.addEventListener("keydown", (ev)=>{
   }
 
   function wireTopButtons(){
+    $("btnAdmin")?.addEventListener("click", ()=>{
+      window.location.href = "/frontend/admin.html";
+    });
     $("btnTools").addEventListener("click", ()=>{
       saveFinderState();
       if (hasPendingToolsCompareState()){
