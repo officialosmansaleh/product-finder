@@ -1912,32 +1912,22 @@ def initialize_runtime_state() -> None:
     global XLSX_PATH, FAMILY_MAP_PATH
     XLSX_PATH = _resolve_pim_xlsx_path()
     FAMILY_MAP_PATH = _resolve_family_map_path()
-    has_local_pim = bool(XLSX_PATH and os.path.exists(XLSX_PATH))
-    has_local_family_map = bool(FAMILY_MAP_PATH and os.path.exists(FAMILY_MAP_PATH))
     logger.info("Starting Product Finder")
     logger.info("Using PIM XLSX: %s", XLSX_PATH)
     logger.info("Using family map XLSX: %s", FAMILY_MAP_PATH)
 
-    if has_local_pim:
-        try:
-            family_map_path = FAMILY_MAP_PATH if has_local_family_map else None
-            DB = load_products(XLSX_PATH, family_map_path=family_map_path, verbose=PIM_VERBOSE)
-            logger.info("Loaded %s products into DataFrame", len(DB))
-            if "product_family" in DB.columns:
-                families = DB["product_family"].dropna().unique()
-                logger.info("Found %s unique families in DataFrame", len(families))
-                logger.info("DataFrame family sample: %s", list(families)[:10])
-            else:
-                logger.warning("'product_family' not found in DataFrame")
-        except Exception as e:
-            logger.exception("Failed to load DataFrame: %s", e)
-            DB = pd.DataFrame()
-    else:
-        DB = pd.DataFrame()
-        if db_runtime.product_postgres_requested:
-            logger.info("Local PIM file not found. Skipping DataFrame preload and relying on Postgres catalog.")
+    try:
+        DB = load_products(XLSX_PATH, family_map_path=FAMILY_MAP_PATH, verbose=PIM_VERBOSE)
+        logger.info("Loaded %s products into DataFrame", len(DB))
+        if "product_family" in DB.columns:
+            families = DB["product_family"].dropna().unique()
+            logger.info("Found %s unique families in DataFrame", len(families))
+            logger.info("DataFrame family sample: %s", list(families)[:10])
         else:
-            logger.warning("Local PIM file not found at startup: %s", XLSX_PATH)
+            logger.warning("'product_family' not found in DataFrame")
+    except Exception as e:
+        logger.exception("Failed to load DataFrame: %s", e)
+        DB = pd.DataFrame()
 
     if USE_PRODUCT_DB and HAS_DATABASE:
         try:
@@ -1962,29 +1952,11 @@ def initialize_runtime_state() -> None:
 
             if columns and "product_family" not in columns:
                 logger.warning("'product_family' missing in DB. Recreating database")
-                if preloaded_df is None and not has_local_pim:
-                    raise RuntimeError("Product DB schema is invalid and no local PIM is available to rebuild it.")
                 PRODUCT_DB.close()
                 PRODUCT_DB.connect()
-                count = PRODUCT_DB.recreate_database(
-                    XLSX_PATH,
-                    FAMILY_MAP_PATH if has_local_family_map else None,
-                    df=preloaded_df,
-                )
-            elif columns:
-                try:
-                    count = int((PRODUCT_DB.get_stats() or {}).get("total_products", 0))
-                except Exception:
-                    count = 0
-                logger.info("Using existing product DB contents without local re-import")
+                count = PRODUCT_DB.recreate_database(XLSX_PATH, FAMILY_MAP_PATH, df=preloaded_df)
             else:
-                if preloaded_df is None and not has_local_pim:
-                    raise RuntimeError("Product DB is empty and no local PIM is available to initialize it.")
-                count = PRODUCT_DB.init_db(
-                    XLSX_PATH,
-                    FAMILY_MAP_PATH if has_local_family_map else None,
-                    df=preloaded_df,
-                )
+                count = PRODUCT_DB.init_db(XLSX_PATH, FAMILY_MAP_PATH, df=preloaded_df)
             if PRODUCT_DB:
                 try:
                     sample = PRODUCT_DB.debug_sample(1)
