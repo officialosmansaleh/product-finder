@@ -1947,7 +1947,9 @@ def initialize_runtime_state() -> None:
                 database_url=db_runtime.product_database_url,
                 backend=db_runtime.product_db_backend,
             )
+            logger.info("Connecting to product DB backend=%s", PRODUCT_DB.backend)
             PRODUCT_DB.connect()
+            logger.info("Product DB connect ok")
             preloaded_df = None if DB.empty else DB
             try:
                 columns = PRODUCT_DB._table_columns("products")
