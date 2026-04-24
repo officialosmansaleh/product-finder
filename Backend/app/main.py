@@ -356,17 +356,28 @@ def _resolve_pim_xlsx_path() -> str:
     if env_path:
         return env_path
 
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
-    pim_candidates = glob.glob(os.path.join(base_dir, "PIM_*.xlsx"))
+    search_dirs: list[str] = []
+    backend_data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+    configured_dir = str(cfg("main.data_dir", "data")).strip()
+    for candidate_dir in [backend_data_dir, configured_dir, "Backend/data", "data"]:
+        if not candidate_dir:
+            continue
+        normalized = os.path.abspath(candidate_dir)
+        if normalized not in search_dirs:
+            search_dirs.append(normalized)
+
+    pim_candidates: list[str] = []
+    for base_dir in search_dirs:
+        pim_candidates.extend(glob.glob(os.path.join(base_dir, "PIM*.xlsx")))
+
     if pim_candidates:
-        # Prefer newest date encoded in filename (e.g. PIM_20260224.xlsx), fallback to lexical max.
         def _pim_sort_key(path: str):
             name = os.path.basename(path)
-            m = re.search(r"PIM_(\d{8})\.xlsx$", name, flags=re.IGNORECASE)
+            m = re.search(r"PIM[_ -]?(\d{8})", name, flags=re.IGNORECASE)
             if m:
-                return (1, m.group(1), name.lower())
-            return (0, "", name.lower())
-        return sorted(pim_candidates, key=_pim_sort_key, reverse=True)[0]
+                return (2, m.group(1), name.lower())
+            return (1, "", name.lower())
+        return sorted(set(pim_candidates), key=_pim_sort_key, reverse=True)[0]
 
     return str(cfg("main.default_pim_xlsx", "data/ExportRO-2025-10-28_09.34.43.xlsx"))
 
