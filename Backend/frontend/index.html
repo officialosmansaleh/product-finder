@@ -28,11 +28,9 @@
       <div id="toolsComparePreview" class="toolsComparePreview" aria-live="polite" style="display:none"></div>
       <button id="btnQuote" class="btn secondary" title="Open quote cart" aria-label="Open quote cart" style="display:none">Quote cart</button>
       <button id="btnOpenFilters" class="btn secondary mobileOnly" title="Open filters" aria-label="Open filters panel">Filters</button>
-      <button id="btnClearAll" class="btn secondary" title="Clear query + filters" aria-label="Reset query and filters">Reset</button>
       <div class="mobileQueryWrap">
         <textarea id="qMobile" placeholder="Type your query..."></textarea>
       </div>
-      <button id="btnRun" class="btn" aria-label="Run search">Search</button>
     </div>
   </header>
 
@@ -48,7 +46,10 @@
       <div id="finderQueryHint" class="small" style="margin-top:8px">
         Search by product name, product code, or family. Use the filters below to narrow the catalog.
       </div>
-      <div id="finderQueryHelp" class="small">Use Enter to run search.</div>
+      <div class="row" style="margin-top:8px;justify-content:space-between;align-items:center">
+        <div id="finderQueryHelp" class="small">Use Enter to run search.</div>
+        <button id="btnClearAll" class="btn secondary compact" type="button" title="Clear query + filters" aria-label="Reset query and filters">Reset</button>
+      </div>
       <div id="finderImportRow" class="row importFilesRow" style="display:none;margin-top:8px;align-items:stretch">
         <input id="finderPdfFile" type="file" accept=".pdf,application/pdf" />
         <input id="finderImageFile" type="file" accept="image/*" />
@@ -436,6 +437,6 @@
   </div>
 
   <script src="/frontend/assets/auth.js?v=2026-04-24-it-role-lockdown-1"></script>
-  <script src="/frontend/assets/index.js?v=2026-04-24-finder-auth-eager-1"></script>
+  <script src="/frontend/assets/index.js?v=2026-04-24-finder-reset-layout-1"></script>
 </body>
 </html>

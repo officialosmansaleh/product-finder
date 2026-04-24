@@ -1,5 +1,5 @@
 ﻿// ---------------- State ----------------
-  const UI_BUILD = "2026-04-24-finder-auth-eager-1";
+  const UI_BUILD = "2026-04-24-finder-reset-layout-1";
   const selectedFilters = {}; // { key: Set(values as strings) }
   let hasRunSearchOnce = false;
   const $ = (id) => document.getElementById(id);
@@ -428,7 +428,6 @@
     if ($("btnQuote")) $("btnQuote").textContent = t("btn_quote");
     if ($("btnOpenFilters")) $("btnOpenFilters").textContent = t("btn_filters");
     if ($("btnClearAll")) $("btnClearAll").textContent = t("btn_reset");
-    if ($("btnRun") && !$("btnRun").disabled) $("btnRun").textContent = t("btn_search");
     if ($("btnFinderFilesParse")) $("btnFinderFilesParse").textContent = currentLang === "it" ? "Analizza brief" : "Analyze brief";
     if ($("q")) $("q").placeholder = t("q_placeholder");
     if ($("qMobile")) $("qMobile").placeholder = t("q_mobile_placeholder");
@@ -491,8 +490,10 @@
   }
 
   function setBusy(b){
-    $("btnRun").disabled = b;
-    $("btnRun").textContent = b ? t("btn_searching") : t("btn_search");
+    const btnRun = $("btnRun");
+    if (!btnRun) return;
+    btnRun.disabled = b;
+    btnRun.textContent = b ? t("btn_searching") : t("btn_search");
   }
 
   function escapeHtml(s){
@@ -1440,11 +1441,13 @@ function resetRange(key, minId, maxId){
     lastUnderstoodFilterChips = [];
     lastUnderstoodFilterItems = [];
     lastImportedFilterItems = [];
+    lastInterpretedSearch = null;
     setQueryText("");
     resetRangeInputs();
     renderSelected();
     hideVisionInfo();
     clearSearchResults();
+    loadFacets({ showErrorToast: false });
     saveFinderState();
   }
 
@@ -2991,7 +2994,7 @@ document.addEventListener("keydown", (ev)=>{
       saveFinderState();
       window.location.href = "/frontend/quote.html";
     });
-    $("btnRun").addEventListener("click", ()=>{
+    $("btnRun")?.addEventListener("click", ()=>{
       runSearch();
       if (isMobileViewport()) closeFiltersPanel();
     });
