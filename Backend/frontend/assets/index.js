@@ -2102,8 +2102,8 @@ function resetRange(key, minId, maxId){
     }
   }
 
-  function canAccessAdminWorkspace(){
-    return hasAuthenticatedSession();
+  function canUseCompareAndQuote(){
+    return hasAuthenticatedSession() && currentUserRole() !== "it";
   }
 
   function isPublicCatalogMode(){
@@ -2156,11 +2156,12 @@ function resetRange(key, minId, maxId){
         : "search, compare, and quote from one workspace";
     }
 
-    setVisible($("btnAdmin"), canAccessAdminWorkspace(), "");
-    setVisible($("btnTools"), !publicMode, "");
-    setVisible($("btnQuote"), !publicMode, "");
-    setVisible($("toolsComparePreview"), !publicMode, "");
-    setVisible($("finderImportRow"), !publicMode, "");
+    const compareAndQuoteEnabled = canUseCompareAndQuote();
+
+    setVisible($("btnTools"), compareAndQuoteEnabled, "");
+    setVisible($("btnQuote"), compareAndQuoteEnabled, "");
+    setVisible($("toolsComparePreview"), compareAndQuoteEnabled, "");
+    setVisible($("finderImportRow"), compareAndQuoteEnabled, "");
     setVisible($("visionInfo"), !publicMode, "");
     setVisible($("onboardingBox"), !publicMode, "");
   }
@@ -2950,9 +2951,6 @@ document.addEventListener("keydown", (ev)=>{
   }
 
   function wireTopButtons(){
-    $("btnAdmin")?.addEventListener("click", ()=>{
-      window.location.href = "/frontend/admin.html";
-    });
     $("btnTools").addEventListener("click", ()=>{
       saveFinderState();
       if (hasPendingToolsCompareState()){
