@@ -115,10 +115,7 @@ class ProductDatabase:
         if self.backend == "postgres":
             if not self.database_url:
                 raise ValueError("PostgreSQL database URL is missing or unresolved")
-            raw = psycopg2.connect(
-                self.database_url,
-                connect_timeout=int(os.getenv("PRODUCT_DB_CONNECT_TIMEOUT_SEC", "10") or "10"),
-            )
+            raw = psycopg2.connect(self.database_url)
             raw.autocommit = False
             self.conn = PostgresCompatConnection(raw)
             self._ensure_release_tables()
