@@ -2113,6 +2113,7 @@ def catalog_health_impl() -> Dict[str, Any]:
             "field_coverage": [],
             "top_families": [],
             "issues": [],
+            "latest_imports": {},
         }
 
     df = DB.copy()
@@ -2284,6 +2285,7 @@ def catalog_health_impl() -> Dict[str, Any]:
         "field_coverage": field_coverage,
         "top_families": top_families,
         "issues": issues,
+        "latest_imports": PRODUCT_DB.latest_import_runs() if PRODUCT_DB else {},
     }
 
 
@@ -2932,6 +2934,15 @@ async def admin_catalog_import(
             DB = imported_df
             ALLOWED_FAMILIES = PRODUCT_DB.get_distinct_families()
             ALLOWED_FAMILIES_NORM = {str(f).strip().lower() for f in ALLOWED_FAMILIES if str(f).strip()}
+            latest_import = PRODUCT_DB.record_import_run(
+                "catalog",
+                pim_name,
+                {
+                    "count": count,
+                    "family_map_filename": family_name,
+                    "database_backend": getattr(PRODUCT_DB, "backend", db_runtime.product_db_backend),
+                },
+            )
 
             return {
                 "success": True,
@@ -2940,6 +2951,7 @@ async def admin_catalog_import(
                 "pim_filename": pim_name,
                 "family_map_filename": family_name,
                 "database_backend": getattr(PRODUCT_DB, "backend", db_runtime.product_db_backend),
+                "latest_import": latest_import,
                 "catalog_health": catalog_health_impl(),
                 "release_diff": PRODUCT_DB.get_latest_release_diff() if PRODUCT_DB else {},
             }
@@ -2983,10 +2995,16 @@ async def admin_price_list_import(
                 DB["price"] = DB["product_code"].apply(
                     lambda code: price_lookup.get(re.sub(r"[^0-9A-Za-z]", "", str(code or "")).lower())
                 )
+            latest_import = PRODUCT_DB.record_import_run(
+                "price_list",
+                price_name,
+                result,
+            )
             return {
                 "success": True,
                 "message": f"Price list imported: matched {result.get('matched', 0)} products",
                 "filename": price_name,
+                "latest_import": latest_import,
                 **result,
                 "catalog_health": catalog_health_impl(),
             }
@@ -3024,10 +3042,16 @@ async def admin_family_map_import(
                 ]
             ALLOWED_FAMILIES = PRODUCT_DB.get_distinct_families()
             ALLOWED_FAMILIES_NORM = {str(f).strip().lower() for f in ALLOWED_FAMILIES if str(f).strip()}
+            latest_import = PRODUCT_DB.record_import_run(
+                "family_map",
+                family_name,
+                result,
+            )
             return {
                 "success": True,
                 "message": f"Family map imported: updated {result.get('matched', 0)} products",
                 "filename": family_name,
+                "latest_import": latest_import,
                 **result,
                 "catalog_health": catalog_health_impl(),
             }

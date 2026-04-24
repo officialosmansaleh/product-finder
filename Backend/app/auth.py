@@ -297,6 +297,18 @@ class PasswordChangeRequest(BaseModel):
     new_password: str = Field(min_length=10, max_length=128)
 
 
+class EmailTestRequest(BaseModel):
+    email: str = Field(default="", max_length=200)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        email = str(value or "").strip().lower()
+        if email and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+            raise ValueError("Invalid email address")
+        return email
+
+
 class CookieConsentRequest(BaseModel):
     analytics: bool = False
     source: str = Field(default="banner", max_length=40)
@@ -1682,6 +1694,22 @@ class AuthService:
                 (now, int(user_id)),
             )
         return {"success": True}
+
+    def send_test_email(self, acting_user: UserPublic, to_email: str = "") -> dict[str, Any]:
+        recipient = str(to_email or "").strip().lower() or str(acting_user.email or "").strip().lower()
+        if not recipient:
+            raise HTTPException(status_code=400, detail="Recipient email is required")
+        self._send_email(
+            to_email=recipient,
+            subject="Laiting test email",
+            body=(
+                "This is a test email from the Laiting admin panel.\n\n"
+                f"Sent at: {_utc_iso()}\n"
+                f"Triggered by: {str(acting_user.email or '').strip()}\n"
+                f"Role: {str(acting_user.role or '').strip()}\n"
+            ),
+        )
+        return {"success": True, "recipient": recipient}
 
     def ensure_bootstrap_admin(self) -> None:
         if not self.bootstrap_email or not self.bootstrap_password:

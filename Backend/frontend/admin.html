@@ -574,6 +574,11 @@
           </div>
         </div>
       </div>
+      <div class="analyticsListCard" style="margin:12px 0">
+        <h3 class="panelTitle">Latest imports</h3>
+        <p class="panelSub">Last successful private file uploads stored in the cloud database.</p>
+        <div id="catalogLatestImports" class="analyticsList"></div>
+      </div>
       <div class="healthGrid">
         <div class="healthStat"><div class="k">Rows</div><div id="healthRows" class="v">-</div></div>
         <div class="healthStat"><div class="k">Families</div><div id="healthFamilies" class="v">-</div></div>
@@ -661,6 +666,20 @@
         <span class="sectionBadge">Maintenance</span>
       </div>
       <div id="settingsNotice" class="notice">Loading settings...</div>
+      <div class="analyticsListCard" style="margin:12px 0">
+        <h3 class="panelTitle">Email test</h3>
+        <p class="panelSub">Send a test message using the current SMTP configuration.</p>
+        <div class="settingsGrid">
+          <label>
+            <div class="settingLabel">Recipient email</div>
+            <input id="emailTestRecipient" class="settingInput" type="email" placeholder="Leave empty to send to your own account" autocomplete="email" />
+          </label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="btnSendEmailTest" class="btn small" type="button">Send test email</button>
+          <span id="emailTestStatus" class="settingsSummary"></span>
+        </div>
+      </div>
       <div class="settingsToolbar">
         <div class="settingsToolbarMain">
           <div id="settingsTabs" class="settingsTabs"></div>
@@ -1370,6 +1389,41 @@
         <div class="analyticsRow">
           <div class="analyticsLabel">${esc(row.family || "")}</div>
           <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+
+      const latestImports = data?.latest_imports || {};
+      const latestImportRows = [
+        { key: "catalog", label: "PIM catalog" },
+        { key: "family_map", label: "Family map" },
+        { key: "price_list", label: "Price list" },
+      ].map((item) => {
+        const record = latestImports?.[item.key] || {};
+        const summaryData = record?.summary || {};
+        const importedAt = record?.imported_at ? formatDate(record.imported_at) : "";
+        let meta = importedAt || "Never imported";
+        if (item.key === "catalog" && summaryData?.count) {
+          meta = `${meta}${importedAt ? " | " : ""}${summaryData.count} products`;
+        }
+        if (item.key === "family_map" && summaryData?.matched !== undefined) {
+          meta = `${meta}${importedAt ? " | " : ""}${summaryData.matched} matched`;
+        }
+        if (item.key === "price_list" && summaryData?.matched !== undefined) {
+          meta = `${meta}${importedAt ? " | " : ""}${summaryData.matched} matched`;
+        }
+        return {
+          label: item.label,
+          filename: String(record?.source_filename || "No file"),
+          meta,
+        };
+      });
+      renderAnalyticsList("catalogLatestImports", latestImportRows, (row) => `
+        <div class="analyticsRow">
+          <div>
+            <div class="analyticsLabel">${esc(row.label || "")}</div>
+            <div class="analyticsMeta">${esc(row.filename || "")}</div>
+          </div>
+          <div class="analyticsMeta">${esc(row.meta || "")}</div>
         </div>
       `);
 
@@ -2647,6 +2701,27 @@
       }
     }
 
+    async function sendEmailTest(){
+      const me = window.ProductFinderAuth?.getUser?.();
+      currentViewer = me || null;
+      applyViewerLayout();
+      const status = $("emailTestStatus");
+      const input = $("emailTestRecipient");
+      if (!me || !canViewSettings()){
+        if (status) status.textContent = "Email test is available only to admins or IT users.";
+        return;
+      }
+      try{
+        if (status) status.textContent = "Sending test email...";
+        const data = await postJSON("/admin/settings/email-test", {
+          email: String(input?.value || "").trim(),
+        });
+        if (status) status.textContent = `Test email sent to ${data?.recipient || "the selected recipient"}.`;
+      }catch(error){
+        if (status) status.textContent = String(error.message || error);
+      }
+    }
+
     async function loadReleaseDiff(){
       try{
         const me = window.ProductFinderAuth?.getUser?.();
@@ -2740,6 +2815,9 @@
     });
     $("btnImportPriceList").addEventListener("click", async () => {
       await importPriceList();
+    });
+    $("btnSendEmailTest").addEventListener("click", async () => {
+      await sendEmailTest();
     });
     $("btnChangePassword").addEventListener("click", async () => {
       await changeOwnPassword();

@@ -169,6 +169,17 @@ class ProductDatabase:
                 )
                 """
             )
+            self.conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS import_runs (
+                    id BIGSERIAL PRIMARY KEY,
+                    import_type TEXT NOT NULL,
+                    source_filename TEXT NOT NULL DEFAULT '',
+                    imported_at TEXT NOT NULL,
+                    summary_json TEXT NOT NULL DEFAULT '{}'
+                )
+                """
+            )
         else:
             self.conn.execute(
                 """
@@ -197,10 +208,78 @@ class ProductDatabase:
                 )
                 """
             )
+            self.conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS import_runs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    import_type TEXT NOT NULL,
+                    source_filename TEXT NOT NULL DEFAULT '',
+                    imported_at TEXT NOT NULL,
+                    summary_json TEXT NOT NULL DEFAULT '{}'
+                )
+                """
+            )
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_product_releases_imported_at ON product_releases(imported_at)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_product_release_items_release_id ON product_release_items(release_id)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_product_release_items_code ON product_release_items(release_id, product_code)")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_import_runs_type_imported_at ON import_runs(import_type, imported_at)")
         self.conn.commit()
+
+    def record_import_run(self, import_type: str, source_filename: str, summary: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        if not self.conn:
+            self.connect()
+        imported_at = self._utc_iso()
+        clean_type = str(import_type or "").strip().lower()
+        clean_name = os.path.basename(str(source_filename or ""))
+        payload = summary or {}
+        ph = self._placeholder()
+        self.conn.execute(
+            f"""
+            INSERT INTO import_runs (import_type, source_filename, imported_at, summary_json)
+            VALUES ({ph}, {ph}, {ph}, {ph})
+            """,
+            (
+                clean_type,
+                clean_name,
+                imported_at,
+                json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":")),
+            ),
+        )
+        self.conn.commit()
+        return {
+            "import_type": clean_type,
+            "source_filename": clean_name,
+            "imported_at": imported_at,
+            "summary": payload,
+        }
+
+    def latest_import_runs(self) -> Dict[str, Dict[str, Any]]:
+        if not self.conn:
+            self.connect()
+        cur = self.conn.execute(
+            """
+            SELECT import_type, source_filename, imported_at, summary_json
+            FROM import_runs
+            ORDER BY imported_at DESC, id DESC
+            """
+        )
+        latest: Dict[str, Dict[str, Any]] = {}
+        for row in cur.fetchall():
+            data = dict(row)
+            import_type = str(data.get("import_type") or "").strip().lower()
+            if not import_type or import_type in latest:
+                continue
+            try:
+                summary = json.loads(str(data.get("summary_json") or "{}"))
+            except Exception:
+                summary = {}
+            latest[import_type] = {
+                "import_type": import_type,
+                "source_filename": str(data.get("source_filename") or ""),
+                "imported_at": str(data.get("imported_at") or ""),
+                "summary": summary if isinstance(summary, dict) else {},
+            }
+        return latest
 
     def _latest_release_row(self) -> Optional[Dict[str, Any]]:
         if not self.conn:
@@ -500,7 +579,7 @@ class ProductDatabase:
             self.connect()
         cur = self.conn.execute("SELECT COUNT(*) AS n FROM products")
         n = cur.fetchone()["n"]
-        return {"total_products": int(n)}
+        return {"total_products": int(n), "latest_imports": self.latest_import_runs()}
 
     def debug_sample(self, n: int = 5) -> List[Dict[str, Any]]:
         if not self.conn:

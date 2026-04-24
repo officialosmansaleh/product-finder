@@ -10,6 +10,7 @@ from app.auth import (
     AdminUserUpdateRequest,
     AuthService,
     CookieConsentRequest,
+    EmailTestRequest,
     LoginRequest,
     PasswordChangeRequest,
     PasswordResetConfirmRequest,
@@ -171,6 +172,10 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
             current_password=payload.current_password,
             new_password=payload.new_password,
         )
+
+    @router.post("/admin/settings/email-test")
+    def admin_send_email_test(payload: EmailTestRequest, settings_user: UserPublic = Depends(require_settings_admin)):
+        return auth_service.send_test_email(settings_user, to_email=payload.email)
 
     @router.get("/auth/me")
     def me(current_user: UserPublic = Depends(get_current_user)):

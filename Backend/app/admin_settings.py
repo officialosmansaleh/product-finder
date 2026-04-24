@@ -146,16 +146,6 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
         placeholder="ProFinder.disano.it",
     ),
     SettingDefinition(
-        key="acme_email",
-        label="ACME Email",
-        category="Deployment",
-        description="Email used for certificate issuance and renewal notices.",
-        env_name="ACME_EMAIL",
-        restart_required=True,
-        immediate_apply=False,
-        placeholder="ops@example.com",
-    ),
-    SettingDefinition(
         key="cors_allowed_origins",
         label="Allowed Origins",
         category="Security",
@@ -233,26 +223,6 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
         env_name="ADMIN_BOOTSTRAP_PASSWORD",
         secret=True,
         placeholder="strong-admin-password",
-    ),
-    SettingDefinition(
-        key="admin_token",
-        label="Legacy Admin Token",
-        category="Administration",
-        description="Fallback admin token for legacy debug or maintenance endpoints.",
-        env_name="ADMIN_TOKEN",
-        secret=True,
-        placeholder="legacy-admin-token",
-    ),
-    SettingDefinition(
-        key="postgres_password",
-        label="Postgres Password",
-        category="Deployment",
-        description="Database password used by deployment and Docker compose.",
-        env_name="POSTGRES_PASSWORD",
-        secret=True,
-        restart_required=True,
-        immediate_apply=False,
-        placeholder="strong-db-password",
     ),
     SettingDefinition(
         key="smtp_host",
@@ -432,7 +402,7 @@ def normalize_setting_value(definition: SettingDefinition, value: str) -> str:
     if definition.key == "cors_allowed_origins":
         parts = [part.strip() for part in text.split(",") if part.strip()]
         return ",".join(parts)
-    if definition.key in {"admin_bootstrap_email", "acme_email", "smtp_from_email"} and text:
+    if definition.key in {"admin_bootstrap_email", "smtp_from_email"} and text:
         if "@" not in text or "." not in text.split("@")[-1]:
             raise ValueError("Please enter a valid email address")
         return text.lower()
