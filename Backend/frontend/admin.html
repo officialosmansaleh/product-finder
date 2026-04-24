@@ -722,7 +722,7 @@
   </div>
 
   <script src="/frontend/assets/countries.js?v=2026-03-25-country-list-1"></script>
-  <script src="/frontend/assets/auth.js?v=2026-03-25-auth-roles-country-1"></script>
+  <script src="/frontend/assets/auth.js?v=2026-04-24-it-role-lockdown-1"></script>
   <script src="/frontend/assets/consent.js?v=2026-03-31-consent-analytics-1"></script>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -1067,6 +1067,8 @@
       const allowed = permittedAdminSections();
       const links = Array.from(document.querySelectorAll("[data-admin-nav]"));
       const sections = Array.from(document.querySelectorAll(".adminWorkspaceSection"));
+      const backToolsButton = $("btnBackTools");
+      if (backToolsButton) backToolsButton.style.display = isItViewer() ? "none" : "";
       if (!allowed.length){
         links.forEach((link) => link.style.display = "none");
         sections.forEach((section) => section.classList.remove("active"));

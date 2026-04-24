@@ -1,5 +1,5 @@
 ﻿// ---------------- State ----------------
-  const UI_BUILD = "2026-04-09-performance-1";
+  const UI_BUILD = "2026-04-24-it-role-lockdown-1";
   const selectedFilters = {}; // { key: Set(values as strings) }
   let hasRunSearchOnce = false;
   const $ = (id) => document.getElementById(id);
@@ -37,7 +37,7 @@
   const OPTIONAL_SCRIPT_URLS = [
     "/frontend/assets/countries.js?v=2026-03-25-country-list-1",
     "/frontend/assets/quote-utils.js?v=2026-03-25-quote-modal-labels-1",
-    "/frontend/assets/auth.js?v=2026-03-25-auth-roles-country-1",
+    "/frontend/assets/auth.js?v=2026-04-24-it-role-lockdown-1",
     "/frontend/assets/consent.js?v=2026-03-31-consent-analytics-1",
   ];
   const LOCAL_MANUFACTURER_LOGOS = {
