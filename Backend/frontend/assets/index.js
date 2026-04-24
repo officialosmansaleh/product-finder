@@ -1,5 +1,5 @@
 ﻿// ---------------- State ----------------
-  const UI_BUILD = "2026-04-24-price-sort-fallback-1";
+  const UI_BUILD = "2026-04-24-price-sort-auth-1";
   const selectedFilters = {}; // { key: Set(values as strings) }
   let hasRunSearchOnce = false;
   const $ = (id) => document.getElementById(id);
@@ -2077,7 +2077,8 @@ function resetRange(key, minId, maxId){
     const res = await fetch(url, {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      credentials:"same-origin"
     });
     if (!res.ok){
       const t = await res.text().catch(()=> "");
