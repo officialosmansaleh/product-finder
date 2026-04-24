@@ -1910,23 +1910,34 @@ def initialize_runtime_state() -> None:
 def initialize_runtime_state() -> None:
     global DB, PRODUCT_DB, ALLOWED_FAMILIES, ALLOWED_FAMILIES_NORM
     global XLSX_PATH, FAMILY_MAP_PATH
+    minimal_product_columns = ["product_code", "product_name", "manufacturer", "product_family", "price"]
     XLSX_PATH = _resolve_pim_xlsx_path()
     FAMILY_MAP_PATH = _resolve_family_map_path()
+    has_local_pim = bool(XLSX_PATH and os.path.exists(XLSX_PATH))
+    has_local_family_map = bool(FAMILY_MAP_PATH and os.path.exists(FAMILY_MAP_PATH))
     logger.info("Starting Product Finder")
     logger.info("Using PIM XLSX: %s", XLSX_PATH)
     logger.info("Using family map XLSX: %s", FAMILY_MAP_PATH)
 
-    try:
-        DB = load_products(XLSX_PATH, family_map_path=FAMILY_MAP_PATH, verbose=PIM_VERBOSE)
-        logger.info("Loaded %s products into DataFrame", len(DB))
-        if "product_family" in DB.columns:
-            families = DB["product_family"].dropna().unique()
-            logger.info("Found %s unique families in DataFrame", len(families))
-            logger.info("DataFrame family sample: %s", list(families)[:10])
-        else:
-            logger.warning("'product_family' not found in DataFrame")
-    except Exception as e:
-        logger.exception("Failed to load DataFrame: %s", e)
+    if has_local_pim:
+        try:
+            DB = load_products(
+                XLSX_PATH,
+                family_map_path=(FAMILY_MAP_PATH if has_local_family_map else None),
+                verbose=PIM_VERBOSE,
+            )
+            logger.info("Loaded %s products into DataFrame", len(DB))
+            if "product_family" in DB.columns:
+                families = DB["product_family"].dropna().unique()
+                logger.info("Found %s unique families in DataFrame", len(families))
+                logger.info("DataFrame family sample: %s", list(families)[:10])
+            else:
+                logger.warning("'product_family' not found in DataFrame")
+        except Exception as e:
+            logger.exception("Failed to load DataFrame: %s", e)
+            DB = pd.DataFrame()
+    else:
+        logger.info("Local PIM file not found. Skipping DataFrame preload.")
         DB = pd.DataFrame()
 
     if USE_PRODUCT_DB and HAS_DATABASE:
@@ -1951,12 +1962,35 @@ def initialize_runtime_state() -> None:
             logger.info("Existing product DB columns: %s", columns)
 
             if columns and "product_family" not in columns:
-                logger.warning("'product_family' missing in DB. Recreating database")
-                PRODUCT_DB.close()
-                PRODUCT_DB.connect()
-                count = PRODUCT_DB.recreate_database(XLSX_PATH, FAMILY_MAP_PATH, df=preloaded_df)
+                if preloaded_df is None and not has_local_pim:
+                    logger.warning("'product_family' missing in DB and no local PIM available. Adding baseline columns and continuing startup.")
+                    PRODUCT_DB._add_missing_columns(minimal_product_columns)
+                    PRODUCT_DB.conn.commit()
+                    count = int((PRODUCT_DB.get_stats() or {}).get("total_products", 0))
+                else:
+                    logger.warning("'product_family' missing in DB. Recreating database")
+                    PRODUCT_DB.close()
+                    PRODUCT_DB.connect()
+                    count = PRODUCT_DB.recreate_database(
+                        XLSX_PATH,
+                        (FAMILY_MAP_PATH if has_local_family_map else None),
+                        df=preloaded_df,
+                    )
+            elif columns:
+                count = int((PRODUCT_DB.get_stats() or {}).get("total_products", 0))
+                logger.info("Using existing product DB contents without local re-import")
             else:
-                count = PRODUCT_DB.init_db(XLSX_PATH, FAMILY_MAP_PATH, df=preloaded_df)
+                if preloaded_df is None and not has_local_pim:
+                    logger.warning("Product DB is empty and no local PIM is available. Creating empty catalog table and continuing startup.")
+                    PRODUCT_DB._create_table_from_columns(minimal_product_columns)
+                    PRODUCT_DB.conn.commit()
+                    count = 0
+                else:
+                    count = PRODUCT_DB.init_db(
+                        XLSX_PATH,
+                        (FAMILY_MAP_PATH if has_local_family_map else None),
+                        df=preloaded_df,
+                    )
             if PRODUCT_DB:
                 try:
                     sample = PRODUCT_DB.debug_sample(1)
