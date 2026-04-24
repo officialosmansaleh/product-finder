@@ -1053,6 +1053,7 @@
     function permittedAdminSections(){
       const allowed = [];
       if (!currentViewer) return ["overviewSection"];
+      if (viewerRole() === "user") return ["passwordSection"];
       if (isItViewer()) return ["settingsSection", "passwordSection"];
       if (currentViewer && isStaffViewer()){
         allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection", "catalogHealthSection", "passwordSection");
@@ -2446,7 +2447,12 @@
         const me = window.ProductFinderAuth?.getUser?.();
         currentViewer = me || null;
         if (!me){
-          setNotice("Log in with an admin, IT, director, or manager account to open this page.", true);
+          setNotice("Log in to open your panel.", true);
+          return;
+        }
+        if (viewerRole() === "user"){
+          applyViewerLayout();
+          setNotice("Your personal panel is available. Only the sections allowed for your account are shown.", false);
           return;
         }
         if (isItViewer()){
@@ -2455,7 +2461,7 @@
           return;
         }
         if (!isStaffViewer()){
-          setNotice("This page is available only to approved admin, IT, director, or manager users.", true);
+          setNotice("This panel shows only the sections available for your account.", false);
           return;
         }
         applyViewerLayout();
@@ -2751,6 +2757,10 @@
 
     async function loadAdminPageData(){
       await loadAdminData();
+      if (viewerRole() === "user"){
+        setPasswordNotice("Change your own password here.", false);
+        return;
+      }
       if (isItViewer()){
         await loadSettings();
         setPasswordNotice("Change your own password here.", false);

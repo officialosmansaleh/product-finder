@@ -184,6 +184,8 @@
   function roleLabel(user) {
     const role = String(user?.role || "user").trim().toLowerCase();
     if (role === "admin") return "Admin";
+    if (role === "it") return "IT";
+    if (role === "director") return "Director";
     if (role === "manager") return "Manager";
     return "User";
   }
@@ -255,10 +257,9 @@
   function renderLoggedInMount(user) {
     const mount = document.getElementById("authMount");
     if (!mount) return;
-    const isStaff = ["admin", "manager"].includes(String(user?.role || "").toLowerCase());
     mount.innerHTML = `
       <div class="authTriggerGroup">
-        ${isStaff ? '<button id="btnAuthAdmin" class="btn secondary compact" type="button">Panel</button>' : ""}
+        <button id="btnAuthPanel" class="btn secondary compact" type="button">Panel</button>
         <button id="btnAuthAccount" class="authCompactTrigger" type="button" aria-label="Open account panel">
           <span class="authCompactBadge">${escapeHtml(userInitials(user))}</span>
           <span class="authCompactMeta">
@@ -269,7 +270,7 @@
       </div>
     `;
     mount.querySelector("#btnAuthAccount")?.addEventListener("click", () => openModal("account"));
-    mount.querySelector("#btnAuthAdmin")?.addEventListener("click", () => {
+    mount.querySelector("#btnAuthPanel")?.addEventListener("click", () => {
       window.location.href = "/frontend/admin.html";
     });
   }
@@ -299,7 +300,7 @@
   function renderAccountView(user) {
     const role = String(user?.role || "").toLowerCase();
     const isAdmin = role === "admin";
-    const isStaff = role === "admin" || role === "manager";
+    const canOpenPanel = !!role;
     return `
       <div class="authAccountCard">
         <div class="authAccountHead">
@@ -319,7 +320,7 @@
           ${role === "manager" ? `<div class="authInfoRow"><span>Manager countries</span><strong>${escapeHtml(Array.isArray(user.assigned_countries) && user.assigned_countries.length ? user.assigned_countries.join(", ") : "None assigned")}</strong></div><div class="authInfoRow"><span>Manager tools</span><strong>Read-only country access</strong></div>` : ""}
         </div>
         <div class="authActions">
-          ${isStaff ? '<button id="btnAuthOpenAdmin" class="btn compact" type="button">Open panel</button>' : ""}
+          ${canOpenPanel ? '<button id="btnAuthOpenAdmin" class="btn compact" type="button">Open panel</button>' : ""}
           <button id="btnAuthLogout" class="btn secondary compact" type="button">Logout</button>
         </div>
         ${renderStatusLine("Your account is active.", "info")}

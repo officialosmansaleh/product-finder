@@ -2103,7 +2103,7 @@ function resetRange(key, minId, maxId){
   }
 
   function canAccessAdminWorkspace(){
-    return ["admin", "director", "manager", "it"].includes(currentUserRole());
+    return hasAuthenticatedSession();
   }
 
   function isPublicCatalogMode(){
