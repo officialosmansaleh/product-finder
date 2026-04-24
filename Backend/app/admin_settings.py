@@ -105,7 +105,6 @@ CATEGORY_ORDER: tuple[str, ...] = (
     "Security",
     "Administration",
     "Scoring",
-    "Operations",
     "Deployment",
 )
 
@@ -155,14 +154,6 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
         restart_required=True,
         immediate_apply=False,
         placeholder="ops@example.com",
-    ),
-    SettingDefinition(
-        key="enable_debug_endpoints",
-        label="Enable Debug Endpoints",
-        category="Operations",
-        description="Turn on local-only debug endpoints for troubleshooting.",
-        env_name="ENABLE_DEBUG_ENDPOINTS",
-        placeholder="true or false",
     ),
     SettingDefinition(
         key="cors_allowed_origins",
@@ -392,26 +383,6 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
         env_name="SCORING_FAMILY_MISMATCH_MULTIPLIER",
         placeholder="3.0",
     ),
-    SettingDefinition(
-        key="rate_limit_store",
-        label="Rate Limit Store",
-        category="Operations",
-        description="Storage backend for rate limiting, such as memory or database.",
-        env_name="RATE_LIMIT_STORE",
-        placeholder="memory or database",
-    ),
-    SettingDefinition(
-        key="rate_limit_database_url",
-        label="Rate Limit Database URL",
-        category="Operations",
-        description="Database URL used by shared rate limiting when enabled.",
-        env_name="RATE_LIMIT_DATABASE_URL",
-        secret=True,
-        multiline=True,
-        restart_required=True,
-        immediate_apply=False,
-        placeholder="postgresql://user:pass@host/dbname",
-    ),
 )
 
 SETTINGS_CATALOG = SETTINGS_CATALOG + _missing_scoring_weight_definitions({item.key for item in SETTINGS_CATALOG})
@@ -448,7 +419,7 @@ def normalize_setting_value(definition: SettingDefinition, value: str) -> str:
             if number < 1 or number > 65535:
                 raise ValueError("SMTP port must be between 1 and 65535")
         return str(number)
-    if definition.key in {"auth_cookie_secure", "enable_debug_endpoints", "pim_verbose"}:
+    if definition.key in {"auth_cookie_secure", "pim_verbose"}:
         lowered = text.lower()
         if lowered not in {"1", "0", "true", "false", "yes", "no", "on", "off"}:
             raise ValueError(f"{definition.label} must be true or false")
@@ -461,11 +432,6 @@ def normalize_setting_value(definition: SettingDefinition, value: str) -> str:
     if definition.key == "cors_allowed_origins":
         parts = [part.strip() for part in text.split(",") if part.strip()]
         return ",".join(parts)
-    if definition.key == "rate_limit_store" and text:
-        lowered = text.lower()
-        if lowered not in {"memory", "database", "db"}:
-            raise ValueError("Rate limit store must be memory or database")
-        return "database" if lowered == "db" else lowered
     if definition.key in {"admin_bootstrap_email", "acme_email", "smtp_from_email"} and text:
         if "@" not in text or "." not in text.split("@")[-1]:
             raise ValueError("Please enter a valid email address")
