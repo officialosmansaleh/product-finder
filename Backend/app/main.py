@@ -2099,6 +2099,89 @@ def health_impl():
 
 
 def catalog_health_impl() -> Dict[str, Any]:
+    if (DB is None or DB.empty) and PRODUCT_DB and PRODUCT_DB.conn:
+        try:
+            rows = int(dict(PRODUCT_DB.conn.execute("SELECT COUNT(*) AS count FROM products").fetchone() or {}).get("count") or 0)
+            unique_families = int(dict(PRODUCT_DB.conn.execute(
+                """
+                SELECT COUNT(DISTINCT TRIM(product_family)) AS count
+                FROM products
+                WHERE product_family IS NOT NULL AND TRIM(product_family) <> ''
+                """
+            ).fetchone() or {}).get("count") or 0)
+            unique_manufacturers = int(dict(PRODUCT_DB.conn.execute(
+                """
+                SELECT COUNT(DISTINCT TRIM(manufacturer)) AS count
+                FROM products
+                WHERE manufacturer IS NOT NULL AND TRIM(manufacturer) <> ''
+                """
+            ).fetchone() or {}).get("count") or 0)
+            priced_rows = int(dict(PRODUCT_DB.conn.execute(
+                """
+                SELECT COUNT(*) AS count
+                FROM products
+                WHERE price IS NOT NULL AND TRIM(CAST(price AS TEXT)) <> ''
+                """
+            ).fetchone() or {}).get("count") or 0)
+
+            top_families_cur = PRODUCT_DB.conn.execute(
+                """
+                SELECT TRIM(product_family) AS family, COUNT(*) AS count
+                FROM products
+                WHERE product_family IS NOT NULL AND TRIM(product_family) <> ''
+                GROUP BY TRIM(product_family)
+                ORDER BY count DESC, family ASC
+                LIMIT 15
+                """
+            )
+            top_families = [
+                {"family": str(dict(row).get("family") or ""), "count": int(dict(row).get("count") or 0)}
+                for row in top_families_cur.fetchall()
+                if str(dict(row).get("family") or "").strip()
+            ]
+
+            field_coverage: List[Dict[str, Any]] = []
+            for field in [
+                "product_family",
+                "manufacturer",
+                "product_name",
+                "ip_rating",
+                "ik_rating",
+                "cct_k",
+                "power_max_w",
+                "lumen_output",
+                "price",
+            ]:
+                count_row = PRODUCT_DB.conn.execute(
+                    f"""
+                    SELECT COUNT(*) AS count
+                    FROM products
+                    WHERE "{field}" IS NOT NULL AND TRIM(CAST("{field}" AS TEXT)) <> ''
+                    """
+                ).fetchone()
+                non_empty = int(dict(count_row or {}).get("count") or 0)
+                pct = round((non_empty / max(rows, 1)) * 100.0, 1)
+                field_coverage.append({"field": field, "filled": non_empty, "missing": rows - non_empty, "pct": pct})
+
+            return {
+                "status": "ok",
+                "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "summary": {
+                    "rows": rows,
+                    "unique_families": unique_families,
+                    "unique_manufacturers": unique_manufacturers,
+                    "priced_rows": priced_rows,
+                    "duplicate_product_codes": 0,
+                    "legacy_road_lighting_rows": 0,
+                },
+                "field_coverage": field_coverage,
+                "top_families": top_families,
+                "issues": [],
+                "latest_imports": PRODUCT_DB.latest_import_runs(),
+            }
+        except Exception as e:
+            logger.warning("catalog health DB-only fallback failed: %s", e)
+
     if DB is None or DB.empty:
         return {
             "status": "empty",
@@ -2113,7 +2196,7 @@ def catalog_health_impl() -> Dict[str, Any]:
             "field_coverage": [],
             "top_families": [],
             "issues": [],
-            "latest_imports": {},
+            "latest_imports": PRODUCT_DB.latest_import_runs() if PRODUCT_DB else {},
         }
 
     df = DB.copy()
@@ -2943,6 +3026,7 @@ async def admin_catalog_import(
                     "database_backend": getattr(PRODUCT_DB, "backend", db_runtime.product_db_backend),
                 },
             )
+            FACETS_CACHE.clear()
 
             return {
                 "success": True,
@@ -3000,6 +3084,7 @@ async def admin_price_list_import(
                 price_name,
                 result,
             )
+            FACETS_CACHE.clear()
             return {
                 "success": True,
                 "message": f"Price list imported: matched {result.get('matched', 0)} products",
@@ -3047,6 +3132,7 @@ async def admin_family_map_import(
                 family_name,
                 result,
             )
+            FACETS_CACHE.clear()
             return {
                 "success": True,
                 "message": f"Family map imported: updated {result.get('matched', 0)} products",
