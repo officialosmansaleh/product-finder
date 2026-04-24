@@ -71,7 +71,7 @@ class SearchScoringFiltersTests(unittest.TestCase):
         self.assertEqual(exact_calls[0][0], {**user_filters, "product_family": "uplight"})
         self.assertEqual(similar_calls[0][1], expected_filters)
 
-    def test_ai_family_filter_is_promoted_to_hard_filter(self):
+    def test_generic_ai_family_query_stays_soft_without_user_family_filter(self):
         from app import main as main_mod
         from app.schema import SearchRequest
 
@@ -115,7 +115,54 @@ class SearchScoringFiltersTests(unittest.TestCase):
         exact_calls = [c for c in calls if c[0] and not c[1]]
         similar_calls = [c for c in calls if not c[0] and c[1]]
 
-        self.assertTrue(exact_calls, msg=f"AI family filter should now be treated as hard: {calls}")
+        self.assertFalse(exact_calls, msg=f"Generic family-only query should not become a hard filter: {calls}")
+        self.assertTrue(similar_calls, msg=f"Expected similar scoring call, got: {calls}")
+        self.assertEqual(similar_calls[0][1], {"product_family": "floodlight"})
+
+    def test_user_selected_family_filter_remains_hard(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        parsed_filters = {
+            "product_family": "floodlight",
+        }
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "X1",
+                    "product_name": "Flood Sample",
+                    "manufacturer": "DISANO",
+                    "product_family": "floodlight",
+                }
+            ]
+        )
+
+        calls = []
+
+        def fake_score_product(_row, hard, soft):
+            calls.append((dict(hard or {}), dict(soft or {})))
+            return 1.0, {}, [], []
+
+        req = SearchRequest(
+            text="floodlight",
+            filters={"product_family": "floodlight"},
+            limit=5,
+            include_similar=True,
+            debug=False,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value=parsed_filters), patch.object(
+            main_mod, "llm_intent_to_filters", return_value={}
+        ), patch.object(main_mod, "PRODUCT_DB", None), patch.object(main_mod, "DB", fake_rows_df), patch.object(
+            main_mod, "score_product", side_effect=fake_score_product
+        ):
+            _ = main_mod.search(req)
+
+        exact_calls = [c for c in calls if c[0] and not c[1]]
+        similar_calls = [c for c in calls if not c[0] and c[1]]
+
+        self.assertTrue(exact_calls, msg=f"User family filter must remain hard: {calls}")
         self.assertEqual(exact_calls[0][0], {"product_family": "floodlight"})
         self.assertTrue(similar_calls, msg=f"Expected similar scoring call, got: {calls}")
         self.assertEqual(similar_calls[0][1], {"product_family": "floodlight"})

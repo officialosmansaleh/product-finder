@@ -73,6 +73,21 @@ def _normalize_product_family_filter(filters: Dict[str, Any], allowed_families: 
     return out
 
 
+def _should_soften_inferred_family(parsed_filters: Dict[str, Any], user_filters: Dict[str, Any]) -> bool:
+    if user_filters.get("product_family") not in (None, "", []):
+        return False
+    ai_family = parsed_filters.get("product_family")
+    if ai_family in (None, "", []):
+        return False
+
+    other_parsed = {
+        key: value
+        for key, value in (parsed_filters or {}).items()
+        if key != "product_family" and value not in (None, "", [])
+    }
+    return not other_parsed
+
+
 def handle_search(
     req: SearchRequest,
     *,
@@ -190,7 +205,8 @@ def handle_search(
     filters = {**parsed_filters, **user_filters}
     hard_filters = dict(user_filters)
     ai_family = parsed_filters.get("product_family")
-    if ai_family not in (None, "", []):
+    soften_inferred_family = _should_soften_inferred_family(parsed_filters, user_filters)
+    if ai_family not in (None, "", []) and not soften_inferred_family:
         # Treat AI-inferred family as a hard constraint so AI and UI family searches
         # behave the same way in the exact-match path.
         hard_filters.setdefault("product_family", ai_family)
