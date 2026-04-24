@@ -101,6 +101,13 @@ def _norm_shape_value(x: Any) -> str:
         return "round"
     return s
 
+
+def _product_name_prefix(x: Any) -> str:
+    s = _norm_str(x).lower()
+    if not s:
+        return ""
+    return re.split(r"\s+", s, 1)[0].strip(".,;:/\\-_()[]{}<>\"'`")
+
 def _parse_ip(x: Any) -> int | None:
     """
     Accept: 65.0, "65", "IP65", "IPX8" -> 8, "IP08" -> 8
@@ -260,6 +267,17 @@ def _match_ik(got: Any, wanted: Any) -> tuple[bool, str]:
 def _match_value(key: str, got: Any, wanted: Any) -> tuple[bool, str]:
     k = (key or "").strip()
 
+    if k in {"product_name_short", "name_prefix"}:
+        g_s = _product_name_prefix(got)
+        w_s = _product_name_prefix(wanted)
+        if not g_s:
+            return (False, "missing 'product_name'")
+        if not w_s:
+            return (True, "product_name prefix no constraint")
+        if g_s == w_s:
+            return (True, "product_name prefix exact")
+        return (False, f"product_name prefix mismatch: wanted '{wanted}' got='{got}'")
+
     if k == "product_name_contains":
         g_s = _norm_str(got).lower()
         w_s = _norm_str(wanted).lower()
@@ -379,7 +397,7 @@ def score_product(
 
     # 1) Hard: must pass
     for k, wanted in (hard_filters or {}).items():
-        got = prod.get("product_name") if k == "product_name_contains" else prod.get(k)
+        got = prod.get("product_name") if k in {"product_name_contains", "product_name_short", "name_prefix"} else prod.get(k)
 
         if _norm_str(got) == "":
             missing.append(k)
@@ -401,7 +419,7 @@ def score_product(
         w = float(field_weights.get(k, 1.0))
         total_weight += w
 
-        got = prod.get("product_name") if k == "product_name_contains" else prod.get(k)
+        got = prod.get("product_name") if k in {"product_name_contains", "product_name_short", "name_prefix"} else prod.get(k)
         if _norm_str(got) == "":
             miss_mult = family_missing_mult if k == "product_family" else 1.0
             penalty += w * missing_penalty * miss_mult

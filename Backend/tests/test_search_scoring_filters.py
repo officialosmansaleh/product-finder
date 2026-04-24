@@ -364,6 +364,21 @@ class SearchScoringFiltersTests(unittest.TestCase):
         )
         self.assertTrue(all(str(action.get("label") or "").strip() for action in actions))
 
+    def test_product_name_short_hard_filter_matches_prefix_exactly(self):
+        from app.scoring import score_product
+
+        product = {
+            "product_code": "R1",
+            "product_name": "Rodi 100 LED",
+        }
+
+        for filter_key in ("product_name_short", "name_prefix"):
+            score, matched, deviations, missing = score_product(product, {filter_key: "rodi"}, {})
+            self.assertEqual(score, 1.0, msg=f"{filter_key} should match product_name prefix")
+            self.assertEqual(matched.get(filter_key), "Rodi 100 LED")
+            self.assertEqual(deviations, [])
+            self.assertEqual(missing, [])
+
 
 if __name__ == "__main__":
     unittest.main()
