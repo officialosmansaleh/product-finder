@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import psycopg2
 from psycopg2 import sql
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, execute_batch
 
 from app.db_runtime import normalize_postgres_url
 from app.runtime_config import cfg_float, cfg_list
@@ -89,6 +89,10 @@ class PostgresCompatConnection:
                 order = [d.name for d in cur.description]
                 rows = [CompatRow(dict(r), order) for r in cur.fetchall()]
         return CompatCursor(rows)
+
+    def executemany(self, query: str, params_seq: Any):
+        with self.raw_conn.cursor() as cur:
+            execute_batch(cur, self._translate(query), list(params_seq), page_size=1000)
 
     def commit(self):
         self.raw_conn.commit()
@@ -448,18 +452,23 @@ class ProductDatabase:
         )
         release_row = self._latest_release_row()
         release_id = int(release_row["id"]) if release_row else 0
-        for code, payload in sorted(current_rows.items(), key=lambda item: item[0]):
-            self.conn.execute(
+        release_items = [
+            (
+                release_id,
+                code,
+                json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":")),
+                self._row_hash(payload),
+            )
+            for code, payload in sorted(current_rows.items(), key=lambda item: item[0])
+        ]
+        if release_items:
+            print(f"Recording release snapshot for {len(release_items)} products...", flush=True)
+            self.conn.executemany(
                 f"""
                 INSERT INTO product_release_items (release_id, product_code, row_json, row_hash)
                 VALUES ({ph}, {ph}, {ph}, {ph})
                 """,
-                (
-                    release_id,
-                    code,
-                    json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":")),
-                    self._row_hash(payload),
-                ),
+                release_items,
             )
         self.conn.commit()
         return {
@@ -616,11 +625,13 @@ class ProductDatabase:
         return out
 
     def recreate_database(self, xlsx_path: str, family_map_path: str = None, df: Optional[pd.DataFrame] = None):
-        print("Recreating database from scratch...")
+        print("Recreating database from scratch...", flush=True)
         if not self.conn:
             self.connect()
+        print("Dropping products table...", flush=True)
         self.conn.execute("DROP TABLE IF EXISTS products")
         self.conn.commit()
+        print("Products table dropped.", flush=True)
         return self.init_db(xlsx_path, family_map_path, df=df)
 
     def update_prices_from_map(self, price_df: pd.DataFrame) -> Dict[str, int]:
@@ -712,10 +723,9 @@ class ProductDatabase:
         self._add_missing_columns(columns)
         current_release_rows: Dict[str, Dict[str, Any]] = {}
 
-        product_code_ph = self._placeholder()
         inserted = 0
-        updated = 0
         errors = 0
+        rows_to_insert: List[List[Any]] = []
 
         for idx, row_values in enumerate(df.itertuples(index=False, name=None)):
             try:
@@ -727,32 +737,23 @@ class ProductDatabase:
                 if not product_code:
                     continue
                 current_release_rows[product_code] = self._normalize_release_row(row_data)
-
-                cursor = self.conn.execute(
-                    f"SELECT id FROM products WHERE product_code = {product_code_ph}",
-                    (product_code,),
-                )
-                if cursor.fetchone():
-                    update_parts = [f'"{col}" = {self._placeholder()}' for col in row_data.keys()]
-                    values = list(row_data.values()) + [product_code]
-                    self.conn.execute(
-                        f'UPDATE products SET {", ".join(update_parts)} WHERE product_code = {product_code_ph}',
-                        values,
-                    )
-                    updated += 1
-                else:
-                    cols = ", ".join([f'"{c}"' for c in row_data.keys()])
-                    placeholders = ", ".join([self._placeholder()] * len(row_data))
-                    self.conn.execute(
-                        f'INSERT INTO products ({cols}) VALUES ({placeholders})',
-                        list(row_data.values()),
-                    )
-                    inserted += 1
+                rows_to_insert.append(list(row_data.values()))
             except Exception as e:
                 errors += 1
                 if errors <= 5:
                     print(f"Row {idx} insert/update failed: {e}")
                 continue
+
+        if rows_to_insert:
+            cols = ", ".join([f'"{c}"' for c in columns])
+            placeholders = ", ".join([self._placeholder()] * len(columns))
+            print(f"Bulk inserting {len(rows_to_insert)} products...", flush=True)
+            self.conn.executemany(
+                f'INSERT INTO products ({cols}) VALUES ({placeholders})',
+                rows_to_insert,
+            )
+            inserted = len(rows_to_insert)
+            print(f"Bulk insert complete: {inserted} products.", flush=True)
 
         key_fields = ["ip_rating", "ik_rating", "cct_k", "power_max_w", "lumen_output", "efficacy_lm_w", "product_family"]
         for field in key_fields:
@@ -768,8 +769,8 @@ class ProductDatabase:
         if self.backend == "postgres":
             self._set_statement_timeout(self.statement_timeout_ms)
             self.conn.commit()
-        print(f"DB ready. inserted={inserted} updated={updated} errors={errors}")
-        return inserted + updated
+        print(f"DB ready. inserted={inserted} errors={errors}")
+        return inserted
 
     def search_products(self, filters: Dict[str, Any], limit: int = 100) -> List[Dict[str, Any]]:
         if not self.conn:
