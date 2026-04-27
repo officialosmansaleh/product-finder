@@ -93,6 +93,9 @@ class PostgresCompatConnection:
     def commit(self):
         self.raw_conn.commit()
 
+    def rollback(self):
+        self.raw_conn.rollback()
+
     def close(self):
         self.raw_conn.close()
 
@@ -110,6 +113,8 @@ class ProductDatabase:
             self.backend = "postgres" if self.database_url.startswith(("postgres://", "postgresql://")) else "sqlite"
         self.conn: Optional[Any] = None
         self.last_release_diff: Dict[str, Any] = {}
+        self.statement_timeout_ms = int(os.getenv("PRODUCT_DB_STATEMENT_TIMEOUT_MS", "10000") or "10000")
+        self.import_statement_timeout_ms = int(os.getenv("PRODUCT_DB_IMPORT_STATEMENT_TIMEOUT_MS", "300000") or "300000")
 
     def connect(self):
         if self.backend == "postgres":
@@ -120,9 +125,8 @@ class ProductDatabase:
                 connect_timeout=int(os.getenv("PRODUCT_DB_CONNECT_TIMEOUT_SEC", "10") or "10"),
             )
             raw.autocommit = False
-            statement_timeout_ms = int(os.getenv("PRODUCT_DB_STATEMENT_TIMEOUT_MS", "10000") or "10000")
             with raw.cursor() as cur:
-                cur.execute("SET statement_timeout = %s", (statement_timeout_ms,))
+                cur.execute("SET statement_timeout = %s", (self.statement_timeout_ms,))
             self.conn = PostgresCompatConnection(raw)
             self._ensure_release_tables()
             return
@@ -140,6 +144,11 @@ class ProductDatabase:
 
     def _placeholder(self) -> str:
         return "%s" if self.backend == "postgres" else "?"
+
+    def _set_statement_timeout(self, timeout_ms: int) -> None:
+        if self.backend != "postgres" or not self.conn:
+            return
+        self.conn.execute("SET statement_timeout = %s", (int(timeout_ms),))
 
     def _utc_iso(self) -> str:
         return datetime.now(timezone.utc).isoformat()
@@ -686,6 +695,9 @@ class ProductDatabase:
 
         if not self.conn:
             self.connect()
+        if self.backend == "postgres":
+            self._set_statement_timeout(self.import_statement_timeout_ms)
+            self.conn.commit()
 
         self.conn.execute("DROP TABLE IF EXISTS products")
         self.conn.commit()
@@ -748,6 +760,9 @@ class ProductDatabase:
 
         self.conn.commit()
         self.last_release_diff = self._record_release_snapshot(xlsx_path, current_release_rows)
+        if self.backend == "postgres":
+            self._set_statement_timeout(self.statement_timeout_ms)
+            self.conn.commit()
         print(f"DB ready. inserted={inserted} updated={updated} errors={errors}")
         return inserted + updated
 
