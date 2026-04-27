@@ -114,7 +114,7 @@ class ProductDatabase:
         self.conn: Optional[Any] = None
         self.last_release_diff: Dict[str, Any] = {}
         self.statement_timeout_ms = int(os.getenv("PRODUCT_DB_STATEMENT_TIMEOUT_MS", "10000") or "10000")
-        self.import_statement_timeout_ms = int(os.getenv("PRODUCT_DB_IMPORT_STATEMENT_TIMEOUT_MS", "300000") or "300000")
+        self.import_statement_timeout_ms = int(os.getenv("PRODUCT_DB_IMPORT_STATEMENT_TIMEOUT_MS", "600000") or "600000")
 
     def connect(self):
         if self.backend == "postgres":
