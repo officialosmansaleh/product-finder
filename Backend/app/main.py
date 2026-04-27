@@ -3037,6 +3037,13 @@ async def admin_catalog_import(
             if imported_df is None or imported_df.empty:
                 raise HTTPException(status_code=400, detail="Uploaded catalog produced zero rows")
 
+            if PRODUCT_DB:
+                try:
+                    logger.info("Closing current product DB connection before catalog rebuild")
+                    PRODUCT_DB.close()
+                except Exception:
+                    logger.exception("Failed to close current product DB before catalog rebuild")
+
             new_db = ProductDatabase(
                 db_path=db_runtime.product_db_path,
                 database_url=db_runtime.product_database_url,
@@ -3045,11 +3052,6 @@ async def admin_catalog_import(
             new_db.connect(statement_timeout_ms=new_db.import_statement_timeout_ms)
             count = new_db.recreate_database(pim_path, family_path, df=imported_df)
 
-            if PRODUCT_DB:
-                try:
-                    PRODUCT_DB.close()
-                except Exception:
-                    pass
             PRODUCT_DB = new_db
             new_db = None
             DB = imported_df
