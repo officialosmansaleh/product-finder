@@ -116,7 +116,7 @@ class ProductDatabase:
         self.statement_timeout_ms = int(os.getenv("PRODUCT_DB_STATEMENT_TIMEOUT_MS", "10000") or "10000")
         self.import_statement_timeout_ms = int(os.getenv("PRODUCT_DB_IMPORT_STATEMENT_TIMEOUT_MS", "600000") or "600000")
 
-    def connect(self):
+    def connect(self, statement_timeout_ms: Optional[int] = None):
         if self.backend == "postgres":
             if not self.database_url:
                 raise ValueError("PostgreSQL database URL is missing or unresolved")
@@ -125,8 +125,13 @@ class ProductDatabase:
                 connect_timeout=int(os.getenv("PRODUCT_DB_CONNECT_TIMEOUT_SEC", "10") or "10"),
             )
             raw.autocommit = False
+            effective_statement_timeout_ms = (
+                int(statement_timeout_ms)
+                if statement_timeout_ms is not None
+                else self.statement_timeout_ms
+            )
             with raw.cursor() as cur:
-                cur.execute("SET statement_timeout = %s", (self.statement_timeout_ms,))
+                cur.execute("SET statement_timeout = %s", (effective_statement_timeout_ms,))
             self.conn = PostgresCompatConnection(raw)
             self._ensure_release_tables()
             return
@@ -694,7 +699,7 @@ class ProductDatabase:
             return 0
 
         if not self.conn:
-            self.connect()
+            self.connect(statement_timeout_ms=self.import_statement_timeout_ms)
         if self.backend == "postgres":
             self._set_statement_timeout(self.import_statement_timeout_ms)
             self.conn.commit()

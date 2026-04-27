@@ -3042,7 +3042,7 @@ async def admin_catalog_import(
                 database_url=db_runtime.product_database_url,
                 backend=db_runtime.product_db_backend,
             )
-            new_db.connect()
+            new_db.connect(statement_timeout_ms=new_db.import_statement_timeout_ms)
             count = new_db.recreate_database(pim_path, family_path, df=imported_df)
 
             if PRODUCT_DB:
