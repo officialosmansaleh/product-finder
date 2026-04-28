@@ -383,18 +383,35 @@ def load_family_map(path: str) -> dict:
 
     print(f"   Columns found: {list(fm.columns)}")
 
-    # Your file uses: Product name | family | Short product code
-    if "family" not in fm.columns or "Short product code" not in fm.columns:
-        raise ValueError("family_map.xlsx must contain columns: 'family' and 'Short product code'")
+    def _find_col(candidates: List[str]) -> str | None:
+        normalized = {_norm(c): c for c in fm.columns}
+        for candidate in candidates:
+            col = normalized.get(_norm(candidate))
+            if col:
+                return col
+        return None
 
-    fm["FamilyKey"] = fm["Short product code"].apply(_norm_key)
+    # Supported map formats include:
+    # Product name | family | Short product code
+    # Product name | Product family | Short product code
+    family_col = _find_col(["family", "product family", "product_family"])
+    short_code_col = _find_col(["Short product code", "short_product_code", "short code"])
+    product_name_col = _find_col(["Product name", "product_name", "<Name>", "name"])
+    if not family_col or not short_code_col:
+        raise ValueError("family_map.xlsx must contain a family column and a Short product code column")
+
+    fm["FamilyKey"] = fm[short_code_col].apply(_norm_key)
     # If Short code missing, fallback to first word of Product name
     missing = fm["FamilyKey"] == ""
-    fm.loc[missing, "FamilyKey"] = fm.loc[missing, "Product name"].apply(_first_word)
+    if missing.any() and product_name_col:
+        fm.loc[missing, "FamilyKey"] = fm.loc[missing, product_name_col].apply(_first_word)
 
-    fm["Family"] = fm["family"].apply(_normalize_family_name)
+    fm["Family"] = fm[family_col].apply(_normalize_family_name)
 
     fm = fm[(fm["FamilyKey"] != "") & (fm["Family"] != "")]
+    numeric_like_families = fm["Family"].astype(str).str.fullmatch(r"\d+(?:\.0)?").sum()
+    if len(fm) and numeric_like_families / len(fm) > 0.25:
+        raise ValueError("family_map.xlsx family column looks numeric; check the map columns")
     print(f"   Loaded {len(fm)} mappings")
     # Keep family text exactly as in file (first occurrence wins, case-insensitive key).
     out = {}
@@ -543,24 +560,26 @@ def load_products(
             if "product_family" in out.columns
             else pd.Series([""] * len(out), index=out.index)
         )
-        blank_family = fallback_family.isna() | fallback_family.astype(str).str.strip().eq("")
-        if blank_family.any():
-            fallback_family.loc[blank_family] = out.loc[blank_family, "short_product_code"].astype(str).str.strip()
-        still_blank = fallback_family.isna() | fallback_family.astype(str).str.strip().eq("")
-        if still_blank.any():
-            fallback_family.loc[still_blank] = out.loc[still_blank, "product_name"].apply(_first_word)
+        fallback_family = fallback_family.fillna("").astype(str).str.strip()
+        numeric_like_families = fallback_family.str.fullmatch(r"\d+(?:\.0)?").sum()
+        usable_family = fallback_family.ne("") & ~fallback_family.str.fullmatch(r"\d+(?:\.0)?")
+        if not usable_family.any() or numeric_like_families / max(len(fallback_family), 1) > 0.25:
+            raise ValueError(
+                "No valid family map was loaded and the PIM does not contain a usable product family column. "
+                "Upload a family_map.xlsx with family and Short product code columns."
+            )
         fallback_keys = out["short_product_code"].astype(str).str.lower().str.strip()
         fallback_name_keys = out["product_name"].apply(_first_word).astype(str).str.lower().str.strip()
         fam_map = {}
         for key, name_key, family in zip(fallback_keys, fallback_name_keys, fallback_family):
             clean_family = _normalize_family_name(family)
-            if clean_family:
+            if clean_family and not re.fullmatch(r"\d+(?:\.0)?", clean_family):
                 if key:
                     fam_map.setdefault(key, clean_family)
                 if name_key:
                     fam_map.setdefault(name_key, clean_family)
         if verbose:
-            print(f"No family map available; derived {len(fam_map)} family keys from PIM/name")
+            print(f"No family map available; derived {len(fam_map)} family keys from PIM product_family")
 
     # ---- CREA product_family SOLO DAL MAPPING ----
     # Rule: short_product_code, otherwise first word of product_name.
