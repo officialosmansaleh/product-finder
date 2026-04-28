@@ -187,6 +187,7 @@
     if (role === "it") return "IT";
     if (role === "director") return "Director";
     if (role === "manager") return "Manager";
+    if (role === "marketing") return "Marketing";
     return "User";
   }
 

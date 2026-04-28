@@ -1054,6 +1054,7 @@
       const allowed = [];
       if (!currentViewer) return ["overviewSection"];
       if (viewerRole() === "user") return ["passwordSection"];
+      if (isMarketingViewer()) return ["catalogHealthSection", "releaseChangesSection", "passwordSection"];
       if (isItViewer()) return ["settingsSection", "passwordSection"];
       if (currentViewer && isStaffViewer()){
         allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection", "catalogHealthSection", "passwordSection");
@@ -1525,13 +1526,26 @@
       return viewerRole() === "manager";
     }
 
+    function isMarketingViewer(){
+      return viewerRole() === "marketing";
+    }
+
     function isStaffViewer(){
       return ["admin", "director", "manager"].includes(viewerRole());
+    }
+
+    function canViewCatalogHealth(){
+      return ["admin", "director", "manager", "marketing"].includes(viewerRole());
+    }
+
+    function canViewReleaseChanges(){
+      return ["admin", "director", "marketing"].includes(viewerRole());
     }
 
     function assignableRoleEntries(){
       const roles = [
         ["user", "User"],
+        ["marketing", "Marketing"],
         ["manager", "Manager"],
         ["director", "Director"],
       ];
@@ -2467,7 +2481,7 @@
           return;
         }
         applyViewerLayout();
-        setNotice(isLeadershipViewer() ? "Loading leadership workspace..." : "Loading manager workspace...", false);
+      setNotice(isMarketingViewer() ? "Loading marketing workspace..." : (isLeadershipViewer() ? "Loading leadership workspace..." : "Loading manager workspace..."), false);
         const requests = [getJSON("/admin/users")];
         if (isLeadershipViewer()) requests.unshift(getJSON("/admin/users/pending"));
         const results = await Promise.all(requests);
@@ -2480,7 +2494,7 @@
         if (pendingSection) pendingSection.style.display = isLeadershipViewer() ? "" : "none";
         updateStats(allUsers, allPending);
         applyFilters();
-        setNotice(isLeadershipViewer() ? "Leadership data is up to date." : "Manager data is up to date.", false);
+      setNotice(isMarketingViewer() ? "Marketing data is up to date." : (isLeadershipViewer() ? "Leadership data is up to date." : "Manager data is up to date."), false);
       }catch(error){
         setNotice(String(error.message || error), true);
       }
@@ -2610,8 +2624,8 @@
         const me = window.ProductFinderAuth?.getUser?.();
         currentViewer = me || null;
         applyViewerLayout();
-        if (!me || !isStaffViewer()){
-          setCatalogHealthNotice("Catalog health is available only to approved admin, director, or manager users.", true);
+        if (!me || !canViewCatalogHealth()){
+          setCatalogHealthNotice("Catalog health is available only to approved admin, director, manager, or marketing users.", true);
           renderCatalogHealth({});
           return;
         }
@@ -2735,8 +2749,8 @@
         const me = window.ProductFinderAuth?.getUser?.();
         currentViewer = me || null;
         applyViewerLayout();
-        if (!me || !isLeadershipViewer()){
-          setReleaseDiffNotice("Catalog release export is available only to approved directors and admins.", true);
+        if (!me || !canViewReleaseChanges()){
+          setReleaseDiffNotice("Catalog release changes are available only to approved admin, director, or marketing users.", true);
           renderReleaseDiff({});
           return;
         }
@@ -2760,6 +2774,12 @@
     async function loadAdminPageData(){
       await loadAdminData();
       if (viewerRole() === "user"){
+        setPasswordNotice("Change your own password here.", false);
+        return;
+      }
+      if (isMarketingViewer()){
+        await loadReleaseDiff();
+        await loadCatalogHealth();
         setPasswordNotice("Change your own password here.", false);
         return;
       }

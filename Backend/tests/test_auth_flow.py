@@ -322,6 +322,69 @@ class AuthFlowTests(unittest.TestCase):
         release_diff = self.client.get("/admin/catalog-release-diff", headers=manager_headers)
         self.assertEqual(release_diff.status_code, 403, release_diff.text)
 
+    def test_marketing_can_access_catalog_panel_only(self):
+        signup_payload = {
+            "email": "marketing.user@test.local",
+            "password": "StrongPass123",
+            "full_name": "Marketing User",
+            "company_name": "Marketing Lighting",
+            "country": "Italy",
+        }
+        signup = self.client.post("/auth/signup", json=signup_payload)
+        self.assertEqual(signup.status_code, 200, signup.text)
+
+        admin_login = self.client.post(
+            "/auth/login",
+            json={"email": "admin@test.local", "password": "AdminPass1234"},
+        )
+        self.assertEqual(admin_login.status_code, 200, admin_login.text)
+        admin_headers = {"Authorization": f"Bearer {admin_login.json()['access_token']}"}
+
+        pending = self.client.get("/admin/users/pending", headers=admin_headers)
+        self.assertEqual(pending.status_code, 200, pending.text)
+        user_id = next(item["id"] for item in pending.json()["items"] if item["email"] == signup_payload["email"])
+
+        approved = self.client.post(
+            f"/admin/users/{user_id}/approve",
+            json={"role": "marketing"},
+            headers=admin_headers,
+        )
+        self.assertEqual(approved.status_code, 200, approved.text)
+        self.assertEqual(approved.json()["user"]["role"], "marketing")
+
+        marketing_login = self.client.post(
+            "/auth/login",
+            json={"email": signup_payload["email"], "password": signup_payload["password"]},
+        )
+        self.assertEqual(marketing_login.status_code, 200, marketing_login.text)
+        marketing_headers = {"Authorization": f"Bearer {marketing_login.json()['access_token']}"}
+
+        users_visible = self.client.get("/admin/users", headers=marketing_headers)
+        self.assertEqual(users_visible.status_code, 403, users_visible.text)
+
+        analytics = self.client.get("/admin/analytics/summary", headers=marketing_headers)
+        self.assertEqual(analytics.status_code, 403, analytics.text)
+
+        health = self.client.get("/admin/catalog-health", headers=marketing_headers)
+        self.assertEqual(health.status_code, 200, health.text)
+
+        original_product_db = self.main.PRODUCT_DB
+        try:
+            class _ReleaseDiffStub:
+                def get_latest_release_diff(self):
+                    return {"has_release": True, "summary": {"release_id": 1}, "items": []}
+
+                def export_latest_release_diff_csv(self):
+                    return "product_code,change_type\r\n"
+
+            self.main.PRODUCT_DB = _ReleaseDiffStub()
+            release_diff = self.client.get("/admin/catalog-release-diff", headers=marketing_headers)
+            self.assertEqual(release_diff.status_code, 200, release_diff.text)
+            release_export = self.client.get("/admin/catalog-release-diff/export", headers=marketing_headers)
+            self.assertEqual(release_export.status_code, 200, release_export.text)
+        finally:
+            self.main.PRODUCT_DB = original_product_db
+
     def test_signup_and_approval_emails_go_to_expected_recipients(self):
         sent_messages = []
 

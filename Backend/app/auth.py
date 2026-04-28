@@ -25,11 +25,12 @@ from app.admin_settings import CATEGORY_ORDER, SETTINGS_BY_KEY, SETTINGS_CATALOG
 from app.db_runtime import normalize_postgres_url
 
 ROLE_USER = "user"
+ROLE_MARKETING = "marketing"
 ROLE_MANAGER = "manager"
 ROLE_DIRECTOR = "director"
 ROLE_IT = "it"
 ROLE_ADMIN = "admin"
-ROLE_ORDER = (ROLE_USER, ROLE_MANAGER, ROLE_DIRECTOR, ROLE_IT, ROLE_ADMIN)
+ROLE_ORDER = (ROLE_USER, ROLE_MARKETING, ROLE_MANAGER, ROLE_DIRECTOR, ROLE_IT, ROLE_ADMIN)
 STAFF_ROLES = {ROLE_MANAGER, ROLE_DIRECTOR, ROLE_ADMIN}
 LEADERSHIP_ROLES = {ROLE_DIRECTOR, ROLE_ADMIN}
 
@@ -118,7 +119,7 @@ class UserStatusUpdateResponse(BaseModel):
 
 
 class UserApprovalRequest(BaseModel):
-    role: str = Field(default=ROLE_USER, pattern="^(admin|it|director|manager|user)$")
+    role: str = Field(default=ROLE_USER, pattern="^(admin|it|director|manager|marketing|user)$")
     assigned_countries: list[str] = Field(default_factory=list)
 
     @field_validator("role")
@@ -153,7 +154,7 @@ class AdminUserUpdateRequest(BaseModel):
     full_name: str = Field(default="", max_length=120)
     company_name: str = Field(default="", max_length=200)
     country: str = Field(default="", max_length=120)
-    role: str = Field(default=ROLE_USER, pattern="^(admin|it|director|manager|user)$")
+    role: str = Field(default=ROLE_USER, pattern="^(admin|it|director|manager|marketing|user)$")
     assigned_countries: list[str] = Field(default_factory=list)
 
     @field_validator("full_name", "company_name", "country")
@@ -1866,7 +1867,7 @@ class AuthService:
         if role == ROLE_ADMIN:
             return set(ROLE_ORDER)
         if role == ROLE_DIRECTOR:
-            return {ROLE_USER, ROLE_MANAGER, ROLE_DIRECTOR}
+            return {ROLE_USER, ROLE_MARKETING, ROLE_MANAGER, ROLE_DIRECTOR}
         return set()
 
     def _get_actor_role(self, acting_user_id: int) -> str:

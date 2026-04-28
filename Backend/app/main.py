@@ -136,6 +136,18 @@ auth_service = AuthService(
 _get_current_user_dep, require_admin_dep, require_leadership_dep, require_staff_dep, _get_token_dep = build_auth_dependencies(auth_service)
 
 
+def require_catalog_health_panel_dep(user: UserPublic = Depends(_get_current_user_dep)) -> UserPublic:
+    if str(user.role or "").strip().lower() not in {"admin", "director", "manager", "marketing"}:
+        raise HTTPException(status_code=403, detail="Catalog panel privileges required")
+    return user
+
+
+def require_release_changes_panel_dep(user: UserPublic = Depends(_get_current_user_dep)) -> UserPublic:
+    if str(user.role or "").strip().lower() not in {"admin", "director", "marketing"}:
+        raise HTTPException(status_code=403, detail="Catalog release privileges required")
+    return user
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     auth_service.init_db()
@@ -2959,7 +2971,7 @@ def database_stats():
 
 
 @app.get("/admin/catalog-health")
-def admin_catalog_health(_staff_user: UserPublic = Depends(require_staff_dep)):
+def admin_catalog_health(_catalog_user: UserPublic = Depends(require_catalog_health_panel_dep)):
     return catalog_health_impl()
 
 
@@ -2969,14 +2981,14 @@ def admin_access_matrix(_admin_user: UserPublic = Depends(require_admin_dep)):
 
 
 @app.get("/admin/catalog-release-diff")
-def admin_catalog_release_diff(_lead_user: UserPublic = Depends(require_leadership_dep)):
+def admin_catalog_release_diff(_catalog_user: UserPublic = Depends(require_release_changes_panel_dep)):
     if not PRODUCT_DB:
         raise HTTPException(status_code=503, detail="Product database not available")
     return PRODUCT_DB.get_latest_release_diff()
 
 
 @app.get("/admin/catalog-release-diff/export")
-def admin_catalog_release_diff_export(_lead_user: UserPublic = Depends(require_leadership_dep)):
+def admin_catalog_release_diff_export(_catalog_user: UserPublic = Depends(require_release_changes_panel_dep)):
     if not PRODUCT_DB:
         raise HTTPException(status_code=503, detail="Product database not available")
     csv_text = PRODUCT_DB.export_latest_release_diff_csv()
