@@ -84,7 +84,7 @@ class DbRuntimeTests(unittest.TestCase):
             finally:
                 db.close()
 
-    def test_family_map_import_clears_unmatched_stale_families(self):
+    def test_family_map_import_preserves_unmatched_existing_families(self):
         with tempfile.TemporaryDirectory() as td:
             db_path = os.path.join(td, "products.db")
             db = ProductDatabase(db_path=db_path, database_url="")
@@ -108,14 +108,14 @@ class DbRuntimeTests(unittest.TestCase):
 
                 result = db.update_families_from_map({"1252": "Street lighting"})
                 self.assertEqual(result["matched"], 1)
-                self.assertEqual(result["cleared"], 1)
+                self.assertEqual(result["unchanged"], 1)
 
                 rows = {
                     row["product_code"]: row["product_family"]
                     for row in db.search_products({}, limit=10)
                 }
                 self.assertEqual(rows["A1"], "Street lighting")
-                self.assertIsNone(rows["B1"])
+                self.assertEqual(rows["B1"], "9999")
             finally:
                 db.close()
 

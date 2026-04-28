@@ -3157,13 +3157,35 @@ async def admin_family_map_import(
             family_map = load_family_map(family_path)
             if not family_map:
                 raise HTTPException(status_code=400, detail="Family map produced zero valid mappings")
+            if PRODUCT_DB and not PRODUCT_DB.conn:
+                PRODUCT_DB.connect()
+            current_rows = PRODUCT_DB.conn.execute(
+                "SELECT short_product_code, product_name FROM products"
+            ).fetchall()
+            match_count = 0
+            for row in current_rows:
+                data = dict(row)
+                short_key = str(data.get("short_product_code") or "").strip().lower()
+                name_key = str(data.get("product_name") or "").strip().split()[0].lower() if str(data.get("product_name") or "").strip() else ""
+                if family_map.get(short_key) or family_map.get(name_key):
+                    match_count += 1
+            min_match_ratio = 0.70
+            total_rows = len(current_rows)
+            if total_rows and (match_count / total_rows) < min_match_ratio:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Family map matched only {match_count}/{total_rows} products. "
+                        "No changes were applied. Check that Short product code in the map matches the current catalog."
+                    ),
+                )
             result = PRODUCT_DB.update_families_from_map(family_map)
             if DB is not None and not DB.empty:
                 short_keys = DB["short_product_code"].astype(str).str.lower().str.strip() if "short_product_code" in DB.columns else pd.Series([""] * len(DB), index=DB.index)
                 name_keys = DB["product_name"].apply(lambda value: str(value or "").strip().split()[0].lower() if str(value or "").strip() else "") if "product_name" in DB.columns else pd.Series([""] * len(DB), index=DB.index)
                 DB["product_family"] = [
-                    family_map.get(short_key) or family_map.get(name_key) or ""
-                    for short_key, name_key in zip(short_keys, name_keys)
+                    family_map.get(short_key) or family_map.get(name_key) or current
+                    for short_key, name_key, current in zip(short_keys, name_keys, DB.get("product_family", pd.Series([""] * len(DB), index=DB.index)))
                 ]
             ALLOWED_FAMILIES = PRODUCT_DB.get_distinct_families()
             ALLOWED_FAMILIES_NORM = {str(f).strip().lower() for f in ALLOWED_FAMILIES if str(f).strip()}
