@@ -341,7 +341,15 @@
         </div>
         <div class="authFields">
           <input id="authEmail" type="email" placeholder="Work email" autocomplete="email" />
-          <input id="authPassword" type="password" placeholder="Password" autocomplete="${loginActive ? "current-password" : "new-password"}" />
+          <div class="authPasswordField">
+            <input id="authPassword" type="password" placeholder="Password" autocomplete="${loginActive ? "current-password" : "new-password"}" />
+            <button class="authPasswordToggle" type="button" data-auth-toggle-password="authPassword" aria-label="Show password">Show</button>
+          </div>
+          ${loginActive ? "" : `
+          <div class="authPasswordField">
+            <input id="authPasswordConfirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
+            <button class="authPasswordToggle" type="button" data-auth-toggle-password="authPasswordConfirm" aria-label="Show password confirmation">Show</button>
+          </div>`}
           <input id="authName" class="${loginActive ? "authHidden" : ""}" type="text" placeholder="Full name" autocomplete="name" />
           <input id="authCompany" class="${loginActive ? "authHidden" : ""}" type="text" placeholder="Company name" autocomplete="organization" />
           <select id="authCountry" class="${loginActive ? "authHidden" : ""}" autocomplete="country-name">
@@ -388,6 +396,7 @@
     const status = body.querySelector("#authStatus");
     const email = body.querySelector("#authEmail");
     const password = body.querySelector("#authPassword");
+    const passwordConfirm = body.querySelector("#authPasswordConfirm");
     const name = body.querySelector("#authName");
     const company = body.querySelector("#authCompany");
     const country = body.querySelector("#authCountry");
@@ -416,6 +425,17 @@
 
     body.querySelector("#btnAuthTabLogin")?.addEventListener("click", () => switchView("login"));
     body.querySelector("#btnAuthTabSignup")?.addEventListener("click", () => switchView("signup"));
+    body.querySelectorAll("[data-auth-toggle-password]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const targetId = String(button.getAttribute("data-auth-toggle-password") || "").trim();
+        const target = targetId ? body.querySelector(`#${CSS.escape(targetId)}`) : null;
+        if (!target) return;
+        const showing = target.getAttribute("type") === "text";
+        target.setAttribute("type", showing ? "password" : "text");
+        button.textContent = showing ? "Show" : "Hide";
+        button.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+      });
+    });
     country?.addEventListener("change", syncCountryField);
     syncCountryField();
 
@@ -423,6 +443,7 @@
       const mode = readView();
       const emailValue = String(email?.value || "").trim();
       const passwordValue = String(password?.value || "");
+      const passwordConfirmValue = String(passwordConfirm?.value || "");
       const nameValue = String(name?.value || "").trim();
       const companyValue = String(company?.value || "").trim();
       const countryValue = isOtherCountryValue(country?.value)
@@ -437,6 +458,16 @@
       if (!passwordValue) {
         setStatus("Enter your password first.", "warn");
         password?.focus();
+        return;
+      }
+      if (mode === "signup" && !passwordConfirmValue) {
+        setStatus("Confirm your password before sending the request.", "warn");
+        passwordConfirm?.focus();
+        return;
+      }
+      if (mode === "signup" && passwordValue !== passwordConfirmValue) {
+        setStatus("The two passwords do not match.", "error");
+        passwordConfirm?.focus();
         return;
       }
       if (mode === "signup" && !nameValue) {
@@ -508,7 +539,7 @@
         setStatus(mapped.text, mapped.tone);
       }
     });
-    [email, password, name, company, country, countryOther].forEach((field) => {
+    [email, password, passwordConfirm, name, company, country, countryOther].forEach((field) => {
       field?.addEventListener("keydown", async (event) => {
         if (event.key !== "Enter") return;
         event.preventDefault();
