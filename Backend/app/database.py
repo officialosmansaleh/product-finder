@@ -665,11 +665,12 @@ class ProductDatabase:
         if not self.conn:
             self.connect()
         if not family_map:
-            return {"matched": 0, "family_keys": 0}
+            return {"matched": 0, "cleared": 0, "family_keys": 0}
 
         self._add_missing_columns(["product_family"])
         rows = self.conn.execute("SELECT product_code, short_product_code, product_name FROM products").fetchall()
         matched = 0
+        cleared = 0
         ph = self._placeholder()
         for row in rows:
             data = dict(row)
@@ -677,11 +678,22 @@ class ProductDatabase:
             short_key = str(data.get("short_product_code") or "").strip().lower()
             name_key = str(data.get("product_name") or "").strip().split()[0].lower() if str(data.get("product_name") or "").strip() else ""
             family = family_map.get(short_key) or family_map.get(name_key)
-            if family and product_code:
-                self.conn.execute(f"UPDATE products SET product_family = {ph} WHERE product_code = {ph}", (str(family).strip(), product_code))
+            if not product_code:
+                continue
+            if family:
+                self.conn.execute(
+                    f"UPDATE products SET product_family = {ph} WHERE product_code = {ph}",
+                    (str(family).strip(), product_code),
+                )
                 matched += 1
+            else:
+                self.conn.execute(
+                    f"UPDATE products SET product_family = NULL WHERE product_code = {ph}",
+                    (product_code,),
+                )
+                cleared += 1
         self.conn.commit()
-        return {"matched": matched, "family_keys": len(family_map)}
+        return {"matched": matched, "cleared": cleared, "family_keys": len(family_map)}
 
     def init_db(self, xlsx_path: str, family_map_path: str = None, df: Optional[pd.DataFrame] = None):
         if df is None:

@@ -84,6 +84,41 @@ class DbRuntimeTests(unittest.TestCase):
             finally:
                 db.close()
 
+    def test_family_map_import_clears_unmatched_stale_families(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = os.path.join(td, "products.db")
+            db = ProductDatabase(db_path=db_path, database_url="")
+            try:
+                release = pd.DataFrame([
+                    {
+                        "product_code": "A1",
+                        "short_product_code": "1252",
+                        "product_name": "Alpha 100",
+                        "product_family": "1252",
+                    },
+                    {
+                        "product_code": "B1",
+                        "short_product_code": "9999",
+                        "product_name": "Beta 100",
+                        "product_family": "9999",
+                    },
+                ])
+                with mock.patch("app.pim_loader.load_products", return_value=release):
+                    self.assertEqual(db.init_db("polluted.xlsx"), 2)
+
+                result = db.update_families_from_map({"1252": "Street lighting"})
+                self.assertEqual(result["matched"], 1)
+                self.assertEqual(result["cleared"], 1)
+
+                rows = {
+                    row["product_code"]: row["product_family"]
+                    for row in db.search_products({}, limit=10)
+                }
+                self.assertEqual(rows["A1"], "Street lighting")
+                self.assertIsNone(rows["B1"])
+            finally:
+                db.close()
+
 
 if __name__ == "__main__":
     unittest.main()

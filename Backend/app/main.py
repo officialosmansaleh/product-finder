@@ -3162,8 +3162,8 @@ async def admin_family_map_import(
                 short_keys = DB["short_product_code"].astype(str).str.lower().str.strip() if "short_product_code" in DB.columns else pd.Series([""] * len(DB), index=DB.index)
                 name_keys = DB["product_name"].apply(lambda value: str(value or "").strip().split()[0].lower() if str(value or "").strip() else "") if "product_name" in DB.columns else pd.Series([""] * len(DB), index=DB.index)
                 DB["product_family"] = [
-                    family_map.get(short_key) or family_map.get(name_key) or current
-                    for short_key, name_key, current in zip(short_keys, name_keys, DB.get("product_family", pd.Series([""] * len(DB), index=DB.index)))
+                    family_map.get(short_key) or family_map.get(name_key) or ""
+                    for short_key, name_key in zip(short_keys, name_keys)
                 ]
             ALLOWED_FAMILIES = PRODUCT_DB.get_distinct_families()
             ALLOWED_FAMILIES_NORM = {str(f).strip().lower() for f in ALLOWED_FAMILIES if str(f).strip()}
