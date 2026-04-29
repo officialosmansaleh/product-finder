@@ -270,21 +270,31 @@
     .filtersBackdrop{display:none}
     @media (max-width: 980px){
       .mobileOnly{display:inline-flex}
-      header{font-size:16px;padding:10px 12px;align-items:flex-start;gap:8px}
-      .brand{width:auto}
-      .brand img{max-width:220px;height:auto}
-      #uiLangMount .select{min-width:110px}
-      header .right{width:100%;justify-content:flex-start;gap:8px}
-      header .right .btn{flex:1 1 calc(50% - 8px)}
+      header{font-size:14px;padding:6px 8px;align-items:center;gap:6px;flex-wrap:nowrap}
+      .brand{width:auto;flex:0 0 auto}
+      .brand img{height:34px;max-width:116px}
+      #uiLangMount .select{min-width:82px;min-height:34px;padding:5px 7px;border-radius:9px;font-size:12px}
+      header .right{width:auto;min-width:0;flex:1 1 auto;justify-content:flex-end;gap:6px}
+      header .right .btn{flex:0 0 auto;min-height:34px;padding:7px 9px;border-radius:10px;font-size:12px;box-shadow:none}
+      header .authCompactTrigger{gap:0;padding:3px;border-radius:999px;box-shadow:none}
+      header .authCompactBadge{width:28px;height:28px;font-size:10px}
+      header .authCompactMeta{display:none}
+      header .authBox,
+      header .authBoxLoggedIn{min-width:0;padding:3px;border-radius:999px;box-shadow:none;background:#fff}
+      header .authIdentityBadge{width:28px;height:28px;font-size:10px}
+      header .authUserMeta,
+      header .authHeader,
+      header .authFields,
+      header .authActions{display:none}
       .toolsComparePreview{
         order:1;
         flex:1 1 100%;
         max-width:100%;
       }
       .toolsComparePreview .chip{max-width:100%}
-      .mobileQueryWrap{display:block;flex:1 1 100%}
-      #qMobile{width:100%}
-      main{padding:10px;gap:10px}
+      .mobileQueryWrap{display:block;flex:1 1 100%;order:2}
+      #qMobile{width:100%;min-height:36px;height:36px;padding:8px 10px;font-size:14px;line-height:1.2;resize:none;border-radius:10px}
+      main{padding:8px;gap:8px}
       .resultsTop{flex-direction:column;align-items:stretch}
       .resultsTopRight{gap:8px;width:100%;margin-inline-start:0;justify-content:space-between}
       .resultsOrderRow{gap:6px;flex:1 1 auto}
@@ -312,8 +322,8 @@
       }
       .toast{max-width:min(92vw, 520px)}
       .groupNav{overflow:auto;white-space:nowrap;flex-wrap:nowrap;padding-bottom:4px}
-      .btn,.select,input[type="text"], input[type="number"],textarea{min-height:44px}
-      .btn.compact{min-height:36px}
+      .btn,.select,input[type="text"], input[type="number"],textarea{min-height:40px}
+      .btn.compact{min-height:34px}
       .welcomeLogo{width:min(82vw, 420px)}
       .welcomeCopy{font-size:32px}
       .welcomeSub{font-size:15px}
