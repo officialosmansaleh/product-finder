@@ -2334,6 +2334,121 @@ function resetRange(key, minId, maxId){
     return pills.slice(0,12).join("");
   }
 
+  const RESULT_SPEC_FIELDS = [
+    ["ip_rating", "IP"],
+    ["ik_rating", "IK"],
+    ["cct_k", "CCT"],
+    ["cri", "CRI"],
+    ["ugr", "UGR"],
+    ["power_max_w", "Power max W"],
+    ["lumen_output", "Lumen"],
+    ["efficacy_lm_w", "Efficacy"],
+    ["beam_angle_deg", "Beam"],
+    ["control_protocol", "Control"],
+    ["interface", "Interface"],
+    ["emergency_present", "Emergency"],
+    ["shape", "Shape"],
+    ["housing_color", "Color"],
+    ["warranty_years", "Warranty"],
+    ["lifetime_hours", "Lifetime h"],
+    ["led_rated_life_h", "LED life h"],
+    ["lumen_maintenance_pct", "Lumen maint."],
+    ["price", "Price"],
+  ];
+
+  function specValueForKey(preview, key){
+    const p = preview || {};
+    if (key === "ugr") return p.ugr ?? p.ugr_value;
+    if (key === "power_max_w") return p.power_max_w ?? p.power_max_value ?? p.power;
+    if (key === "lumen_output") return p.lumen_output ?? p.lumen_output_value;
+    if (key === "efficacy_lm_w") return p.efficacy_lm_w ?? p.efficacy_value;
+    return p[key];
+  }
+
+  function formatSpecDisplayValue(key, value){
+    let s = String(value ?? "").trim();
+    if (!s) return "";
+    s = s
+      .replaceAll("<lt/>", "<")
+      .replaceAll("&lt;", "<")
+      .replaceAll("&gt;", ">")
+      .replaceAll("<gt/>", ">")
+      .replace(/\s+/g, " ");
+    if (key === "ugr"){
+      s = s.replace(/^UGR\s*/i, "UGR");
+      s = s.replace(/^UGR(?=\d)/i, "UGR<");
+      const m = s.match(/(?:UGR)?\s*(<=|>=|<|>|=)?\s*(\d+(?:[.,]\d+)?)/i);
+      if (m){
+        const op = m[1] || "<";
+        const n = m[2].replace(",", ".");
+        return `${op}${n}`;
+      }
+    }
+    return s;
+  }
+
+  function deviationKeysForHit(hit){
+    const keys = new Set();
+    const add = (key) => {
+      const clean = normalizeSpecKey(key);
+      if (clean) keys.add(clean);
+    };
+    (Array.isArray(hit?.missing) ? hit.missing : []).forEach(add);
+    (Array.isArray(hit?.deviations) ? hit.deviations : []).forEach(raw => {
+      const s = String(raw || "").trim();
+      let m = s.match(/^hard missing:\s*([a-z0-9_]+)/i)
+        || s.match(/^([a-z0-9_]+):/i)
+        || s.match(/^([a-z0-9_]+)\s+mismatch:/i);
+      if (m) add(m[1]);
+      m = s.match(/\b([a-z0-9_]+)\s+mismatch:\s*wanted=/i);
+      if (m) add(m[1]);
+    });
+    return keys;
+  }
+
+  function normalizeSpecKey(key){
+    const k = String(key || "").trim();
+    return ({
+      ugr_value: "ugr",
+      power_max_value: "power_max_w",
+      power: "power_max_w",
+      lumen_output_value: "lumen_output",
+      efficacy_value: "efficacy_lm_w",
+      control: "control_protocol",
+      colour: "housing_color",
+      color: "housing_color",
+      family: "product_family",
+      name_prefix: "product_name_short",
+    })[k] || k;
+  }
+
+  function specStateClass(key, matchedKeys, deviatedKeys){
+    if (deviatedKeys.has(key)) return "bad";
+    if (matchedKeys.has(key)) return "ok";
+    return "neutral";
+  }
+
+  function renderSpecList(hit){
+    const p = hit?.preview || hit?.raw || {};
+    const matched = (hit && typeof hit.matched === "object" && hit.matched) ? hit.matched : {};
+    const matchedKeys = new Set(Object.keys(matched).map(normalizeSpecKey));
+    const deviatedKeys = deviationKeysForHit(hit);
+    const rows = RESULT_SPEC_FIELDS.map(([key, label]) => {
+      const value = specValueForKey(p, key);
+      const displayValue = formatSpecDisplayValue(key, value);
+      if (!displayValue) return "";
+      const state = specStateClass(key, matchedKeys, deviatedKeys);
+      return `
+        <div class="specRow ${state}">
+          <span class="specKey">${escapeHtml(label)}</span>
+          <span class="specValue">${escapeHtml(displayValue)}</span>
+        </div>
+      `;
+    }).filter(Boolean);
+    if (!rows.length) return "";
+    return `<div class="specList">${rows.join("")}</div>`;
+  }
+
 function formatScorePercent(score, opts = {}){
   const hasIssues = !!opts.hasIssues;
   const n = Number(score);
@@ -2363,9 +2478,7 @@ function summarizeMatchedFilters(hit, kind){
   )).slice(0, 4);
   const tier = resultTierLabel(hit, kind);
   if (!labels.length){
-    if (tier === "Exact") return "Matches your search.";
-    if (tier === "Close") return "Close to your search, with only limited differences.";
-    return "Related to your search, with some broader differences.";
+    return "";
   }
   if (tier === "Exact") return `Matches your search on ${humanJoin(labels)}.`;
   if (tier === "Close") return `Close to your search on ${humanJoin(labels)}.`;
@@ -2563,8 +2676,24 @@ function renderHits(containerId, hits, kind){
     return `
       <div class="hit ${isPrimary ? "primary" : ""}">
         <div class="hitBody">
-          <img class="hitImg" src="${escapeHtml(imageUrl)}" data-full-img="${escapeHtml(fullImageUrl)}" alt="${escapeHtml(orderCode)}" loading="lazy" decoding="async" />
-          <div>
+          <div class="hitMedia">
+            <img class="hitImg" src="${escapeHtml(imageUrl)}" data-full-img="${escapeHtml(fullImageUrl)}" alt="${escapeHtml(orderCode)}" loading="lazy" decoding="async" />
+            <a class="mfrLogoLink" href="${websiteUrl}" target="_blank" rel="noopener noreferrer" title="Go to website">
+              <img class="mfrLogo" src="${mfrLogoUrl}" alt="${mfrAlt}" loading="lazy" decoding="async" width="72" height="18" />
+              <span class="mfrLogoFallback" aria-hidden="true">${escapeHtml(mfrAlt)}</span>
+            </a>
+            <div class="hitLinks">
+              <a href="${datasheetUrl}" target="_blank" rel="noopener noreferrer">Datasheet</a>
+              <a href="${websiteUrl}" target="_blank" rel="noopener noreferrer">Website</a>
+            </div>
+            <div class="hitActions">
+              <div class="badge ${badgeClass}">${badgeText} | ${formatScorePercent(score, { hasIssues })}</div>
+              ${hasAuthenticatedSession() ? `<button class="btn hitActionBtn ${inQuote ? "secondary" : ""}" data-quote-toggle="${escapeHtml(orderCode)}">${inQuote ? "Remove" : "Add to quote"}</button>` : ``}
+              ${hasAuthenticatedSession() ? `<button class="btn secondary hitActionBtn" type="button" data-compare-add="${escapeHtml(orderCode)}">Compare</button>` : ``}
+              ${hasAuthenticatedSession() ? `<a class="btn secondary hitActionBtn" href="/frontend/tools.html?fresh=1&altCode=${encodeURIComponent(orderCode)}&auto=1${getCurrentQueryText() ? `&idealQuery=${encodeURIComponent(getCurrentQueryText())}` : ``}${getCurrentFiltersQueryParam() ? `&finderFilters=${getCurrentFiltersQueryParam()}` : ``}${getCurrentCompareSeedQueryParam() ? `&finderSeedSpec=${getCurrentCompareSeedQueryParam()}` : ``}">Alternatives</a>` : ``}
+            </div>
+          </div>
+          <div class="hitInfo">
             <div class="hitHead">
               <div>
                 ${isPrimary ? `<div class="topMark">Top match</div>` : ``}
@@ -2574,21 +2703,9 @@ function renderHits(containerId, hits, kind){
                   </a>
                 </div>
                 <div class="name">${escapeHtml(h.product_name || "")}</div>
-                <div style="margin-top:4px">
-                  <a class="mfrLogoLink" href="${websiteUrl}" target="_blank" rel="noopener noreferrer" title="Go to website">
-                    <img class="mfrLogo" src="${mfrLogoUrl}" alt="${mfrAlt}" loading="lazy" decoding="async" width="72" height="18" />
-                    <span class="mfrLogoFallback" aria-hidden="true">${escapeHtml(mfrAlt)}</span>
-                  </a>
-                </div>
-              </div>
-              <div class="hitActions">
-                <div class="badge ${badgeClass}">${badgeText} | ${formatScorePercent(score, { hasIssues })}</div>
-                ${hasAuthenticatedSession() ? `<button class="btn ${inQuote ? "secondary" : ""}" style="padding:6px 8px" data-quote-toggle="${escapeHtml(orderCode)}">${inQuote ? "Remove" : "Add to quote"}</button>` : ``}
-                ${hasAuthenticatedSession() ? `<button class="btn secondary" type="button" style="padding:6px 8px" data-compare-add="${escapeHtml(orderCode)}">Compare</button>` : ``}
-                ${hasAuthenticatedSession() ? `<a class="btn secondary" style="padding:6px 8px;text-decoration:none;text-align:center" href="/frontend/tools.html?fresh=1&altCode=${encodeURIComponent(orderCode)}&auto=1${getCurrentQueryText() ? `&idealQuery=${encodeURIComponent(getCurrentQueryText())}` : ``}${getCurrentFiltersQueryParam() ? `&finderFilters=${getCurrentFiltersQueryParam()}` : ``}${getCurrentCompareSeedQueryParam() ? `&finderSeedSpec=${getCurrentCompareSeedQueryParam()}` : ``}">Alternatives</a>` : ``}
               </div>
             </div>
-            <div class="specs">${getPreviewPills(h)}</div>
+            ${renderSpecList(h)}
             ${buildResultExplanation(h, kind)}
           </div>
         </div>
