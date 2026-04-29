@@ -19,6 +19,12 @@
     fr: { media: "2", prefix: "FR" },
     it: { media: "4", prefix: "IT" },
     es: { media: "5", prefix: "ES" },
+    ru: { media: "20", prefix: "RU" },
+    pl: { media: "22", prefix: "PL" },
+    pt: { media: "1006", prefix: "PT" },
+    cs: { media: "1002", prefix: "CS" },
+    hr: { media: "1004", prefix: "HR" },
+    sl: { media: "1003", prefix: "SL" },
   };
   let currentPage = 1;
   let allExactResults = [];
