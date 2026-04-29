@@ -2658,6 +2658,7 @@ function renderHits(containerId, hits, kind){
     const badgeClass = kind==="exact" ? "ok" : "warn";
     const badgeText = resultTierLabel(h, kind);
     const isPrimary = kind === "exact" && idx === 0;
+    const showProductActions = canUseCompareAndQuote();
 
     const orderCode = h.product_code || "";
     const inQuote = quoteCart.has(String(orderCode));
@@ -2688,9 +2689,9 @@ function renderHits(containerId, hits, kind){
             </div>
             <div class="hitActions">
               <div class="badge ${badgeClass}">${badgeText} | ${formatScorePercent(score, { hasIssues })}</div>
-              ${hasAuthenticatedSession() ? `<button class="btn hitActionBtn ${inQuote ? "secondary" : ""}" data-quote-toggle="${escapeHtml(orderCode)}">${inQuote ? "Remove" : "Add to quote"}</button>` : ``}
-              ${hasAuthenticatedSession() ? `<button class="btn secondary hitActionBtn" type="button" data-compare-add="${escapeHtml(orderCode)}">Compare</button>` : ``}
-              ${hasAuthenticatedSession() ? `<a class="btn secondary hitActionBtn" href="/frontend/tools.html?fresh=1&altCode=${encodeURIComponent(orderCode)}&auto=1${getCurrentQueryText() ? `&idealQuery=${encodeURIComponent(getCurrentQueryText())}` : ``}${getCurrentFiltersQueryParam() ? `&finderFilters=${getCurrentFiltersQueryParam()}` : ``}${getCurrentCompareSeedQueryParam() ? `&finderSeedSpec=${getCurrentCompareSeedQueryParam()}` : ``}">Alternatives</a>` : ``}
+              ${showProductActions ? `<button class="btn hitActionBtn ${inQuote ? "secondary" : ""}" data-quote-toggle="${escapeHtml(orderCode)}">${inQuote ? "Remove" : "Add to quote"}</button>` : ``}
+              ${showProductActions ? `<button class="btn secondary hitActionBtn" type="button" data-compare-add="${escapeHtml(orderCode)}">Compare</button>` : ``}
+              ${showProductActions ? `<a class="btn secondary hitActionBtn" href="/frontend/tools.html?fresh=1&altCode=${encodeURIComponent(orderCode)}&auto=1${getCurrentQueryText() ? `&idealQuery=${encodeURIComponent(getCurrentQueryText())}` : ``}${getCurrentFiltersQueryParam() ? `&finderFilters=${getCurrentFiltersQueryParam()}` : ``}${getCurrentCompareSeedQueryParam() ? `&finderSeedSpec=${getCurrentCompareSeedQueryParam()}` : ``}">Alternatives</a>` : ``}
             </div>
           </div>
           <div class="hitInfo">
