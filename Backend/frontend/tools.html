@@ -496,6 +496,12 @@
       const q = encodeURIComponent(c);
       return `https://www.disano.it/download/mediafiles/-${cfg.media}_${q}.pdf/${cfg.prefix}_${q}.pdf`;
     }
+    function refreshToolsDatasheetLinks(){
+      Array.from(document.querySelectorAll("[data-datasheet-code]")).forEach(link => {
+        const code = String(link.getAttribute("data-datasheet-code") || "").trim();
+        if (code) link.setAttribute("href", toolsDatasheetUrl(code));
+      });
+    }
     let altColumnFilters = {
       code: "",
       name: "",
@@ -778,7 +784,7 @@
                   <b>${slotTitle(slot)}</b>
                   <span>-</span>
                   ${item.product_code
-                    ? `<a class="solTableLink mono" href="${esc(toolsDatasheetUrl(item.product_code || requested))}" target="_blank" rel="noopener">${esc(item.product_code || requested)}</a>`
+                    ? `<a class="solTableLink mono" href="${esc(toolsDatasheetUrl(item.product_code || requested))}" data-datasheet-code="${esc(item.product_code || requested)}" target="_blank" rel="noopener">${esc(item.product_code || requested)}</a>`
                     : `<span class="mono">${esc(item.product_code || requested)}</span>`}
                   <span>${esc(item.product_name || "")}</span>
                 </div>
@@ -1072,7 +1078,7 @@
               </th>
             </tr>
           </thead>
-          <tbody>${pageRows.map(r=>`<tr><td>${r.image_preview_url?`<img class="thumb" src="${esc(r.image_preview_url)}" data-full-img="${esc(`/full-image?product_code=${encodeURIComponent(String(r.product_code||""))}&manufacturer=${encodeURIComponent(String(r.manufacturer||""))}&website_url=${encodeURIComponent(toolsWebsiteUrl(r.product_code))}`)}" alt="Preview ${esc(r.product_code)}" loading="lazy" />`:""}</td><td class="mono"><a class="solTableLink" href="${esc(toolsWebsiteUrl(r.product_code))}" target="_blank" rel="noopener">${esc(r.product_code)}</a></td><td>${esc(r.product_name||"")}</td><td>${manufacturerLogoCell(r.manufacturer, r.product_code)}</td><td>${esc(r.product_family||"")}</td><td>${esc(scorePct(r.score))}</td><td>${r.product_code?`<a class="solTableLink" href="${esc(toolsDatasheetUrl(r.product_code))}" target="_blank" rel="noopener">Datasheet</a>`:""}</td><td><div class="solActions"><button type="button" ${compareAttr}="${esc(r.product_code)}">Compare</button><button type="button" class="${isInQuote(r.product_code) ? "secondary" : ""}" ${quoteAttr}="${esc(r.product_code)}">Quote</button></div></td></tr>`).join("")}</tbody>
+          <tbody>${pageRows.map(r=>`<tr><td>${r.image_preview_url?`<img class="thumb" src="${esc(r.image_preview_url)}" data-full-img="${esc(`/full-image?product_code=${encodeURIComponent(String(r.product_code||""))}&manufacturer=${encodeURIComponent(String(r.manufacturer||""))}&website_url=${encodeURIComponent(toolsWebsiteUrl(r.product_code))}`)}" alt="Preview ${esc(r.product_code)}" loading="lazy" />`:""}</td><td class="mono"><a class="solTableLink" href="${esc(toolsWebsiteUrl(r.product_code))}" target="_blank" rel="noopener">${esc(r.product_code)}</a></td><td>${esc(r.product_name||"")}</td><td>${manufacturerLogoCell(r.manufacturer, r.product_code)}</td><td>${esc(r.product_family||"")}</td><td>${esc(scorePct(r.score))}</td><td>${r.product_code?`<a class="solTableLink" href="${esc(toolsDatasheetUrl(r.product_code))}" data-datasheet-code="${esc(r.product_code)}" target="_blank" rel="noopener">Datasheet</a>`:""}</td><td><div class="solActions"><button type="button" ${compareAttr}="${esc(r.product_code)}">Compare</button><button type="button" class="${isInQuote(r.product_code) ? "secondary" : ""}" ${quoteAttr}="${esc(r.product_code)}">Quote</button></div></td></tr>`).join("")}</tbody>
         </table>
         </div>`;
 
@@ -1479,6 +1485,7 @@
         toolsLang = tl.value;
         try{ localStorage.setItem(UI_LANG_KEY, toolsLang); }catch(_e){}
         applyToolsI18n();
+        refreshToolsDatasheetLinks();
         if (lastAltData?.data) renderAlternatives(lastAltData.data, lastAltData.code);
         if (lastIdealAltData) renderIdealAlternatives(lastIdealAltData);
       });
