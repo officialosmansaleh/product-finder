@@ -57,6 +57,7 @@
   let optionalUiScriptsScheduled = false;
   let initialFacetsWarmupScheduled = false;
   let facetsHydratedAtLeastOnce = false;
+  let initialFacetsLoadPromise = null;
   let welcomeGateActive = false;
   const SUPPORTED_LANGS = [
     { code: "en", label: "English" },
@@ -160,7 +161,7 @@
     runAfterWindowLoad(()=>{
       runWhenBrowserIdle(()=>{
         if (facetsHydratedAtLeastOnce) return;
-        loadFacets({ showErrorToast: false });
+        ensureInitialFacetsLoaded({ showErrorToast: false });
       }, 1600);
     });
   }
@@ -2797,6 +2798,16 @@ document.addEventListener("keydown", (ev)=>{
     }
   }
 
+  function ensureInitialFacetsLoaded(options = {}){
+    if (facetsHydratedAtLeastOnce) return Promise.resolve();
+    if (!initialFacetsLoadPromise){
+      initialFacetsLoadPromise = loadFacets(options).finally(()=>{
+        initialFacetsLoadPromise = null;
+      });
+    }
+    return initialFacetsLoadPromise;
+  }
+
   async function runSearch(){
     const startedAt = performance.now();
     hasRunSearchOnce = true;
@@ -2909,7 +2920,13 @@ document.addEventListener("keydown", (ev)=>{
     ids.forEach(id=>{
       const el = $(id);
       if (!el) return;
+      el.addEventListener("focus", ()=>{
+        ensureInitialFacetsLoaded({ showErrorToast: false });
+      });
       el.addEventListener("input", ()=>{
+        if (!facetsHydratedAtLeastOnce){
+          ensureInitialFacetsLoaded({ showErrorToast: false });
+        }
         clearTimeout(facetTimer);
         facetTimer = setTimeout(()=> loadFacets(), 250);
       });
@@ -2944,7 +2961,7 @@ document.addEventListener("keydown", (ev)=>{
     const backdrop = $("filtersBackdrop");
     if (openBtn){
       openBtn.addEventListener("click", ()=>{
-        loadFacets({ showErrorToast: false });
+        ensureInitialFacetsLoaded({ showErrorToast: false });
         openFiltersPanel();
       });
     }
