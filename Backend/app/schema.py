@@ -207,4 +207,5 @@ class QuotePdfRequest(BaseModel):
 
 class QuoteDatasheetsZipRequest(BaseModel):
     items: List[QuotePdfItem] = Field(default_factory=list)
+    language: str = "en"
 

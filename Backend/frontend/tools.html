@@ -432,6 +432,12 @@
     const COMPARE_REF_IMAGE_KEY = "productFinderCompareRefImageV1";
     const TOOLS_STATE_TTL_MS = 30 * 60 * 1000;
     const FINDER_ONLY_TOOLS = true;
+    const DATASHEET_LANGS = {
+      en: { media: "1", prefix: "EN" },
+      fr: { media: "2", prefix: "FR" },
+      it: { media: "4", prefix: "IT" },
+      es: { media: "5", prefix: "ES" },
+    };
     const TOOLS_LANGS = [["en","English"],["it","Italiano"],["fr","Francais"],["es","Espanol"],["pt","Portugues"],["ru","\u0420\u0443\u0441\u0441\u043a\u0438\u0439"],["ar","\u0627\u0644\u0639\u0631\u0628\u064a\u0629"],["pl","Polski"],["cs","Cestina"],["hr","Hrvatski"],["sl","Slovenscina"]];
     const TI18N = {
       en:{title:"Compare Workspace",language:"Language",finder:"Home",quote:"Quote cart",apply_filters:"Apply filters",reset:"Reset",requirements:"Requirements",req_panel_hint:"Requirement panel for matching and comparison.",tender_spec:"Project requirement",apply_code:"Apply code",comparison:"COMPARE OPTIONS",compare:"Compare",clear:"Clear",solutions:"Recommended matches",close:"Close"},
@@ -476,6 +482,13 @@
           : "Seed the comparison brief from one of your product codes.";
       }
       refreshToolsQuoteButton();
+    }
+    function toolsDatasheetUrl(code){
+      const c = String(code || "").trim();
+      if (!c) return "";
+      const cfg = DATASHEET_LANGS[String(toolsLang || "").toLowerCase()] || DATASHEET_LANGS.en;
+      const q = encodeURIComponent(c);
+      return `https://www.disano.it/download/mediafiles/-${cfg.media}_${q}.pdf/${cfg.prefix}_${q}.pdf`;
     }
     let altColumnFilters = {
       code: "",
@@ -758,8 +771,8 @@
                 <div class="cmpMetaRow small">
                   <b>${slotTitle(slot)}</b>
                   <span>-</span>
-                  ${item.datasheet_url
-                    ? `<a class="solTableLink mono" href="${esc(item.datasheet_url)}" target="_blank" rel="noopener">${esc(item.product_code || requested)}</a>`
+                  ${item.product_code
+                    ? `<a class="solTableLink mono" href="${esc(toolsDatasheetUrl(item.product_code || requested))}" target="_blank" rel="noopener">${esc(item.product_code || requested)}</a>`
                     : `<span class="mono">${esc(item.product_code || requested)}</span>`}
                   <span>${esc(item.product_name || "")}</span>
                 </div>
@@ -1053,7 +1066,7 @@
               </th>
             </tr>
           </thead>
-          <tbody>${pageRows.map(r=>`<tr><td>${r.image_preview_url?`<img class="thumb" src="${esc(r.image_preview_url)}" data-full-img="${esc(`/full-image?product_code=${encodeURIComponent(String(r.product_code||""))}&manufacturer=${encodeURIComponent(String(r.manufacturer||""))}&website_url=${encodeURIComponent(toolsWebsiteUrl(r.product_code))}`)}" alt="Preview ${esc(r.product_code)}" loading="lazy" />`:""}</td><td class="mono"><a class="solTableLink" href="${esc(toolsWebsiteUrl(r.product_code))}" target="_blank" rel="noopener">${esc(r.product_code)}</a></td><td>${esc(r.product_name||"")}</td><td>${manufacturerLogoCell(r.manufacturer, r.product_code)}</td><td>${esc(r.product_family||"")}</td><td>${esc(scorePct(r.score))}</td><td>${r.datasheet_url?`<a class="solTableLink" href="${esc(r.datasheet_url)}" target="_blank" rel="noopener">Datasheet</a>`:""}</td><td><div class="solActions"><button type="button" ${compareAttr}="${esc(r.product_code)}">Compare</button><button type="button" class="${isInQuote(r.product_code) ? "secondary" : ""}" ${quoteAttr}="${esc(r.product_code)}">Quote</button></div></td></tr>`).join("")}</tbody>
+          <tbody>${pageRows.map(r=>`<tr><td>${r.image_preview_url?`<img class="thumb" src="${esc(r.image_preview_url)}" data-full-img="${esc(`/full-image?product_code=${encodeURIComponent(String(r.product_code||""))}&manufacturer=${encodeURIComponent(String(r.manufacturer||""))}&website_url=${encodeURIComponent(toolsWebsiteUrl(r.product_code))}`)}" alt="Preview ${esc(r.product_code)}" loading="lazy" />`:""}</td><td class="mono"><a class="solTableLink" href="${esc(toolsWebsiteUrl(r.product_code))}" target="_blank" rel="noopener">${esc(r.product_code)}</a></td><td>${esc(r.product_name||"")}</td><td>${manufacturerLogoCell(r.manufacturer, r.product_code)}</td><td>${esc(r.product_family||"")}</td><td>${esc(scorePct(r.score))}</td><td>${r.product_code?`<a class="solTableLink" href="${esc(toolsDatasheetUrl(r.product_code))}" target="_blank" rel="noopener">Datasheet</a>`:""}</td><td><div class="solActions"><button type="button" ${compareAttr}="${esc(r.product_code)}">Compare</button><button type="button" class="${isInQuote(r.product_code) ? "secondary" : ""}" ${quoteAttr}="${esc(r.product_code)}">Quote</button></div></td></tr>`).join("")}</tbody>
         </table>
         </div>`;
 
@@ -1456,7 +1469,13 @@
     if (tl){
       tl.innerHTML = TOOLS_LANGS.map(([c,l])=>`<option value="${c}">${l}</option>`).join("");
       tl.value = toolsLang;
-      tl.addEventListener("change", ()=>{ toolsLang = tl.value; try{ localStorage.setItem(UI_LANG_KEY, toolsLang); }catch(_e){} applyToolsI18n(); });
+      tl.addEventListener("change", ()=>{
+        toolsLang = tl.value;
+        try{ localStorage.setItem(UI_LANG_KEY, toolsLang); }catch(_e){}
+        applyToolsI18n();
+        if (lastAltData?.data) renderAlternatives(lastAltData.data, lastAltData.code);
+        if (lastIdealAltData) renderIdealAlternatives(lastIdealAltData);
+      });
     }
     const _paramsForRestore = new URLSearchParams(window.location.search);
     const hasUrlSeedForTools = !!(

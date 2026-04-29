@@ -262,7 +262,7 @@ def handle_export_quote_pdf(
 def handle_export_quote_datasheets_zip(
     req: Any,
     *,
-    build_datasheet_url: Callable[[str, str], str],
+    build_datasheet_url: Callable[..., str],
     safe_open_url: Callable[..., Any],
     cfg_int: Callable[[str, int], int],
     public_fetch_hosts: Any,
@@ -281,6 +281,7 @@ def handle_export_quote_datasheets_zip(
     added = 0
     errors: List[str] = []
     seen_codes: set[str] = set()
+    language = str(getattr(req, "language", "") or "en").strip().lower()
 
     def safe_name(value: str) -> str:
         s = re_module.sub(r"[^A-Za-z0-9._-]+", "_", str(value or "").strip())
@@ -293,7 +294,7 @@ def handle_export_quote_datasheets_zip(
                 continue
             seen_codes.add(code)
             manufacturer = str(getattr(item, "manufacturer", "") or "").strip()
-            datasheet_url = build_datasheet_url(code, manufacturer)
+            datasheet_url = build_datasheet_url(code, manufacturer, language)
             if not datasheet_url:
                 errors.append(f"{code}: datasheet URL unavailable")
                 continue

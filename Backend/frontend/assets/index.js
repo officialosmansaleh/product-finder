@@ -14,6 +14,12 @@
   const LEGACY_PRODUCT_NAME_FILTER_KEY = "name_prefix";
   const PUBLIC_QUERY_MAX_WORDS = 2;
   const PUBLIC_QUERY_MAX_CHARS = 24;
+  const DATASHEET_LANGS = {
+    en: { media: "1", prefix: "EN" },
+    fr: { media: "2", prefix: "FR" },
+    it: { media: "4", prefix: "IT" },
+    es: { media: "5", prefix: "ES" },
+  };
   let currentPage = 1;
   let allExactResults = [];
   let allSimilarResults = [];
@@ -466,6 +472,7 @@
     currentLang = SUPPORTED_LANGS.some(x => x.code === code) ? code : "en";
     try { localStorage.setItem(UI_LANG_KEY, currentLang); } catch(_e){}
     applyLanguage();
+    renderPage();
   }
 
   function initLanguageUI(){
@@ -2537,7 +2544,7 @@ function renderHits(containerId, hits, kind){
     const inQuote = quoteCart.has(String(orderCode));
     const p = h.preview || {};
     const manufacturer = String(p.manufacturer || "").trim();
-    const datasheetUrl = p.datasheet_url || `https://www.disano.it/download/mediafiles/-1_${encodeURIComponent(orderCode)}.pdf/EN_${encodeURIComponent(orderCode)}.pdf`;
+    const datasheetUrl = buildDatasheetUrl(orderCode, currentLang);
     const websiteUrl = p.website_url || `https://www.disano.it/it/search/?q=${encodeURIComponent(orderCode)}`;
     const imageUrl = p.image_preview_url || `/preview-image?product_code=${encodeURIComponent(orderCode)}&manufacturer=${encodeURIComponent(manufacturer)}&website_url=${encodeURIComponent(websiteUrl)}`;
     const fullImageUrl = `/full-image?product_code=${encodeURIComponent(orderCode)}&manufacturer=${encodeURIComponent(manufacturer)}&website_url=${encodeURIComponent(websiteUrl)}`;
@@ -2598,6 +2605,14 @@ function renderHits(containerId, hits, kind){
       if (link) link.classList.add("logoFail");
     }, { once: true });
   });
+}
+
+function buildDatasheetUrl(code, lang){
+  const c = String(code || "").trim();
+  if (!c) return "";
+  const cfg = DATASHEET_LANGS[String(lang || "").toLowerCase()] || DATASHEET_LANGS.en;
+  const q = encodeURIComponent(c);
+  return `https://www.disano.it/download/mediafiles/-${cfg.media}_${q}.pdf/${cfg.prefix}_${q}.pdf`;
 }
 
 document.addEventListener("click", (ev)=>{

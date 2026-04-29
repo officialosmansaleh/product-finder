@@ -298,6 +298,12 @@
     const AUTH_USER_KEY = "productFinderAuthUserV1";
     const DISANO_LOGO_URL = "/frontend/logo-disano.png";
     const FOSNOVA_LOGO_URL = "https://www.disano.it/_next/image/?url=%2F_next%2Fstatic%2Fmedia%2Flogo-fosnova.4f4c2c36.png&w=256&q=75";
+    const DATASHEET_LANGS = {
+      en: { media: "1", prefix: "EN" },
+      fr: { media: "2", prefix: "FR" },
+      it: { media: "4", prefix: "IT" },
+      es: { media: "5", prefix: "ES" },
+    };
     const quoteCart = new Map();
     let currentSavedQuoteId = null;
     let currentQuoteStorageOwner = "";
@@ -467,8 +473,9 @@
     function quoteDatasheetUrl(code){
       const c = String(code || "").trim();
       if (!c) return "";
+      const cfg = DATASHEET_LANGS[String(quoteLang || "").toLowerCase()] || DATASHEET_LANGS.en;
       const q = encodeURIComponent(c);
-      return `https://www.disano.it/download/mediafiles/-1_${q}.pdf/EN_${q}.pdf`;
+      return `https://www.disano.it/download/mediafiles/-${cfg.media}_${q}.pdf/${cfg.prefix}_${q}.pdf`;
     }
     function compactCode(v){
       return String(v || "").toLowerCase().replace(/[^0-9a-z]/g, "");
@@ -1338,7 +1345,7 @@
       const rows = getQuoteRowsInDisplayOrder();
       if (!rows.length){ toast(tq("quote_empty")); return; }
       try{
-        const res = await postJSON("/quote/datasheets-zip", { items: rows });
+        const res = await postJSON("/quote/datasheets-zip", { items: rows, language: quoteLang });
         const blob = await res.blob();
         const cd = res.headers.get("Content-Disposition") || "";
         let filename = `datasheets_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.zip`;

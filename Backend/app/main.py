@@ -779,9 +779,19 @@ def _build_website_url(product_code: str, manufacturer: str) -> str:
     return f"https://www.disano.it/it/search/?q={code_q}"
 
 
-def _build_datasheet_url(product_code: str, manufacturer: str) -> str:
+DATASHEET_LANGUAGE_MAP = {
+    "en": ("1", "EN"),
+    "fr": ("2", "FR"),
+    "it": ("4", "IT"),
+    "es": ("5", "ES"),
+}
+
+
+def _build_datasheet_url(product_code: str, manufacturer: str, language: str = "en") -> str:
     code = str(product_code or "").strip()
-    return f"https://www.disano.it/download/mediafiles/-1_{quote_plus(code)}.pdf/EN_{quote_plus(code)}.pdf"
+    media_id, prefix = DATASHEET_LANGUAGE_MAP.get(str(language or "").strip().lower(), DATASHEET_LANGUAGE_MAP["en"])
+    code_q = quote_plus(code)
+    return f"https://www.disano.it/download/mediafiles/-{media_id}_{code_q}.pdf/{prefix}_{code_q}.pdf"
 
 
 def _normalize_image_url(raw: str) -> Optional[str]:
