@@ -1,5 +1,5 @@
 ﻿// ---------------- State ----------------
-  const UI_BUILD = "2026-04-24-finder-reset-layout-1";
+  const UI_BUILD = "2026-04-30-compact-result-sort-1";
   const selectedFilters = {}; // { key: Set(values as strings) }
   let hasRunSearchOnce = false;
   const $ = (id) => document.getElementById(id);
@@ -85,7 +85,7 @@
     { code: "sl", label: "Slovenšcina" },
   ];
   const I18N = {
-    en: { lang_label:"Language", title:"Laiting Workspace", tagline:"search, compare, and quote from one workspace", btn_tools:"Compare", btn_quote:"Quote cart", btn_filters:"Filters", btn_reset:"Reset", btn_search:"Search", btn_searching:"Searching...", btn_import_pdf:"Import PDF", btn_import_image:"Import Image", q_placeholder:"e.g. downlight for office, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Type your query...", sort:"Sort", exact:"Exact", similar:"Similar", prev:"Prev", next:"Next", dismiss:"Dismiss", close:"Close", quick_start:"Quick start", recovery_title:"No exact matches. Try one of these:", no_filters_selected:"No filters selected", parsed_from_query:"Parsed from query text", stats_searching:"Searching...", stats_search_failed:"Search failed", metric_latency:"Latency", metric_exact:"Exact", metric_similar:"Similar", metric_filters:"Filters", page_label:"Page", page_loading:"Page ...", toast_set_min_or_max:"Set min or max", toast_facets_failed:"Filters could not be loaded. Check backend logs.", toast_search_error:"Search failed. Check that the backend is running and reachable.", sort_score_desc:"Score desc", sort_score_asc:"Score asc", sort_code_asc:"Code A-Z", sort_code_desc:"Code Z-A", sort_price_asc:"Price low-high", sort_price_desc:"Price high-low", filter_family:"Family", filter_manufacturer:"Manufacturer", filter_name_prefix:"Product name", filter_ip_rating:"IP total", filter_ip_visible:"IP v.l.", filter_ip_non_visible:"IP v.a.", filter_power_max_w:"Power W", filter_lumen_output:"Lumen", filter_efficacy_lm_w:"Efficacy", filter_beam_angle_deg:"Beam", filter_shape:"Shape", filter_housing_color:"Color", filter_control_protocol:"Control", filter_interface:"Interface", filter_emergency_present:"Emergency", filter_warranty_years:"Warranty", filter_lifetime_hours:"Lifetime h", filter_led_rated_life_h:"Lifetime h", filter_lumen_maintenance_pct:"Lumen maint.", filter_diameter:"Diameter", filter_luminaire_length:"Length", filter_luminaire_width:"Width", filter_luminaire_height:"Height", filter_ambient_temp_min_c:"Min temp (°C)", filter_ambient_temp_max_c:"Max temp (°C)", ai:"AI", quote_selected:"{n} selected", no_products_selected:"No products selected." },
+    en: { lang_label:"Language", title:"Laiting Workspace", tagline:"search, compare, and quote from one workspace", btn_tools:"Compare", btn_quote:"Quote cart", btn_filters:"Filters", btn_reset:"Reset", btn_search:"Search", btn_searching:"Searching...", btn_import_pdf:"Import PDF", btn_import_image:"Import Image", q_placeholder:"e.g. downlight for office, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Type your query...", sort:"Sort", exact:"Exact", similar:"Similar", prev:"Prev", next:"Next", dismiss:"Dismiss", close:"Close", quick_start:"Quick start", recovery_title:"No exact matches. Try one of these:", no_filters_selected:"No filters selected", parsed_from_query:"Parsed from query text", stats_searching:"Searching...", stats_search_failed:"Search failed", metric_latency:"Latency", metric_exact:"Exact", metric_similar:"Similar", metric_filters:"Filters", page_label:"Page", page_loading:"Page ...", toast_set_min_or_max:"Set min or max", toast_facets_failed:"Filters could not be loaded. Check backend logs.", toast_search_error:"Search failed. Check that the backend is running and reachable.", sort_score_desc:"Recommended", sort_score_asc:"Score asc", sort_code_asc:"Code A-Z", sort_code_desc:"Code Z-A", sort_price_asc:"Price low-high", sort_price_desc:"Price high-low", sort_power_asc:"Power low-high", sort_power_desc:"Power high-low", sort_efficacy_desc:"Efficiency high-low", sort_lumen_desc:"Lumens high-low", filter_family:"Family", filter_manufacturer:"Manufacturer", filter_name_prefix:"Product name", filter_ip_rating:"IP total", filter_ip_visible:"IP v.l.", filter_ip_non_visible:"IP v.a.", filter_power_max_w:"Power W", filter_lumen_output:"Lumen", filter_efficacy_lm_w:"Efficacy", filter_beam_angle_deg:"Beam", filter_shape:"Shape", filter_housing_color:"Color", filter_control_protocol:"Control", filter_interface:"Interface", filter_emergency_present:"Emergency", filter_warranty_years:"Warranty", filter_lifetime_hours:"Lifetime h", filter_led_rated_life_h:"Lifetime h", filter_lumen_maintenance_pct:"Lumen maint.", filter_diameter:"Diameter", filter_luminaire_length:"Length", filter_luminaire_width:"Width", filter_luminaire_height:"Height", filter_ambient_temp_min_c:"Min temp (°C)", filter_ambient_temp_max_c:"Max temp (°C)", ai:"AI", quote_selected:"{n} selected", no_products_selected:"No products selected." },
     it: { lang_label:"Lingua", title:"Workspace Laiting", tagline:"cerca, confronta e prepara offerte in un unico spazio", btn_tools:"Confronta", btn_quote:"Carrello offerta", btn_filters:"Filtri", btn_reset:"Reset", btn_search:"Cerca", btn_searching:"Ricerca...", btn_import_pdf:"Import PDF", btn_import_image:"Importa immagine", q_placeholder:"es. downlight ufficio, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Scrivi la tua richiesta...", sort:"Ordina", exact:"Esatti", similar:"Simili", prev:"Prec", next:"Succ", dismiss:"Chiudi", close:"Chiudi", quick_start:"Avvio rapido", recovery_title:"Nessuna corrispondenza esatta. Prova una di queste:", no_filters_selected:"Nessun filtro selezionato", parsed_from_query:"Estratto dal testo query", stats_searching:"Ricerca...", stats_search_failed:"Ricerca fallita", metric_latency:"Latenza", metric_exact:"Esatti", metric_similar:"Simili", metric_filters:"Filtri", page_label:"Pagina", page_loading:"Pagina ...", toast_set_min_or_max:"Imposta minimo o massimo", toast_facets_failed:"Impossibile caricare i filtri. Controlla i log backend.", toast_search_error:"Ricerca non riuscita. Verifica che il backend sia attivo.", quote_selected:"{n} selezionati", no_products_selected:"Nessun prodotto selezionato." },
     fr: { lang_label:"Langue", title:"Recherche Produits", tagline:"exactement ce que vous cherchez", btn_tools:"Outils", btn_quote:"Devis", btn_filters:"Filtres", btn_reset:"Réinit.", btn_search:"Rechercher", btn_searching:"Recherche...", btn_import_pdf:"Import PDF", btn_import_image:"Importer Image", q_placeholder:"ex. downlight bureau, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Saisissez votre requête...", sort:"Tri", exact:"Exacts", similar:"Similaires", prev:"Préc.", next:"Suiv.", dismiss:"Fermer", close:"Fermer", quick_start:"Démarrage rapide", recovery_title:"Aucun résultat exact. Essayez :", no_filters_selected:"Aucun filtre sélectionné", parsed_from_query:"Analysé depuis la requête", stats_searching:"Recherche...", stats_search_failed:"Recherche échouée", metric_latency:"Latence", metric_exact:"Exacts", metric_similar:"Similaires", metric_filters:"Filtres", page_label:"Page", page_loading:"Page ...", toast_set_min_or_max:"Définissez min ou max", toast_facets_failed:"Échec du chargement des facettes : vérifiez les logs backend", toast_search_error:"Erreur de recherche. Vérifiez le backend et les endpoints.", quote_selected:"{n} sélectionnés", no_products_selected:"Aucun produit sélectionné." },
     es: { lang_label:"Idioma", title:"Buscador de Productos", tagline:"exactamente lo que estás buscando", btn_tools:"Herramientas", btn_quote:"Cotización", btn_filters:"Filtros", btn_reset:"Reset", btn_search:"Buscar", btn_searching:"Buscando...", btn_import_pdf:"Import PDF", btn_import_image:"Importar Imagen", q_placeholder:"p. ej. downlight oficina, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Escribe tu consulta...", sort:"Ordenar", exact:"Exactos", similar:"Similares", prev:"Ant.", next:"Sig.", dismiss:"Cerrar", close:"Cerrar", quick_start:"Inicio rápido", recovery_title:"Sin coincidencias exactas. Prueba una de estas:", no_filters_selected:"No hay filtros seleccionados", parsed_from_query:"Analizado desde la consulta", stats_searching:"Buscando...", stats_search_failed:"Búsqueda fallida", metric_latency:"Latencia", metric_exact:"Exactos", metric_similar:"Similares", metric_filters:"Filtros", page_label:"Página", page_loading:"Página ...", toast_set_min_or_max:"Define mínimo o máximo", toast_facets_failed:"Error al cargar facetas: revisa logs del backend", toast_search_error:"Error de búsqueda. Verifica backend y endpoints.", quote_selected:"{n} seleccionados", no_products_selected:"No hay productos seleccionados." },
@@ -458,7 +458,7 @@
     if (onbTitle) onbTitle.textContent = t("quick_start");
     const sortSel = $("sortSel");
     if (sortSel){
-      const map = { score_desc:"sort_score_desc", score_asc:"sort_score_asc", code_asc:"sort_code_asc", code_desc:"sort_code_desc", price_asc:"sort_price_asc", price_desc:"sort_price_desc" };
+      const map = { score_desc:"sort_score_desc", score_asc:"sort_score_asc", code_asc:"sort_code_asc", code_desc:"sort_code_desc", price_asc:"sort_price_asc", price_desc:"sort_price_desc", power_asc:"sort_power_asc", power_desc:"sort_power_desc", efficacy_desc:"sort_efficacy_desc", lumen_desc:"sort_lumen_desc" };
       Array.from(sortSel.options).forEach(opt => {
         const k = map[opt.value];
         if (k && I18N.en[k]) opt.textContent = t(k);
@@ -2225,6 +2225,25 @@ function resetRange(key, minId, maxId){
     return direction === "desc" ? bv - av : av - bv;
   }
 
+  function hitSpecSortValue(hit, key){
+    const preview = hit?.preview || {};
+    const raw = hit?.raw || {};
+    const value = specValueForKey(preview, key) ?? specValueForKey(raw, key) ?? hit?.[key];
+    return extractFirstNumber(value);
+  }
+
+  function compareSpecNumber(a, b, key, direction = "asc"){
+    const av = hitSpecSortValue(a, key);
+    const bv = hitSpecSortValue(b, key);
+    if (av === null && bv === null) {
+      return String(a?.product_code || "").localeCompare(String(b?.product_code || ""));
+    }
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    const delta = direction === "desc" ? bv - av : av - bv;
+    return delta || String(a?.product_code || "").localeCompare(String(b?.product_code || ""));
+  }
+
   function sortHits(hits, tab = activeResultsTab){
     const fallback = tab === "exact" ? "price_asc" : "score_desc";
     const mode = String(finderSortModes[tab] || fallback);
@@ -2235,6 +2254,10 @@ function resetRange(key, minId, maxId){
     if (mode === "code_desc") arr.sort((a,b)=> String(b.product_code||"").localeCompare(String(a.product_code||"")));
     if (mode === "price_asc") arr.sort((a,b)=> comparePrice(a, b, "asc"));
     if (mode === "price_desc") arr.sort((a,b)=> comparePrice(a, b, "desc"));
+    if (mode === "power_asc") arr.sort((a,b)=> compareSpecNumber(a, b, "power_max_w", "asc"));
+    if (mode === "power_desc") arr.sort((a,b)=> compareSpecNumber(a, b, "power_max_w", "desc"));
+    if (mode === "efficacy_desc") arr.sort((a,b)=> compareSpecNumber(a, b, "efficacy_lm_w", "desc"));
+    if (mode === "lumen_desc") arr.sort((a,b)=> compareSpecNumber(a, b, "lumen_output", "desc"));
     return arr;
   }
 
@@ -2515,7 +2538,10 @@ function syncSortSelectToActiveTab(){
   const sel = $("sortSel");
   if (!sel) return;
   const fallback = activeResultsTab === "exact" ? "price_asc" : "score_desc";
-  sel.value = String(finderSortModes[activeResultsTab] || fallback);
+  const mode = String(finderSortModes[activeResultsTab] || fallback);
+  const hasOption = Array.from(sel.options).some(opt => opt.value === mode);
+  finderSortModes[activeResultsTab] = hasOption ? mode : fallback;
+  sel.value = finderSortModes[activeResultsTab];
 }
 
 function buildSearchCompareSpec(rawFilters, queryText){
