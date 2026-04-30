@@ -1,5 +1,5 @@
 ﻿// ---------------- State ----------------
-  const UI_BUILD = "2026-04-30-compact-result-sort-1";
+  const UI_BUILD = "2026-04-30-family-preview-1";
   const selectedFilters = {}; // { key: Set(values as strings) }
   let hasRunSearchOnce = false;
   const $ = (id) => document.getElementById(id);
@@ -2358,6 +2358,7 @@ function resetRange(key, minId, maxId){
   }
 
   const RESULT_SPEC_FIELDS = [
+    ["product_family", "Family"],
     ["ip_rating", "IP"],
     ["ik_rating", "IK"],
     ["cct_k", "CCT"],

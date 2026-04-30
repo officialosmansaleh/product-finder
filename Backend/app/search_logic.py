@@ -300,10 +300,11 @@ def handle_search(
                 return
             understood_items.append({"key": key, "label": label_map.get(key, key), "value": s})
 
+        understood_source = {**parsed, "product_family": parsed_filters.get("product_family", parsed.get("product_family"))}
         for k in preferred_order:
-            if k not in parsed:
+            if k not in understood_source:
                 continue
-            v = parsed.get(k)
+            v = understood_source.get(k)
             if v is None or (isinstance(v, str) and not v.strip()):
                 continue
             label = label_map.get(k, k)
@@ -318,7 +319,7 @@ def handle_search(
                 val = str(v)
                 parts.append(f"{label}: {val}")
                 append_understood_item(k, val)
-        for k, v in parsed.items():
+        for k, v in understood_source.items():
             if k in preferred_order:
                 continue
             if v is None or (isinstance(v, str) and not v.strip()):
@@ -506,6 +507,7 @@ def handle_search(
                 "lifetime_hours": clean_value(r.get("lifetime_hours")),
                 "led_rated_life_h": clean_value(r.get("led_rated_life_h")),
                 "lumen_maintenance_pct": clean_value(r.get("lumen_maintenance_pct")),
+                "product_family": clean_value(r.get("product_family")),
                 "manufacturer": manufacturer,
                 "price": clean_value(r.get("price")) if include_price else None,
                 "website_url": website_url,
@@ -559,6 +561,7 @@ def handle_search(
                 "lifetime_hours": clean_value(r.get("lifetime_hours")),
                 "led_rated_life_h": clean_value(r.get("led_rated_life_h")),
                 "lumen_maintenance_pct": clean_value(r.get("lumen_maintenance_pct")),
+                "product_family": clean_value(r.get("product_family")),
                 "manufacturer": manufacturer,
                 "price": clean_value(r.get("price")) if include_price else None,
                 "website_url": website_url,
