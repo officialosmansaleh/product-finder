@@ -112,6 +112,19 @@ class PostgresCompatConnection:
             self.raw_conn.rollback()
             raise
 
+    def terminate_idle_transactions(self):
+        with self.raw_conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT pg_terminate_backend(pid)
+                FROM pg_stat_activity
+                WHERE datname = current_database()
+                  AND pid <> pg_backend_pid()
+                  AND state = 'idle in transaction'
+                """
+            )
+        self.raw_conn.commit()
+
     def commit(self):
         self.raw_conn.commit()
 
@@ -739,6 +752,7 @@ class ProductDatabase:
             self.connect(statement_timeout_ms=self.import_statement_timeout_ms)
         if self.backend == "postgres":
             self._set_statement_timeout(self.import_statement_timeout_ms)
+            self.conn.terminate_idle_transactions()
             self.conn.commit()
 
         self.conn.execute("DROP TABLE IF EXISTS products")
