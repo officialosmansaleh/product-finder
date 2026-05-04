@@ -71,9 +71,14 @@ class PostgresCompatConnection:
               AND table_name = %s
             ORDER BY ordinal_position
         """
-        with self.raw_conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(q, (table_name,))
-            rows = [CompatRow(dict(r), ["cid", "column_name", "data_type", "notnull", "dflt_value", "pk"]) for r in cur.fetchall()]
+        try:
+            with self.raw_conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(q, (table_name,))
+                rows = [CompatRow(dict(r), ["cid", "column_name", "data_type", "notnull", "dflt_value", "pk"]) for r in cur.fetchall()]
+        except Exception:
+            self.raw_conn.rollback()
+            raise
+        self.raw_conn.commit()
         return CompatCursor(rows)
 
     def execute(self, query: str, params: Any = None):
@@ -82,17 +87,29 @@ class PostgresCompatConnection:
         if pragma:
             return self._pragma_table_info(pragma.group(1))
 
-        with self.raw_conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(self._translate(query), params or ())
-            rows = []
-            if cur.description:
-                order = [d.name for d in cur.description]
-                rows = [CompatRow(dict(r), order) for r in cur.fetchall()]
+        try:
+            with self.raw_conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(self._translate(query), params or ())
+                rows = []
+                had_result_set = False
+                if cur.description:
+                    had_result_set = True
+                    order = [d.name for d in cur.description]
+                    rows = [CompatRow(dict(r), order) for r in cur.fetchall()]
+        except Exception:
+            self.raw_conn.rollback()
+            raise
+        if had_result_set:
+            self.raw_conn.commit()
         return CompatCursor(rows)
 
     def executemany(self, query: str, params_seq: Any):
-        with self.raw_conn.cursor() as cur:
-            execute_batch(cur, self._translate(query), list(params_seq), page_size=1000)
+        try:
+            with self.raw_conn.cursor() as cur:
+                execute_batch(cur, self._translate(query), list(params_seq), page_size=1000)
+        except Exception:
+            self.raw_conn.rollback()
+            raise
 
     def commit(self):
         self.raw_conn.commit()
