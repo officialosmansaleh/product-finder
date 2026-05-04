@@ -41,7 +41,6 @@ def normalize_postgres_url(value: str) -> str:
 @dataclass(frozen=True)
 class DatabaseRuntimeSettings:
     product_db_backend: str
-    product_db_path: str
     product_database_url: str
     auth_db_path: str
     auth_database_url: str
@@ -59,10 +58,11 @@ def load_database_runtime_settings() -> DatabaseRuntimeSettings:
     product_database_url = normalize_postgres_url(str(os.getenv("PRODUCT_DATABASE_URL", "")).strip())
     product_db_backend = str(os.getenv("PRODUCT_DB_BACKEND", "")).strip().lower()
     if not product_db_backend:
-        product_db_backend = "postgres" if product_database_url.startswith(("postgres://", "postgresql://")) else "sqlite"
+        product_db_backend = "postgres"
+    elif product_db_backend != "postgres":
+        product_db_backend = "postgres"
     return DatabaseRuntimeSettings(
         product_db_backend=product_db_backend,
-        product_db_path=str(os.getenv("PRODUCT_DB_PATH", "data/products.db")).strip() or "data/products.db",
         product_database_url=product_database_url,
         auth_db_path=str(os.getenv("AUTH_DB_PATH", "data/auth.db")).strip() or "data/auth.db",
         auth_database_url=normalize_postgres_url(str(os.getenv("AUTH_DATABASE_URL", "")).strip()),

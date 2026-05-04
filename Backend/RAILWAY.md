@@ -28,27 +28,12 @@ Set these in the Railway service:
 - `ADMIN_BOOTSTRAP_PASSWORD`
 - `ADMIN_BOOTSTRAP_NAME`
 
-## Database options
+## Database setup
 
-### Option A: Fastest first deploy
+Add a Railway PostgreSQL service. The product catalog requires PostgreSQL.
 
-Use SQLite inside the container:
+Set:
 
-- `USE_SQLITE=1`
-- `PRODUCT_DB_BACKEND=sqlite`
-- `PRODUCT_DB_PATH=data/products.db`
-- `AUTH_DB_PATH=data/auth.db`
-- `AUTH_COOKIE_SECURE=true`
-
-Note:
-- this is okay for a first smoke test
-- Railway deployments use ephemeral container filesystems, so SQLite is not a good long-term production choice unless you add a persistent volume
-
-### Option B: Recommended production setup
-
-Add a Railway PostgreSQL service and set:
-
-- `USE_SQLITE=0`
 - `PRODUCT_DB_BACKEND=postgres`
 - `PRODUCT_DATABASE_URL=${{Postgres.DATABASE_URL}}`
 - `AUTH_DATABASE_URL=${{Postgres.DATABASE_URL}}`

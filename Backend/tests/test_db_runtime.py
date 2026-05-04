@@ -42,6 +42,25 @@ class DbRuntimeTests(unittest.TestCase):
         self.assertEqual(pg.backend, "postgres")
         self.assertEqual(sq.backend, "sqlite")
 
+    def test_runtime_settings_default_product_catalog_to_postgres(self):
+        old_url = os.environ.get("PRODUCT_DATABASE_URL")
+        old_backend = os.environ.get("PRODUCT_DB_BACKEND")
+        try:
+            os.environ.pop("PRODUCT_DATABASE_URL", None)
+            os.environ.pop("PRODUCT_DB_BACKEND", None)
+            settings = load_database_runtime_settings()
+            self.assertEqual(settings.product_db_backend, "postgres")
+            self.assertTrue(settings.product_postgres_requested)
+        finally:
+            if old_url is None:
+                os.environ.pop("PRODUCT_DATABASE_URL", None)
+            else:
+                os.environ["PRODUCT_DATABASE_URL"] = old_url
+            if old_backend is None:
+                os.environ.pop("PRODUCT_DB_BACKEND", None)
+            else:
+                os.environ["PRODUCT_DB_BACKEND"] = old_backend
+
     def test_release_diff_export_tracks_only_changes(self):
         with tempfile.TemporaryDirectory() as td:
             db_path = os.path.join(td, "products.db")

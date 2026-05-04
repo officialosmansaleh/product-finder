@@ -248,6 +248,53 @@ class SearchScoringFiltersTests(unittest.TestCase):
         self.assertTrue(resp.exact)
         self.assertIsNone(resp.exact[0].preview.get("price"))
 
+    def test_text_only_search_tolerates_adjacent_name_typo(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "22150313-00",
+                    "product_name": "Toledo HP - UGR<lt/>19",
+                    "manufacturer": "Fosnova",
+                    "product_family": "Panels",
+                },
+                {
+                    "product_code": "999",
+                    "product_name": "Other Product",
+                    "manufacturer": "Fosnova",
+                    "product_family": "Panels",
+                },
+            ]
+        )
+
+        req = SearchRequest(
+            text="toeldo",
+            filters={},
+            limit=5,
+            include_similar=True,
+            debug=False,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value={}), patch.object(
+            main_mod, "llm_intent_to_filters", return_value={}
+        ), patch.object(main_mod, "PRODUCT_DB", None), patch.object(main_mod, "DB", fake_rows_df):
+            resp = main_mod.search(req)
+
+        self.assertIn("22150313-00", {hit.product_code for hit in resp.exact})
+
+    def test_text_relevance_matches_compact_order_code(self):
+        from app import main as main_mod
+
+        row = {
+            "product_code": "22150313-00",
+            "short_product_code": "",
+            "product_name": "Toledo HP - UGR<lt/>19",
+        }
+
+        self.assertGreater(main_mod._text_relevance(row, "2215031300"), 0)
+
     def test_search_limit_is_capped_to_100(self):
         from app import main as main_mod
         from app.schema import SearchRequest

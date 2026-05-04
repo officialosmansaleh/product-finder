@@ -1,5 +1,5 @@
 ﻿// ---------------- State ----------------
-  const UI_BUILD = "2026-04-30-family-preview-1";
+  const UI_BUILD = "2026-05-04-facet-typo-1";
   const selectedFilters = {}; // { key: Set(values as strings) }
   let hasRunSearchOnce = false;
   const $ = (id) => document.getElementById(id);
@@ -1915,10 +1915,56 @@ function resetRange(key, minId, maxId){
   }
 
   // --------------- Facets UI ----------------
+  function compactFacetText(v){
+    return String(v ?? "").toLowerCase().replace(/[^0-9a-z]/g, "");
+  }
+
+  function isNearFacetToken(query, token){
+    const q = compactFacetText(query);
+    const t = compactFacetText(token);
+    if (q.length < 5 || t.length < 5 || Math.abs(q.length - t.length) > 1) return false;
+    if (q === t) return true;
+
+    if (q.length === t.length){
+      const mismatches = [];
+      for (let i = 0; i < q.length; i += 1){
+        if (q[i] !== t[i]) mismatches.push(i);
+        if (mismatches.length > 2) return false;
+      }
+      if (mismatches.length === 1) return true;
+      if (mismatches.length === 2){
+        const [i, j] = mismatches;
+        return j === i + 1 && q[i] === t[j] && q[j] === t[i];
+      }
+      return false;
+    }
+
+    const shorter = q.length < t.length ? q : t;
+    const longer = q.length < t.length ? t : q;
+    let i = 0;
+    let j = 0;
+    let edits = 0;
+    while (i < shorter.length && j < longer.length){
+      if (shorter[i] === longer[j]){
+        i += 1;
+        j += 1;
+        continue;
+      }
+      edits += 1;
+      if (edits > 1) return false;
+      j += 1;
+    }
+    return true;
+  }
+
   function facetFilter(items, needle){
     const n = (needle||"").trim().toLowerCase();
     if (!n) return items;
-    return (items||[]).filter(it => String(it.value ?? it.raw ?? "").toLowerCase().includes(n));
+    return (items||[]).filter(it => {
+      const label = String(it.value ?? it.raw ?? "").toLowerCase();
+      if (label.includes(n)) return true;
+      return isNearFacetToken(n, label);
+    });
   }
 
   function extractFirstNumber(v){

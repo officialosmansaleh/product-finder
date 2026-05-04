@@ -27,7 +27,6 @@ main.spec_signal_keys=ip_rating,ip_visible,ip_non_visible,ik_rating,cct_k,cri,ug
 main.default_pim_xlsx=data/ExportRO-2025-10-28_09.34.43.xlsx
 main.default_family_map_xlsx=data/family_map.xlsx
 main.pim_verbose_default=true
-main.use_sqlite_default=true
 main.disano_store_ids_default=10051,10151
 main.disano_lang_default=-4
 main.pdf_parse_max_pages=40

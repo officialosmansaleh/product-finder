@@ -24,7 +24,8 @@ Notes:
 
 ## PostgreSQL
 
-- Product catalog and auth can both run on PostgreSQL.
+- The product catalog requires PostgreSQL. SQLite is no longer a supported product-catalog runtime.
+- Auth can also run on PostgreSQL, or keep its local fallback if `AUTH_DATABASE_URL` is not configured.
 - Set:
   - `PRODUCT_DB_BACKEND=postgres`
   - `PRODUCT_DATABASE_URL=postgresql://...`

@@ -393,10 +393,8 @@ def _resolve_family_map_path() -> str:
 XLSX_PATH = _resolve_pim_xlsx_path()
 FAMILY_MAP_PATH = _resolve_family_map_path()
 _pim_verbose_default = "1" if cfg_bool("main.pim_verbose_default", True) else "0"
-_use_sqlite_default = "1" if cfg_bool("main.use_sqlite_default", True) else "0"
 PIM_VERBOSE = os.getenv("PIM_VERBOSE", _pim_verbose_default).strip() not in ("0", "false", "False", "no", "NO")
-USE_SQLITE = os.getenv("USE_SQLITE", _use_sqlite_default).strip() not in ("0", "false", "False", "no", "NO") and HAS_DATABASE
-USE_PRODUCT_DB = HAS_DATABASE and (USE_SQLITE or db_runtime.product_postgres_requested)
+USE_PRODUCT_DB = HAS_DATABASE
 
 DB: Optional[pd.DataFrame] = None
 PRODUCT_DB: Optional[Any] = None
@@ -765,6 +763,10 @@ def _text_relevance(row: Dict[str, Any], text: str) -> float:
 
     if q in name:
         score += cfg_float("main.similar_text_boost", 0.35)
+    elif len(tokens) == 1:
+        name_tokens = _name_tokens_for_text_relevance(name)
+        if any(_is_near_text_token(tokens[0], name_tok) for name_tok in name_tokens):
+            score += cfg_float("main.similar_text_boost", 0.35)
 
     return max(0.0, min(1.5, score))
 
@@ -898,6 +900,41 @@ def _compact_for_match(s: Any) -> str:
     return re.sub(r"[^0-9a-z]", "", str(s or "").lower())
 
 
+def _is_near_text_token(query: str, token: str) -> bool:
+    q = _compact_for_match(query)
+    t = _compact_for_match(token)
+    if len(q) < 5 or len(t) < 5 or abs(len(q) - len(t)) > 1:
+        return False
+    if q == t:
+        return True
+
+    if len(q) == len(t):
+        mismatches = [i for i, (a, b) in enumerate(zip(q, t)) if a != b]
+        if len(mismatches) == 1:
+            return True
+        if len(mismatches) == 2:
+            i, j = mismatches
+            return j == i + 1 and q[i] == t[j] and q[j] == t[i]
+        return False
+
+    shorter, longer = (q, t) if len(q) < len(t) else (t, q)
+    i = j = edits = 0
+    while i < len(shorter) and j < len(longer):
+        if shorter[i] == longer[j]:
+            i += 1
+            j += 1
+            continue
+        edits += 1
+        if edits > 1:
+            return False
+        j += 1
+    return True
+
+
+def _name_tokens_for_text_relevance(name: Any) -> List[str]:
+    return [tok for tok in re.split(r"[^0-9a-z]+", str(name or "").lower()) if len(tok) >= 3]
+
+
 def _find_product_by_code_any(code: str) -> Optional[Dict[str, Any]]:
     c = str(code or "").strip()
     if not c:
@@ -938,7 +975,7 @@ def _find_product_by_code_any(code: str) -> Optional[Dict[str, Any]]:
     return _row_to_public_dict(m.iloc[0].to_dict())
 
 
-def _search_rows_by_text_sqlite(text: str, limit: int = 3000) -> List[Dict[str, Any]]:
+def _search_rows_by_text_db(text: str, limit: int = 3000) -> List[Dict[str, Any]]:
     if not PRODUCT_DB:
         return []
     try:
@@ -989,9 +1026,40 @@ def _search_rows_by_text_sqlite(text: str, limit: int = 3000) -> List[Dict[str, 
     )
     try:
         rows = PRODUCT_DB.conn.execute(sql, params).fetchall()
-        return [_row_to_public_dict(dict(r)) for r in rows]
+        out = [_row_to_public_dict(dict(r)) for r in rows]
+        if out:
+            return out
     except Exception:
         return []
+
+    tokens = [tok for tok in re.split(r"\s+", q_l) if tok]
+    if len(tokens) != 1 or len(_compact_for_match(tokens[0])) < 5:
+        return []
+
+    scan_limit = max(int(limit or 0), cfg_int("main.search_candidate_max", 10000))
+    try:
+        ph = "?"
+        fuzzy_rows = PRODUCT_DB.conn.execute(
+            f"""
+                SELECT *
+                FROM products
+                WHERE TRIM(COALESCE(product_name,'')) <> ''
+                ORDER BY product_code
+                LIMIT {ph}
+            """,
+            (scan_limit,),
+        ).fetchall()
+    except Exception:
+        return []
+
+    scored: List[tuple[float, Dict[str, Any]]] = []
+    for row in fuzzy_rows:
+        d = _row_to_public_dict(dict(row))
+        rel = _text_relevance(d, q)
+        if rel > 0:
+            scored.append((float(rel), d))
+    scored.sort(key=lambda x: (x[0], str(x[1].get("product_code", ""))), reverse=True)
+    return [d for _rel, d in scored[: int(limit)]]
 
 
 def _norm_header_name(v: Any) -> str:
@@ -1494,18 +1562,27 @@ def _product_name_short_from_db_fallback(limit: int = 30) -> List[FacetValue]:
         except Exception:
             return []
     try:
-        cur = PRODUCT_DB.conn.execute(
+        if getattr(PRODUCT_DB, "backend", "postgres") == "postgres":
+            query = """
+                SELECT LOWER(SPLIT_PART(TRIM(product_name), ' ', 1)) AS pref,
+                       COUNT(*) AS cnt
+                FROM products
+                WHERE product_name IS NOT NULL AND TRIM(product_name) <> ''
+                GROUP BY pref
+                ORDER BY cnt DESC
+                LIMIT ?
             """
-            SELECT LOWER(SUBSTR(TRIM(product_name), 1, INSTR(TRIM(product_name) || ' ', ' ') - 1)) AS pref,
-                   COUNT(*) AS cnt
-            FROM products
-            WHERE product_name IS NOT NULL AND TRIM(product_name) <> ''
-            GROUP BY pref
-            ORDER BY cnt DESC
-            LIMIT ?
-            """,
-            (int(limit),),
-        )
+        else:
+            query = """
+                SELECT LOWER(SUBSTR(TRIM(product_name), 1, INSTR(TRIM(product_name) || ' ', ' ') - 1)) AS pref,
+                       COUNT(*) AS cnt
+                FROM products
+                WHERE product_name IS NOT NULL AND TRIM(product_name) <> ''
+                GROUP BY pref
+                ORDER BY cnt DESC
+                LIMIT ?
+            """
+        cur = PRODUCT_DB.conn.execute(query, (int(limit),))
         out = []
         for row in cur.fetchall():
             pref = str(row["pref"] or "").strip()
@@ -1880,9 +1957,13 @@ def initialize_runtime_state() -> None:
 
     if USE_PRODUCT_DB and HAS_DATABASE:
         try:
+            if not db_runtime.product_postgres_requested or not str(db_runtime.product_database_url or "").strip():
+                raise RuntimeError(
+                    "Product catalog database is PostgreSQL-only. Set PRODUCT_DATABASE_URL to a valid postgres:// or postgresql:// URL."
+                )
             PRODUCT_DB = ProductDatabase(
-                db_path=db_runtime.product_db_path,
                 database_url=db_runtime.product_database_url,
+                backend=db_runtime.product_db_backend,
             )
             PRODUCT_DB.connect()
             try:
@@ -1970,8 +2051,11 @@ def initialize_runtime_state() -> None:
 
     if USE_PRODUCT_DB and HAS_DATABASE:
         try:
+            if not db_runtime.product_postgres_requested or not str(db_runtime.product_database_url or "").strip():
+                raise RuntimeError(
+                    "Product catalog database is PostgreSQL-only. Set PRODUCT_DATABASE_URL to a valid postgres:// or postgresql:// URL."
+                )
             PRODUCT_DB = ProductDatabase(
-                db_path=db_runtime.product_db_path,
                 database_url=db_runtime.product_database_url,
                 backend=db_runtime.product_db_backend,
             )
@@ -2009,8 +2093,37 @@ def initialize_runtime_state() -> None:
                         df=preloaded_df,
                     )
             elif columns:
-                count = int((PRODUCT_DB.get_stats() or {}).get("total_products", 0))
-                logger.info("Using existing product DB contents without local re-import")
+                stats = PRODUCT_DB.get_stats() or {}
+                count = int(stats.get("total_products", 0))
+                latest_release = PRODUCT_DB.get_latest_release_diff() if PRODUCT_DB else {}
+                latest_summary = latest_release.get("summary") if isinstance(latest_release, dict) else {}
+                latest_source = str((latest_summary or {}).get("source_filename") or "").strip()
+                latest_row_count = int((latest_summary or {}).get("row_count") or 0)
+                desired_source = os.path.basename(str(XLSX_PATH or ""))
+                desired_count = int(len(preloaded_df)) if preloaded_df is not None else 0
+                should_refresh_catalog = bool(
+                    preloaded_df is not None
+                    and desired_source
+                    and (
+                        latest_source != desired_source
+                        or (desired_count > 0 and latest_row_count != desired_count)
+                    )
+                )
+                if should_refresh_catalog:
+                    logger.info(
+                        "Bundled catalog differs from product DB release. Re-importing source=%s previous_source=%s desired_count=%s previous_count=%s",
+                        desired_source,
+                        latest_source or "<none>",
+                        desired_count,
+                        latest_row_count,
+                    )
+                    count = PRODUCT_DB.init_db(
+                        XLSX_PATH,
+                        (FAMILY_MAP_PATH if has_local_family_map else None),
+                        df=preloaded_df,
+                    )
+                else:
+                    logger.info("Using existing product DB contents without local re-import")
             else:
                 if preloaded_df is None and not has_local_pim:
                     logger.warning("Product DB is empty and no local PIM is available. Creating empty catalog table and continuing startup.")
@@ -2036,6 +2149,7 @@ def initialize_runtime_state() -> None:
         except Exception as e:
             logger.exception("Product database initialization failed: %s", e)
             PRODUCT_DB = None
+            raise
     else:
         logger.info("Product database is disabled or not available")
 
@@ -2147,14 +2261,26 @@ def debug_pim_source_impl():
 # ------------------------------------------------------------
 
 def health_impl():
+    latest_imports = {}
+    latest_catalog_import = {}
+    if PRODUCT_DB:
+        try:
+            latest_imports = PRODUCT_DB.latest_import_runs()
+            latest_catalog_import = latest_imports.get("catalog") or {}
+        except Exception:
+            latest_imports = {}
+            latest_catalog_import = {}
     return {
         "status": "ok",
         "uptime_sec": round(max(0.0, time.time() - APP_STARTED_AT), 1),
         "xlsx_path": XLSX_PATH,
+        "startup_fallback_xlsx_path": XLSX_PATH,
+        "active_catalog_source": latest_catalog_import.get("source_filename") or os.path.basename(str(XLSX_PATH or "")),
+        "latest_imports": latest_imports,
         "dataframe_loaded": DB is not None and not DB.empty,
         "dataframe_rows": int(len(DB)) if DB is not None else 0,
         "database_available": HAS_DATABASE,
-        "database_enabled": USE_SQLITE,
+        "database_enabled": USE_PRODUCT_DB,
         "database_active": PRODUCT_DB is not None,
         "database_backend": getattr(PRODUCT_DB, "backend", db_runtime.product_db_backend),
         "product_db_enabled": USE_PRODUCT_DB,
@@ -2892,7 +3018,7 @@ def search(req: SearchRequest, request: FastAPIRequest = None):
         product_db=PRODUCT_DB,
         db_runtime_backend=db_runtime.product_db_backend,
         db_dataframe=DB,
-        search_rows_by_text_db=_search_rows_by_text_sqlite,
+        search_rows_by_text_db=_search_rows_by_text_db,
         dedupe_rows_by_product_code=_dedupe_rows_by_product_code,
         text_relevance=_text_relevance,
         select_exact_and_similar=select_exact_and_similar,
@@ -3073,7 +3199,6 @@ async def admin_catalog_import(
                     logger.exception("Failed to close current product DB before catalog rebuild")
 
             new_db = ProductDatabase(
-                db_path=db_runtime.product_db_path,
                 database_url=db_runtime.product_database_url,
                 backend=db_runtime.product_db_backend,
             )
