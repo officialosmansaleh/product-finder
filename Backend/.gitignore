@@ -40,6 +40,8 @@ captures/
 *.sqlite3
 backups/
 data/*.xlsx
+!data/PIM_20260427.xlsx
+!data/family_map.xlsx
 data/old/
 
 # Local scratch files
