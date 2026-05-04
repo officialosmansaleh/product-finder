@@ -6,6 +6,7 @@
     "watchPatterns": [
       "/Backend/**",
       "/Dockerfile",
+      "/.gitignore",
       "/railway.json"
     ]
   },
