@@ -2175,6 +2175,10 @@ def initialize_runtime_state() -> None:
                         desired_count,
                         latest_row_count,
                     )
+                    try:
+                        PRODUCT_DB.conn.commit()
+                    except Exception:
+                        logger.warning("Could not commit product DB connection before background catalog refresh")
                     _start_catalog_refresh_background(
                         xlsx_path=XLSX_PATH,
                         family_map_path=(FAMILY_MAP_PATH if has_local_family_map else None),
