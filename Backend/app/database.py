@@ -100,6 +100,7 @@ class PostgresCompatConnection:
             self.raw_conn.rollback()
             raise
         if had_result_set:
+            # Release read locks promptly; otherwise live catalog refresh can block on table replacement.
             self.raw_conn.commit()
         return CompatCursor(rows)
 
