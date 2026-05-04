@@ -1,3 +1,7 @@
 # Root-level local runtime data
 data/
+!Backend/data/
+Backend/data/*
+!Backend/data/PIM_20260427.xlsx
+!Backend/data/family_map.xlsx
 handover_package/
