@@ -20,6 +20,7 @@ import json
 import time
 import tempfile
 import zipfile
+import threading
 from collections import OrderedDict, Counter
 from urllib.parse import quote_plus, quote
 from urllib.request import Request as UrlRequest, urlopen
@@ -449,6 +450,63 @@ def _clean(x):
     if isinstance(x, float) and math.isnan(x):
         return None
     return x
+
+CATALOG_REFRESH_LOCK = threading.Lock()
+CATALOG_REFRESH_RUNNING = False
+
+
+def _start_catalog_refresh_background(
+    *,
+    xlsx_path: str,
+    family_map_path: Optional[str],
+    df: pd.DataFrame,
+    desired_source: str,
+    desired_count: int,
+    previous_source: str,
+    previous_count: int,
+) -> None:
+    global CATALOG_REFRESH_RUNNING, ALLOWED_FAMILIES, ALLOWED_FAMILIES_NORM
+    with CATALOG_REFRESH_LOCK:
+        if CATALOG_REFRESH_RUNNING:
+            logger.info("Catalog refresh already running; skipping duplicate startup refresh")
+            return
+        CATALOG_REFRESH_RUNNING = True
+
+    def _run_refresh() -> None:
+        global CATALOG_REFRESH_RUNNING, ALLOWED_FAMILIES, ALLOWED_FAMILIES_NORM
+        refresh_db = None
+        try:
+            logger.info(
+                "Background catalog refresh started source=%s previous_source=%s desired_count=%s previous_count=%s",
+                desired_source,
+                previous_source or "<none>",
+                desired_count,
+                previous_count,
+            )
+            refresh_db = ProductDatabase(
+                database_url=db_runtime.product_database_url,
+                backend=db_runtime.product_db_backend,
+            )
+            refresh_db.connect(statement_timeout_ms=refresh_db.import_statement_timeout_ms)
+            count = refresh_db.init_db(xlsx_path, family_map_path, df=df)
+            families = refresh_db.get_distinct_families()
+            ALLOWED_FAMILIES = families
+            ALLOWED_FAMILIES_NORM = {str(f).strip().lower() for f in families if str(f).strip()}
+            FACETS_CACHE.clear()
+            logger.info("Background catalog refresh complete loaded_products=%s families=%s", count, len(families))
+        except Exception as e:
+            logger.exception("Background catalog refresh failed: %s", e)
+        finally:
+            if refresh_db:
+                try:
+                    refresh_db.close()
+                except Exception:
+                    pass
+            with CATALOG_REFRESH_LOCK:
+                CATALOG_REFRESH_RUNNING = False
+
+    threading.Thread(target=_run_refresh, name="catalog-refresh", daemon=True).start()
+
 
 def _families_from_db_fallback(limit: int = 30):
     """
@@ -2111,16 +2169,20 @@ def initialize_runtime_state() -> None:
                 )
                 if should_refresh_catalog:
                     logger.info(
-                        "Bundled catalog differs from product DB release. Re-importing source=%s previous_source=%s desired_count=%s previous_count=%s",
+                        "Bundled catalog differs from product DB release. Scheduling background refresh source=%s previous_source=%s desired_count=%s previous_count=%s",
                         desired_source,
                         latest_source or "<none>",
                         desired_count,
                         latest_row_count,
                     )
-                    count = PRODUCT_DB.init_db(
-                        XLSX_PATH,
-                        (FAMILY_MAP_PATH if has_local_family_map else None),
+                    _start_catalog_refresh_background(
+                        xlsx_path=XLSX_PATH,
+                        family_map_path=(FAMILY_MAP_PATH if has_local_family_map else None),
                         df=preloaded_df,
+                        desired_source=desired_source,
+                        desired_count=desired_count,
+                        previous_source=latest_source,
+                        previous_count=latest_row_count,
                     )
                 else:
                     logger.info("Using existing product DB contents without local re-import")
