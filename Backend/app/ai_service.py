@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import base64
+import logging
 import json
 import os
+import threading
 import time
+from datetime import datetime, timezone
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
@@ -30,6 +34,94 @@ _load_env_file()
 _client: Optional[OpenAI] = None
 _client_init_failed = False
 _JSON_RESPONSE_INSTRUCTION = "Return valid JSON only."
+_AI_INTERROGATION_LOGGER_NAME = "product_finder.external_ai_interrogations"
+_DEFAULT_AI_INTERROGATION_LOG_PATH = Path(__file__).resolve().parents[1] / "logs" / "external_ai_interrogations.jsonl"
+_ai_interrogation_logger: Optional[logging.Logger] = None
+_ai_interrogation_logger_path = ""
+_ai_interrogation_logger_lock = threading.Lock()
+
+
+def _ai_interrogation_log_path() -> Path:
+    raw = (
+        str(os.getenv("EXTERNAL_AI_INTERROGATION_LOG_PATH", "")).strip()
+        or str(os.getenv("AI_INTERROGATION_LOG_PATH", "")).strip()
+    )
+    return Path(raw).expanduser() if raw else _DEFAULT_AI_INTERROGATION_LOG_PATH
+
+
+def _get_ai_interrogation_logger() -> logging.Logger:
+    global _ai_interrogation_logger, _ai_interrogation_logger_path
+    path = _ai_interrogation_log_path()
+    path_key = str(path)
+    with _ai_interrogation_logger_lock:
+        if _ai_interrogation_logger is not None and _ai_interrogation_logger_path == path_key:
+            return _ai_interrogation_logger
+        path.parent.mkdir(parents=True, exist_ok=True)
+        logger = logging.getLogger(_AI_INTERROGATION_LOGGER_NAME)
+        logger.setLevel(logging.INFO)
+        logger.propagate = False
+        for handler in list(logger.handlers):
+            logger.removeHandler(handler)
+            try:
+                handler.close()
+            except Exception:
+                pass
+        handler = RotatingFileHandler(path, maxBytes=5_000_000, backupCount=5, encoding="utf-8")
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(handler)
+        _ai_interrogation_logger = logger
+        _ai_interrogation_logger_path = path_key
+        return logger
+
+
+def _sanitize_ai_log_content(content: Any) -> Any:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        sanitized = []
+        for item in content:
+            if not isinstance(item, dict):
+                sanitized.append(item)
+                continue
+            item_type = str(item.get("type") or "").strip()
+            if item_type == "image_url":
+                sanitized.append({"type": "image_url", "image_url": "[image data omitted]"})
+            else:
+                sanitized.append(dict(item))
+        return sanitized
+    return content
+
+
+def _messages_for_ai_interrogation_log(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    sanitized: list[dict[str, Any]] = []
+    for message in messages:
+        sanitized.append({
+            "role": str(message.get("role") or ""),
+            "content": _sanitize_ai_log_content(message.get("content")),
+        })
+    return sanitized
+
+
+def _log_ai_interrogation(
+    *,
+    model: str,
+    attempt: int,
+    messages: list[dict[str, Any]],
+    response_model: type[BaseModel],
+) -> None:
+    try:
+        record = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "provider": "openai",
+            "model": model,
+            "attempt": attempt,
+            "response_model": getattr(response_model, "__name__", str(response_model)),
+            "messages": _messages_for_ai_interrogation_log(messages),
+        }
+        _get_ai_interrogation_logger().info(json.dumps(record, ensure_ascii=False, separators=(",", ":")))
+    except Exception:
+        # Logging the outgoing AI question must never block the actual search flow.
+        pass
 
 
 def _get_client() -> Optional[OpenAI]:
@@ -133,6 +225,12 @@ def _request_json_completion(
     for model in models:
         for attempt in range(1, max_attempts + 1):
             try:
+                _log_ai_interrogation(
+                    model=model,
+                    attempt=attempt,
+                    messages=messages,
+                    response_model=response_model,
+                )
                 parse_fn = getattr(client.chat.completions, "parse", None)
                 if callable(parse_fn):
                     completion = parse_fn(

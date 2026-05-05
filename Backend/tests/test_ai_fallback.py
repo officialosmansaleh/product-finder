@@ -1,4 +1,5 @@
 import importlib
+import json
 import os
 import shutil
 import sys
@@ -70,6 +71,48 @@ class AIFallbackTests(unittest.TestCase):
         self.assertEqual(result["status"], "disabled")
         self.assertEqual(result["content"], {})
         self.assertIn("missing", result["message"].lower())
+
+    def test_ai_interrogation_log_records_only_outgoing_question(self):
+        from pydantic import BaseModel
+
+        class TmpModel(BaseModel):
+            value: str = ""
+
+        log_path = os.path.join(self._tmpdir.name, "ai_interrogations.jsonl")
+        old_path = os.environ.get("EXTERNAL_AI_INTERROGATION_LOG_PATH")
+        os.environ["EXTERNAL_AI_INTERROGATION_LOG_PATH"] = log_path
+        self.ai_service._ai_interrogation_logger = None
+        self.ai_service._ai_interrogation_logger_path = ""
+        try:
+            self.ai_service._log_ai_interrogation(
+                model="gpt-test",
+                attempt=1,
+                response_model=TmpModel,
+                messages=[
+                    {"role": "system", "content": "Return JSON only."},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Identify the luminaire."},
+                            {"type": "image_url", "image_url": {"url": "data:image/png;base64,SECRET_IMAGE_DATA"}},
+                        ],
+                    },
+                ],
+            )
+        finally:
+            if old_path is None:
+                os.environ.pop("EXTERNAL_AI_INTERROGATION_LOG_PATH", None)
+            else:
+                os.environ["EXTERNAL_AI_INTERROGATION_LOG_PATH"] = old_path
+
+        with open(log_path, "r", encoding="utf-8") as fh:
+            line = fh.readline()
+        record = json.loads(line)
+        self.assertEqual(record["provider"], "openai")
+        self.assertEqual(record["model"], "gpt-test")
+        self.assertEqual(record["messages"][1]["content"][0]["text"], "Identify the luminaire.")
+        self.assertEqual(record["messages"][1]["content"][1]["image_url"], "[image data omitted]")
+        self.assertNotIn("SECRET_IMAGE_DATA", line)
 
     def test_search_gracefully_degrades_when_ai_is_unavailable(self):
         response = self.client.post(
