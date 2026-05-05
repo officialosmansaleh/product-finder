@@ -857,18 +857,26 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
             if m:
                 filters["power_max_w"] = f"<={m.group(1)}"
 
-    m = re.search(r"\b(\d{3,6})\s*-\s*(\d{3,6})\s*lm\b(?!\s*/\s*w)", t)
+    lumen_num = r"(?:\d{1,3}(?:['.,]\d{3})+|\d+(?:\.\d+)?k|\d{3,7})"
+    m = re.search(rf"\b({lumen_num})\s*-\s*({lumen_num})\s*lm\b(?!\s*/\s*w)", t)
     if m:
-        lo = min(int(m.group(1)), int(m.group(2)))
-        filters["lumen_output"] = f">={lo}"
+        a = _parse_loose_int_token(m.group(1))
+        b = _parse_loose_int_token(m.group(2))
+        if a is not None and b is not None:
+            lo = min(a, b)
+            filters["lumen_output"] = f">={lo}"
     else:
-        m = re.search(r"(>=|<=|>|<|=)\s*(\d{3,6})\s*lm\b(?!\s*/\s*w)", t)
+        m = re.search(rf"(>=|<=|>|<|=)\s*({lumen_num})\s*lm\b(?!\s*/\s*w)", t)
         if m:
-            filters["lumen_output"] = f"{m.group(1)}{m.group(2)}"
+            lumens = _parse_loose_int_token(m.group(2))
+            if lumens is not None:
+                filters["lumen_output"] = f"{m.group(1)}{lumens}"
         else:
-            m = re.search(r"(\d{3,6})\s*lm\b(?!\s*/\s*w)", t)
+            m = re.search(rf"({lumen_num})\s*lm\b(?!\s*/\s*w)", t)
             if m:
-                filters["lumen_output"] = f">={m.group(1)}"
+                lumens = _parse_loose_int_token(m.group(1))
+                if lumens is not None:
+                    filters["lumen_output"] = f">={lumens}"
 
     m = re.search(r"\b(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*lm\s*/\s*w\b", t)
     if m:

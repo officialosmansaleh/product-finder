@@ -254,10 +254,19 @@ def _parse_range_or_cmp(text: str, unit_regex: str, allow_decimals: bool = True)
     t = _normalize_unit_aliases(text)
 
     # range
-    num = r"\d+(?:\.\d+)?" if allow_decimals else r"\d+"
+    num = r"\d+(?:\.\d+)?" if allow_decimals else r"(?:\d{1,3}(?:['.,]\d{3})+|\d+(?:\.\d+)?k|\d+)"
     m = re.search(rf"\b({num})\s*-\s*({num})\s*{unit_regex}\b", t)
     if m:
-        a = float(m.group(1)); b = float(m.group(2))
+        if allow_decimals:
+            a = float(m.group(1))
+            b = float(m.group(2))
+        else:
+            parsed_a = _parse_loose_int_token(m.group(1))
+            parsed_b = _parse_loose_int_token(m.group(2))
+            if parsed_a is None or parsed_b is None:
+                return None
+            a = float(parsed_a)
+            b = float(parsed_b)
         lo, hi = (a, b) if a <= b else (b, a)
         if lo.is_integer() and hi.is_integer():
             return f"{int(lo)}-{int(hi)}"
@@ -266,13 +275,26 @@ def _parse_range_or_cmp(text: str, unit_regex: str, allow_decimals: bool = True)
     # comparator
     m = re.search(rf"\b(>=|<=|>|<)\s*({num})\s*{unit_regex}\b", t)
     if m:
-        op, v = m.group(1), m.group(2)
+        op = m.group(1)
+        if allow_decimals:
+            v = m.group(2)
+        else:
+            parsed_v = _parse_loose_int_token(m.group(2))
+            if parsed_v is None:
+                return None
+            v = str(parsed_v)
         return f"{op}{v}"
 
     # around/approx
     m = re.search(rf"\b(around|circa|approx|approximately)\s*({num})\s*{unit_regex}\b", t)
     if m:
-        v = float(m.group(2))
+        if allow_decimals:
+            v = float(m.group(2))
+        else:
+            parsed_v = _parse_loose_int_token(m.group(2))
+            if parsed_v is None:
+                return None
+            v = float(parsed_v)
         # power: +/-20%, lumen: +/-20%, efficacy: +/-10% (handled by caller if needed)
         lo = v * 0.8
         hi = v * 1.2
@@ -282,7 +304,10 @@ def _parse_range_or_cmp(text: str, unit_regex: str, allow_decimals: bool = True)
     # plain number
     m = re.search(rf"\b({num})\s*{unit_regex}\b", t)
     if m:
-        return m.group(1)
+        if allow_decimals:
+            return m.group(1)
+        parsed_v = _parse_loose_int_token(m.group(1))
+        return str(parsed_v) if parsed_v is not None else None
 
     return None
 

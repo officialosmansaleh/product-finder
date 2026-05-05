@@ -582,7 +582,32 @@ def _normalize_ui_filters(f: Dict[str, Any]) -> Dict[str, Any]:
     def _as_list(v: Any) -> List[Any]:
         return v if isinstance(v, list) else [v]
 
-    def _normalize_numeric_values(key: str, default_op: str) -> None:
+    def _normalize_numeric_token(value: str, allow_thousands: bool = False) -> str | None:
+        raw = str(value or "").strip()
+        if not raw:
+            return None
+        if allow_thousands:
+            m = re.search(r"(-?\d[\d\s'.,]*)(?!\d)", raw)
+            if not m:
+                return None
+            token = re.sub(r"\s+", "", m.group(1))
+            sign = "-" if token.startswith("-") else ""
+            token = token.lstrip("-")
+            if "," in token and "." in token:
+                decimal_sep = "," if token.rfind(",") > token.rfind(".") else "."
+                thousand_sep = "." if decimal_sep == "," else ","
+                token = token.replace(thousand_sep, "").replace(decimal_sep, ".")
+            elif re.fullmatch(r"\d{1,3}(?:[.,']\d{3})+", token):
+                token = re.sub(r"[.,']", "", token)
+            elif token.count(",") == 1 and token.count(".") == 0:
+                token = token.replace(",", ".")
+            else:
+                token = token.replace("'", "")
+            return f"{sign}{token}" if token else None
+        m = re.search(r"(-?\d+(?:\.\d+)?)", raw.replace(",", "."))
+        return m.group(1) if m else None
+
+    def _normalize_numeric_values(key: str, default_op: str, allow_thousands: bool = False) -> None:
         if key not in out:
             return
         vals = _as_list(out[key])
@@ -592,12 +617,21 @@ def _normalize_ui_filters(f: Dict[str, Any]) -> Dict[str, Any]:
             if not v:
                 continue
             v = v.replace(",", ".")
-            if has_range(v) or has_op(v):
+            if has_op(v):
+                if allow_thousands:
+                    op = next((op for op in (">=", "<=", ">", "<", "=") if v.startswith(op)), "")
+                    num = _normalize_numeric_token(v[len(op):], allow_thousands=True)
+                    if num:
+                        norm_vals.append(f"{op}{num}")
+                else:
+                    norm_vals.append(v)
+                continue
+            if has_range(v):
                 norm_vals.append(v)
                 continue
-            m = re.search(r"(-?\d+(?:\.\d+)?)", v)
-            if m:
-                norm_vals.append(f"{default_op}{m.group(1)}")
+            num = _normalize_numeric_token(one, allow_thousands=allow_thousands)
+            if num:
+                norm_vals.append(f"{default_op}{num}")
         if norm_vals:
             out[key] = norm_vals if isinstance(out[key], list) else norm_vals[0]
 
@@ -703,7 +737,7 @@ def _normalize_ui_filters(f: Dict[str, Any]) -> Dict[str, Any]:
             out["cri"] = vals if isinstance(out["cri"], list) else vals[0]
 
     # Lumen output migliorativo: "3000" -> ">=3000"
-    _normalize_numeric_values("lumen_output", ">=")
+    _normalize_numeric_values("lumen_output", ">=", allow_thousands=True)
 
     # Efficacy migliorativa: "120" -> ">=120"
     _normalize_numeric_values("efficacy_lm_w", ">=")
@@ -745,10 +779,10 @@ def _normalize_ui_filters(f: Dict[str, Any]) -> Dict[str, Any]:
     _normalize_numeric_values("warranty_years", ">=")
 
     # Lifetime ore: "50000 hr" / "50000" -> ">=50000"
-    _normalize_numeric_values("lifetime_hours", ">=")
+    _normalize_numeric_values("lifetime_hours", ">=", allow_thousands=True)
 
     # LED rated life (h): default >=
-    _normalize_numeric_values("led_rated_life_h", ">=")
+    _normalize_numeric_values("led_rated_life_h", ">=", allow_thousands=True)
 
     # Lumen maintenance % (Ta 25°): default >=
     _normalize_numeric_values("lumen_maintenance_pct", ">=")

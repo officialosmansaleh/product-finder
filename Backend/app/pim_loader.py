@@ -10,9 +10,33 @@ import os
 def _extract_first_number(x):
     if x is None:
         return None
-    s = str(x)
-    m = re.search(r"(-?\d+(?:\.\d+)?)", s.replace(",", "."))
-    return float(m.group(1)) if m else None
+    if isinstance(x, (int, float)) and not pd.isna(x):
+        return float(x)
+    s = str(x).strip()
+    if not s:
+        return None
+    m = re.search(r"(-?\d[\d\s'.,]*)(?!\d)", s)
+    if not m:
+        return None
+    token = re.sub(r"\s+", "", m.group(1))
+    sign = -1.0 if token.startswith("-") else 1.0
+    token = token.lstrip("-")
+
+    if "," in token and "." in token:
+        decimal_sep = "," if token.rfind(",") > token.rfind(".") else "."
+        thousand_sep = "." if decimal_sep == "," else ","
+        token = token.replace(thousand_sep, "").replace(decimal_sep, ".")
+    elif re.fullmatch(r"\d{1,3}(?:[.,']\d{3})+", token):
+        token = re.sub(r"[.,']", "", token)
+    elif token.count(",") == 1 and token.count(".") == 0:
+        token = token.replace(",", ".")
+    else:
+        token = token.replace("'", "")
+
+    try:
+        return sign * float(token)
+    except ValueError:
+        return None
 
 def _extract_hours(x):
     # "50000 hr" -> 50000

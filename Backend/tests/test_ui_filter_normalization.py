@@ -36,6 +36,12 @@ class UiFilterNormalizationTests(unittest.TestCase):
         self.assertEqual(got["warranty_years"], [">=5"])
         self.assertEqual(got["lumen_maintenance_pct"], [">=70"])
 
+    def test_normalizes_lumen_thousands_separators(self):
+        got = _normalize_ui_filters({
+            "lumen_output": ["54.000 lm", ">=54,000 lm", "54 000 lm"],
+        })
+        self.assertEqual(got["lumen_output"], [">=54000", ">=54000", ">=54000"])
+
     def test_preserves_explicit_operators_for_list_values(self):
         got = _normalize_ui_filters({
             "ugr": ["<19"],

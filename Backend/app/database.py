@@ -741,6 +741,27 @@ class ProductDatabase:
             print("No products loaded")
             return 0
 
+        try:
+            from app.pim_loader import _extract_first_number
+
+            numeric_helpers = {
+                "power_max_w": "power_max_value",
+                "power_min_w": "power_min_value",
+                "lumen_output": "lumen_output_value",
+                "efficacy_lm_w": "efficacy_value",
+            }
+            missing_helpers = [
+                (source, helper)
+                for source, helper in numeric_helpers.items()
+                if source in df.columns and helper not in df.columns
+            ]
+            if missing_helpers:
+                df = df.copy()
+                for source, helper in missing_helpers:
+                    df[helper] = df[source].apply(_extract_first_number)
+        except Exception as e:
+            print(f"Could not derive numeric helper columns: {e}")
+
         print(f"DataFrame shape: {df.shape}")
         columns = list(df.columns)
         print(f"DataFrame columns: {columns}")
