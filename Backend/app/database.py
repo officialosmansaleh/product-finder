@@ -12,6 +12,7 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor, execute_batch
 
 from app.db_runtime import normalize_postgres_url
+from app.pim_loader import _family_composite_key
 from app.runtime_config import cfg_float, cfg_list
 
 
@@ -708,7 +709,8 @@ class ProductDatabase:
             product_code = str(data.get("product_code") or "").strip()
             short_key = str(data.get("short_product_code") or "").strip().lower()
             name_key = str(data.get("product_name") or "").strip().split()[0].lower() if str(data.get("product_name") or "").strip() else ""
-            family = family_map.get(short_key) or family_map.get(name_key)
+            composite_key = _family_composite_key(short_key, name_key)
+            family = family_map.get(composite_key) or family_map.get(short_key) or family_map.get(name_key)
             if not product_code:
                 continue
             if family:

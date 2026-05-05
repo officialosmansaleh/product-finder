@@ -138,6 +138,43 @@ class DbRuntimeTests(unittest.TestCase):
             finally:
                 db.close()
 
+    def test_family_map_import_uses_composite_key_for_duplicate_short_code(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = os.path.join(td, "products.db")
+            db = ProductDatabase(db_path=db_path, database_url="")
+            try:
+                release = pd.DataFrame([
+                    {
+                        "product_code": "A1",
+                        "short_product_code": "1782",
+                        "product_name": "Astro HP",
+                        "product_family": "old",
+                    },
+                    {
+                        "product_code": "R1",
+                        "short_product_code": "1782",
+                        "product_name": "Roda 50",
+                        "product_family": "old",
+                    },
+                ])
+                with mock.patch("app.pim_loader.load_products", return_value=release):
+                    self.assertEqual(db.init_db("duplicate-short.xlsx"), 2)
+
+                result = db.update_families_from_map({
+                    "1782::astro": "floodlight",
+                    "1782::roda": "Waterproof",
+                })
+                self.assertEqual(result["matched"], 2)
+
+                rows = {
+                    row["product_code"]: row["product_family"]
+                    for row in db.search_products({}, limit=10)
+                }
+                self.assertEqual(rows["A1"], "floodlight")
+                self.assertEqual(rows["R1"], "Waterproof")
+            finally:
+                db.close()
+
 
 if __name__ == "__main__":
     unittest.main()

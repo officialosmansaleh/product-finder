@@ -60,6 +60,47 @@ class FamilyMapLoaderTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "No valid family map"):
                 load_products(pim_path, family_map_path=os.path.join(td, "missing.xlsx"), verbose=False)
 
+    def test_duplicate_short_code_uses_product_name_composite_key(self):
+        with tempfile.TemporaryDirectory() as td:
+            pim_path = os.path.join(td, "pim.xlsx")
+            family_path = os.path.join(td, "family_map.xlsx")
+            pd.DataFrame(
+                [
+                    {
+                        "Order code": "A1",
+                        "Short product code": "1782",
+                        "Product name": "Astro HP",
+                        "Manufacturer": "DISANO",
+                    },
+                    {
+                        "Order code": "R1",
+                        "Short product code": "1782",
+                        "Product name": "Roda 50",
+                        "Manufacturer": "DISANO",
+                    },
+                ]
+            ).to_excel(pim_path, index=False)
+            pd.DataFrame(
+                [
+                    {
+                        "Product name": "Astro",
+                        "Product family": "floodlight",
+                        "Short product code": "1782",
+                    },
+                    {
+                        "Product name": "Roda",
+                        "Product family": "Waterproof",
+                        "Short product code": "1782",
+                    },
+                ]
+            ).to_excel(family_path, index=False)
+
+            loaded = load_products(pim_path, family_map_path=family_path, verbose=False)
+
+        by_code = dict(zip(loaded["product_code"], loaded["product_family"]))
+        self.assertEqual(by_code["A1"], "floodlight")
+        self.assertEqual(by_code["R1"], "Waterproof")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -329,6 +329,14 @@ def _first_word(name: str) -> str:
     return s.split()[0] if s else ""
 
 
+def _family_composite_key(short_code, product_name) -> str:
+    short_key = _norm_key(short_code).lower()
+    name_key = _first_word(product_name)
+    if not short_key or not name_key:
+        return ""
+    return f"{short_key}::{name_key}"
+
+
 FAMILY_NAME_ALIASES = {
     "road lighting": "Street lighting",
 }
@@ -425,6 +433,11 @@ def load_family_map(path: str) -> dict:
         raise ValueError("family_map.xlsx must contain a family column and a Short product code column")
 
     fm["FamilyKey"] = fm[short_code_col].apply(_norm_key)
+    fm["NameKey"] = fm[product_name_col].apply(_first_word) if product_name_col else ""
+    fm["CompositeFamilyKey"] = [
+        _family_composite_key(short_code, product_name)
+        for short_code, product_name in zip(fm[short_code_col], fm[product_name_col] if product_name_col else [""] * len(fm))
+    ]
     # If Short code missing, fallback to first word of Product name
     missing = fm["FamilyKey"] == ""
     if missing.any() and product_name_col:
@@ -440,10 +453,16 @@ def load_family_map(path: str) -> dict:
     # Keep family text exactly as in file (first occurrence wins, case-insensitive key).
     out = {}
     for _, r in fm.iterrows():
-        k = str(r["FamilyKey"]).strip().lower()
+        composite_key = str(r.get("CompositeFamilyKey") or "").strip().lower()
         v = str(r["Family"]).strip()
+        if composite_key and v and composite_key not in out:
+            out[composite_key] = v
+        k = str(r["FamilyKey"]).strip().lower()
         if k and v and k not in out:
             out[k] = v
+        name_key = str(r.get("NameKey") or "").strip().lower()
+        if name_key and v and name_key not in out:
+            out[name_key] = v
     return out
 
 # -----------------------------
@@ -598,6 +617,9 @@ def load_products(
         for key, name_key, family in zip(fallback_keys, fallback_name_keys, fallback_family):
             clean_family = _normalize_family_name(family)
             if clean_family and not re.fullmatch(r"\d+(?:\.0)?", clean_family):
+                composite_key = _family_composite_key(key, name_key)
+                if composite_key:
+                    fam_map.setdefault(composite_key, clean_family)
                 if key:
                     fam_map.setdefault(key, clean_family)
                 if name_key:
@@ -606,11 +628,19 @@ def load_products(
             print(f"No family map available; derived {len(fam_map)} family keys from PIM product_family")
 
     # ---- CREA product_family SOLO DAL MAPPING ----
-    # Rule: short_product_code, otherwise first word of product_name.
-    out['family_key'] = out['short_product_code'].astype(str).str.lower().str.strip()
+    # Rule: short_product_code + product-name prefix, then short code, then first word.
+    out['family_key'] = [
+        _family_composite_key(short_code, product_name)
+        for short_code, product_name in zip(out['short_product_code'], out['product_name'])
+    ]
     
     # Applica il mapping
     out['product_family'] = out['family_key'].map(fam_map)
+
+    missing_mask = out['product_family'].isna()
+    if missing_mask.any():
+        out.loc[missing_mask, 'family_key'] = out.loc[missing_mask, 'short_product_code'].astype(str).str.lower().str.strip()
+        out.loc[missing_mask, 'product_family'] = out.loc[missing_mask, 'family_key'].map(fam_map)
     
     # If missing, fallback to first word of product_name
     missing_mask = out['product_family'].isna()
