@@ -80,7 +80,28 @@ class AIFallbackTests(unittest.TestCase):
         payload = response.json()
         interpreted = payload.get("interpreted") or {}
         self.assertEqual(interpreted.get("ai_status"), "disabled")
-        self.assertIn("OpenAI", str(interpreted.get("ai_note") or ""))
+        self.assertEqual(
+            interpreted.get("ai_note"),
+            "AI parsing is unavailable right now. Search continued with standard filters.",
+        )
+        self.assertNotIn("OpenAI", str(interpreted.get("ai_note") or ""))
+
+    def test_ai_diagnostics_are_preserved_for_it_and_admin_roles(self):
+        import app.main as main_mod
+
+        interpreted = {
+            "ai_status": "error",
+            "ai_note": "AI inference unavailable right now: Error code: 429 insufficient_quota",
+            "ai_model": "gpt-test",
+        }
+        regular = main_mod._sanitize_ai_interpreted_for_user(interpreted, {"role": "user"})
+        admin = main_mod._sanitize_ai_interpreted_for_user(interpreted, {"role": "admin"})
+        it_user = main_mod._sanitize_ai_interpreted_for_user(interpreted, {"role": "it"})
+
+        self.assertNotIn("429", str(regular.get("ai_note") or ""))
+        self.assertNotIn("ai_model", regular)
+        self.assertIn("429", str(admin.get("ai_note") or ""))
+        self.assertIn("429", str(it_user.get("ai_note") or ""))
 
 
 if __name__ == "__main__":

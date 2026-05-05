@@ -232,6 +232,24 @@ def _get_optional_current_user(request: Optional[FastAPIRequest]) -> Optional[Di
     return user
 
 
+def _can_view_ai_diagnostics(user: Optional[Dict[str, Any]]) -> bool:
+    role = str((user or {}).get("role") or "").strip().lower()
+    return role in {"admin", "it"}
+
+
+def _sanitize_ai_interpreted_for_user(interpreted: Optional[Dict[str, Any]], user: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not isinstance(interpreted, dict):
+        return interpreted
+    if _can_view_ai_diagnostics(user):
+        return interpreted
+    out = dict(interpreted)
+    status = str(out.get("ai_status") or "").strip().lower()
+    if status in {"error", "disabled"}:
+        out["ai_note"] = "AI parsing is unavailable right now. Search continued with standard filters."
+        out.pop("ai_model", None)
+    return out
+
+
 def _has_analytics_consent(request: Optional[FastAPIRequest]) -> bool:
     if request is None:
         return False
@@ -3141,6 +3159,7 @@ def search(req: SearchRequest, request: FastAPIRequest = None):
         include_price=bool(current_user),
         max_limit=100,
     )
+    resp.interpreted = _sanitize_ai_interpreted_for_user(resp.interpreted, current_user)
     _record_analytics_event(
         request,
         event_type="search",
