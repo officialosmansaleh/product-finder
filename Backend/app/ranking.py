@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Callable
 
 EXACT_MIN_SCORE = 1.0
@@ -45,6 +46,64 @@ def _diversify_by_product_line(items: list[dict[str, Any]], limit: int) -> list[
     return diversified
 
 
+def _num_from_item(item: dict[str, Any], key: str) -> float | None:
+    row = item.get("row") or {}
+    candidates = [row.get(key)]
+    helper_map = {
+        "power_max_w": "power_max_value",
+        "lumen_output": "lumen_output_value",
+        "efficacy_lm_w": "efficacy_value",
+    }
+    if key in helper_map:
+        candidates.insert(0, row.get(helper_map[key]))
+    for value in candidates:
+        m = re.search(r"-?\d+(?:\.\d+)?", str(value or ""))
+        if not m:
+            continue
+        try:
+            return float(m.group(0))
+        except ValueError:
+            continue
+    return None
+
+
+def _sort_for_mode(items: list[dict[str, Any]], sort_mode: str) -> list[dict[str, Any]]:
+    mode = str(sort_mode or "score_desc")
+    if mode == "score_asc":
+        return sorted(items, key=lambda x: (float(x.get("score") or 0.0), str((x.get("row") or {}).get("product_code") or "")))
+    if mode == "score_desc":
+        return sorted(
+            items,
+            key=lambda x: (float(x.get("score") or 0.0), float(x.get("text_relevance") or 0.0), str((x.get("row") or {}).get("product_code") or "")),
+            reverse=True,
+        )
+    if mode == "code_asc":
+        return sorted(items, key=lambda x: str((x.get("row") or {}).get("product_code") or ""))
+    if mode == "code_desc":
+        return sorted(items, key=lambda x: str((x.get("row") or {}).get("product_code") or ""), reverse=True)
+
+    numeric_modes = {
+        "price_asc": ("price", "asc"),
+        "price_desc": ("price", "desc"),
+        "power_asc": ("power_max_w", "asc"),
+        "power_desc": ("power_max_w", "desc"),
+        "efficacy_desc": ("efficacy_lm_w", "desc"),
+        "lumen_desc": ("lumen_output", "desc"),
+    }
+    if mode in numeric_modes:
+        key, direction = numeric_modes[mode]
+        desc = direction == "desc"
+        return sorted(
+            items,
+            key=lambda x: (
+                _num_from_item(x, key) is None,
+                -(_num_from_item(x, key) or 0.0) if desc else (_num_from_item(x, key) or 0.0),
+                str((x.get("row") or {}).get("product_code") or ""),
+            ),
+        )
+    return items
+
+
 def select_exact_and_similar(
     *,
     exact_pool: list[dict[str, Any]],
@@ -56,15 +115,10 @@ def select_exact_and_similar(
     limit: int,
     include_similar: bool,
     text_relevance_fn: Callable[[dict[str, Any], str], float],
+    sort_mode: str = "score_desc",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    exact_pool.sort(
-        key=lambda x: (x["score"], x.get("text_relevance", 0.0), str(x["row"].get("product_code", ""))),
-        reverse=True,
-    )
-    similar_pool.sort(
-        key=lambda x: (x["score"], x.get("text_relevance", 0.0), str(x["row"].get("product_code", ""))),
-        reverse=True,
-    )
+    exact_pool = _sort_for_mode(exact_pool, "score_desc")
+    similar_pool = _sort_for_mode(similar_pool, "score_desc")
 
     exact_scored: list[dict[str, Any]] = []
     q = (text_query or "").strip()
@@ -149,6 +203,10 @@ def select_exact_and_similar(
     )
     if family_only_query:
         exact_scored = _diversify_by_product_line(exact_scored, limit)
+
+    if str(sort_mode or "score_desc") != "score_desc":
+        exact_scored = _sort_for_mode(exact_scored, sort_mode)
+        similar_scored = _sort_for_mode(similar_scored, sort_mode)
 
     exact_scored = exact_scored[:limit]
     if include_similar:

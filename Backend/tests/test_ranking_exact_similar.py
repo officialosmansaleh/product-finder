@@ -147,6 +147,26 @@ class RankingSelectionTests(unittest.TestCase):
             ["Rodio", "Astro", "Sevilla"],
         )
 
+    def test_power_sort_applies_before_limit(self):
+        exact_pool = [
+            {**_mk_scored("A", 1.0, 0.0), "row": {"product_code": "A", "product_name": "A", "power_max_w": "100 W"}},
+            {**_mk_scored("B", 1.0, 0.0), "row": {"product_code": "B", "product_name": "B", "power_max_w": "5 W"}},
+            {**_mk_scored("C", 1.0, 0.0), "row": {"product_code": "C", "product_name": "C", "power_max_w": "20 W"}},
+        ]
+        exact, _ = select_exact_and_similar(
+            exact_pool=exact_pool,
+            similar_pool=[],
+            rows=[],
+            text_query="floodlights",
+            hard_filters={},
+            soft_filters={"product_family": "floodlight"},
+            limit=1,
+            include_similar=False,
+            text_relevance_fn=lambda _row, _q: 0.0,
+            sort_mode="power_asc",
+        )
+        self.assertEqual([x["row"]["product_code"] for x in exact], ["B"])
+
 
 if __name__ == "__main__":
     unittest.main()

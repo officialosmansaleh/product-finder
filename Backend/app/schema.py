@@ -91,6 +91,7 @@ class SearchRequest(BaseModel):
     limit: int = 20
     include_similar: bool = True
     allow_ai: bool = True
+    sort: str = "score_desc"
 
     # 🔎 show debug payload only if true
     debug: bool = False

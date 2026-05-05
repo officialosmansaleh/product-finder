@@ -2359,6 +2359,7 @@ function resetRange(key, minId, maxId){
         filters: buildFiltersPayload(),
         limit: 100,
         include_similar: true,
+        sort: String($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc"),
         debug: false
       };
       const data = await postJSON("/search", payload);
@@ -3044,6 +3045,7 @@ document.addEventListener("keydown", (ev)=>{
       filters: rawFilters,
       limit: 100,
       include_similar: true,
+      sort: String($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc"),
       allow_ai: !isPublicCatalogMode(),
       debug: false
     };
@@ -3233,7 +3235,7 @@ document.addEventListener("keydown", (ev)=>{
     });
     $("sortSel").addEventListener("change", ()=>{
       finderSortModes[activeResultsTab] = String($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc");
-      renderPage();
+      runSearch();
       saveFinderState();
     });
     $("btnFinderFilesParse")?.addEventListener("click", async ()=>{

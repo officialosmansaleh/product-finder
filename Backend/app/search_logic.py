@@ -356,10 +356,16 @@ def handle_search(
         recovery_actions.append({"id": "clear_filters", "label": "Clear some filters and keep the query"})
 
     limit = min(max(1, int(req.limit or 20)), max(1, int(max_limit or 100)))
+    sort_mode = str(getattr(req, "sort", "") or "score_desc")
+    needs_global_sort = sort_mode in {
+        "price_asc", "price_desc", "power_asc", "power_desc", "efficacy_desc", "lumen_desc", "code_asc", "code_desc"
+    }
     candidate_limit = min(
         max(limit * cfg_int("main.search_candidate_multiplier", 30), cfg_int("main.search_candidate_min", 500)),
         cfg_int("main.search_candidate_max", 10000),
     )
+    if needs_global_sort:
+        candidate_limit = cfg_int("main.search_candidate_max", 10000)
     rows: List[Dict[str, Any]] = []
     used_product_db = False
     exact_seed_codes: set[str] = set()
@@ -472,6 +478,7 @@ def handle_search(
         limit=limit,
         include_similar=getattr(req, "include_similar", True),
         text_relevance_fn=text_relevance,
+        sort_mode=sort_mode,
     )
 
     exact_hits: List[ProductHit] = []
