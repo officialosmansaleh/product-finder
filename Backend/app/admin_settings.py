@@ -189,17 +189,6 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
         placeholder="lax, strict, or none",
     ),
     SettingDefinition(
-        key="auth_jwt_secret",
-        label="JWT Secret",
-        category="Security",
-        description="Signing secret for JWT access tokens.",
-        env_name="AUTH_JWT_SECRET",
-        secret=True,
-        restart_required=True,
-        immediate_apply=False,
-        placeholder="long-random-secret",
-    ),
-    SettingDefinition(
         key="admin_bootstrap_email",
         label="Bootstrap Admin Email",
         category="Administration",
