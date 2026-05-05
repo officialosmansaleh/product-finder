@@ -241,6 +241,14 @@ def _can_view_ai_diagnostics(user: Optional[Dict[str, Any]]) -> bool:
     return role in {"admin", "it"}
 
 
+def _is_admin_user(user: Optional[Dict[str, Any]]) -> bool:
+    if isinstance(user, dict):
+        role_value = user.get("role")
+    else:
+        role_value = getattr(user, "role", "")
+    return str(role_value or "").strip().lower() == "admin"
+
+
 def _sanitize_ai_interpreted_for_user(interpreted: Optional[Dict[str, Any]], user: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     if not isinstance(interpreted, dict):
         return interpreted
@@ -2894,6 +2902,18 @@ def _collect_compare_fields(
     return out
 
 
+def _collect_compare_fields_for_user(
+    rows: List[Optional[Dict[str, Any]]],
+    user: Optional[Dict[str, Any]],
+    include_empty: bool = True,
+    reference_only: bool = False,
+) -> List[str]:
+    fields = _collect_compare_fields(rows, include_empty=include_empty, reference_only=reference_only)
+    if not _is_admin_user(user):
+        fields = [f for f in fields if str(f).strip().lower() != "price"]
+    return fields
+
+
 @app.post("/compare-products")
 def compare_products(req: CompareProductsRequest, request: FastAPIRequest = None):
     current_user = _get_optional_current_user(request)
@@ -2903,7 +2923,9 @@ def compare_products(req: CompareProductsRequest, request: FastAPIRequest = None
         manufacturer_label=_manufacturer_label,
         build_website_url=_build_website_url,
         build_datasheet_url=_build_datasheet_url,
-        collect_compare_fields=_collect_compare_fields,
+        collect_compare_fields=lambda rows, include_empty=True, reference_only=False: _collect_compare_fields_for_user(
+            rows, current_user, include_empty=include_empty, reference_only=reference_only
+        ),
         cmp_norm_value=_cmp_norm_value,
         quote_plus=quote_plus,
     )
@@ -2929,7 +2951,9 @@ def compare_spec_products(req: CompareSpecProductsRequest, request: FastAPIReque
         manufacturer_label=_manufacturer_label,
         build_website_url=_build_website_url,
         build_datasheet_url=_build_datasheet_url,
-        collect_compare_fields=_collect_compare_fields,
+        collect_compare_fields=lambda rows, include_empty=True, reference_only=False: _collect_compare_fields_for_user(
+            rows, current_user, include_empty=include_empty, reference_only=reference_only
+        ),
         cmp_norm_value=_cmp_norm_value,
         to_num=_to_num,
         quote_plus=quote_plus,
@@ -2966,6 +2990,7 @@ def alternatives_from_spec(req: IdealSpecAlternativesRequest, request: FastAPIRe
         build_datasheet_url=_build_datasheet_url,
         quote_plus=quote_plus,
         to_num=_to_num,
+        include_price=_is_admin_user(current_user),
     )
     _record_analytics_event(
         request,
@@ -2991,7 +3016,9 @@ def export_compare_pdf(req: CompareExportPdfRequest, request: FastAPIRequest = N
         sanitize_filters=_sanitize_filters,
         normalize_ui_filters=_normalize_ui_filters,
         find_product_by_code_any=_find_product_by_code_any,
-        collect_compare_fields=_collect_compare_fields,
+        collect_compare_fields=lambda rows, include_empty=True, reference_only=False: _collect_compare_fields_for_user(
+            rows, current_user, include_empty=include_empty, reference_only=reference_only
+        ),
         cmp_norm_value=_cmp_norm_value,
         humanize_compare_field=_humanize_compare_field,
         extract_graphql_image_url=_extract_graphql_image_url,
@@ -3033,6 +3060,7 @@ def alternatives(req: AlternativesRequest, request: FastAPIRequest = None):
         build_website_url=_build_website_url,
         build_datasheet_url=_build_datasheet_url,
         quote_plus=quote_plus,
+        include_price=_is_admin_user(current_user),
     )
     _record_analytics_event(
         request,
@@ -3160,7 +3188,7 @@ def search(req: SearchRequest, request: FastAPIRequest = None):
         clean_value=_clean,
         logger=logger,
         quote_plus=quote_plus,
-        include_price=bool(current_user),
+        include_price=_is_admin_user(current_user),
         max_limit=100,
     )
     resp.interpreted = _sanitize_ai_interpreted_for_user(resp.interpreted, current_user)

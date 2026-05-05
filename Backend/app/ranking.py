@@ -88,6 +88,7 @@ def _sort_for_mode(items: list[dict[str, Any]], sort_mode: str) -> list[dict[str
         "power_asc": ("power_max_w", "asc"),
         "power_desc": ("power_max_w", "desc"),
         "efficacy_desc": ("efficacy_lm_w", "desc"),
+        "lumen_asc": ("lumen_output", "asc"),
         "lumen_desc": ("lumen_output", "desc"),
     }
     if mode in numeric_modes:

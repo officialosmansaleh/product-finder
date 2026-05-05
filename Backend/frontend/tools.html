@@ -278,8 +278,8 @@
             <select id="idealSort" style="padding:10px;border:1px solid #d1d5db;border-radius:10px">
               <option value="score_desc">Score high-low</option>
               <option value="score_asc">Score low-high</option>
-              <option value="price_asc">Price low-high</option>
-              <option value="price_desc">Price high-low</option>
+              <option value="price_asc" data-admin-only="1">Price low-high</option>
+              <option value="price_desc" data-admin-only="1">Price high-low</option>
             </select>
             <button id="btnIdealAlt" type="button" style="display:none">Show alternatives</button>
           </div>
@@ -312,6 +312,24 @@
     function currentAuthRole(){
       return String(readCurrentAuthUser()?.role || "").trim().toLowerCase();
     }
+    function isAdminUser(){
+      return currentAuthRole() === "admin";
+    }
+    function normalizeSortForAccess(mode){
+      const clean = String(mode || "score_desc");
+      return (!isAdminUser() && (clean === "price_asc" || clean === "price_desc")) ? "score_desc" : clean;
+    }
+    function updatePriceSortAccess(){
+      const sel = $("idealSort");
+      if (!sel) return;
+      Array.from(sel.options).forEach(opt => {
+        if (opt.dataset.adminOnly === "1"){
+          opt.hidden = !isAdminUser();
+          opt.disabled = !isAdminUser();
+        }
+      });
+      sel.value = normalizeSortForAccess(sel.value);
+    }
     function redirectItUserToPanel(){
       window.location.replace("/frontend/admin.html#settingsSection");
     }
@@ -319,6 +337,7 @@
       redirectItUserToPanel();
       throw new Error("IT users cannot access the compare workspace.");
     }
+    updatePriceSortAccess();
     async function postJSON(url,payload){
       const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       if(!r.ok){ throw new Error(await r.text()); }
@@ -409,7 +428,7 @@
       ].filter(([, v, ov]) => _cmpNorm(v) !== _cmpNorm(ov));
       if (!rows.length) return "";
       return `
-        <div class="small" style="margin-top:8px"><b>Comparison specs</b></div>
+        <div class="small" style="margin-top:8px"><b>${esc(tt("comparison_specs"))}</b></div>
         <table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:12px">
           <tbody>
             ${rows.map(([k,v]) => `<tr><td style="padding:4px 6px 4px 0;border-bottom:1px solid #eef2f7;color:#6b7280">${esc(k)}</td><td style="padding:4px 0;border-bottom:1px solid #eef2f7">${esc(fmtVal(v))}</td></tr>`).join("")}
@@ -458,6 +477,91 @@
       hr:{title:"Alati Proizvoda",language:"Jezik",finder:"Home",quote:"Ponuda",apply_filters:"Primijeni filtre",reset:"Reset",requirements:"Zahtjevi",req_panel_hint:"Panel zahtjeva za alternative i usporedbu.",tender_spec:"Specifikacija stavke",apply_code:"Primijeni sifru",comparison:"LIST USPOREDBE",compare:"Usporedi",clear:"Ocisti",solutions:"Rjesenja",close:"Zatvori"},
       sl:{title:"Orodja Izdelka",language:"Jezik",finder:"Home",quote:"Ponudba",apply_filters:"Uporabi filtre",reset:"Ponastavi",requirements:"Zahteve",req_panel_hint:"Panel zahtev za alternative in primerjavo.",tender_spec:"Specifikacija postavke",apply_code:"Uporabi kodo",comparison:"PRIMERJALNI LIST",compare:"Primerjaj",clear:"Pocisti",solutions:"Resitve",close:"Zapri"}
     };
+    Object.assign(TI18N.en, {
+      top_sub:"Build a project requirement, compare options, and move the best fit into your quote flow.",
+      intro_title:"Use this page as a technical workspace",
+      intro_text:"Start from a project requirement or a known source code, compare only the shortlisted options, and move the winning products into the quote cart without losing context.",
+      intro_pill_requirement:"Requirement-driven",
+      intro_pill_compare:"Comparison-ready",
+      intro_pill_quote:"Quote-connected",
+      flow_title:"Recommended flow",
+      flow_text:"1. Apply a code or requirement. 2. Review recommended matches. 3. Compare finalists. 4. Push the best fit to the quote cart.",
+      source_hint:"Seed the comparison brief from one of your product codes.",
+      source_code_ph:"Or enter your product code (e.g. 156415-00)",
+      cmp_ref_ph:"Reference / Project requirement",
+      cmp_b_ph:"Option 1 (e.g. 112600-31)",
+      cmp_c_ph:"Option 2 (optional)",
+      score_high_low:"Score high-low",
+      score_low_high:"Score low-high",
+      price_low_high:"Price low-high",
+      price_high_low:"Price high-low",
+      image:"Image",
+      code:"Code",
+      name:"Name",
+      manufacturer:"Manufacturer",
+      family:"Family",
+      score:"Score",
+      download:"Download",
+      actions:"Actions",
+      datasheet:"Datasheet",
+      add_to_quote:"Add to Quote",
+      remove_from_quote:"Remove from Quote",
+      quote_short:"Quote",
+      comparison_specs:"Comparison specs",
+      no_differences:"No differences on compared fields.",
+      field:"Field",
+      missing:"missing",
+      loading:"Loading...",
+      type_code_first:"Type a product code first.",
+      set_requirement:"Set at least one requirement or set a reference product code.",
+      project_requirement_missing:"Project requirement not loaded. Apply requirements first.",
+      set_compare_inputs:"Set the comparison inputs first.",
+    });
+    Object.assign(TI18N.it, {
+      top_sub:"Costruisci il requisito di progetto, confronta le opzioni e sposta la soluzione migliore nel flusso offerta.",
+      intro_title:"Usa questa pagina come workspace tecnico",
+      intro_text:"Parti da un requisito di progetto o da un codice sorgente noto, confronta solo le opzioni selezionate e invia i prodotti migliori al carrello offerta senza perdere contesto.",
+      intro_pill_requirement:"Basato sui requisiti",
+      intro_pill_compare:"Pronto al confronto",
+      intro_pill_quote:"Collegato all'offerta",
+      flow_title:"Flusso consigliato",
+      flow_text:"1. Applica un codice o requisito. 2. Rivedi gli abbinamenti consigliati. 3. Confronta i finalisti. 4. Invia la soluzione migliore al carrello offerta.",
+      source_hint:"Imposta il brief di confronto partendo da uno dei tuoi codici prodotto.",
+      source_code_ph:"Oppure inserisci il codice prodotto (es. 156415-00)",
+      cmp_ref_ph:"Riferimento / Requisito progetto",
+      cmp_b_ph:"Opzione 1 (es. 112600-31)",
+      cmp_c_ph:"Opzione 2 (opzionale)",
+      score_high_low:"Score alto-basso",
+      score_low_high:"Score basso-alto",
+      price_low_high:"Prezzo basso-alto",
+      price_high_low:"Prezzo alto-basso",
+      image:"Immagine",
+      code:"Codice",
+      name:"Nome",
+      manufacturer:"Produttore",
+      family:"Famiglia",
+      score:"Score",
+      download:"Download",
+      actions:"Azioni",
+      datasheet:"Scheda tecnica",
+      add_to_quote:"Aggiungi all'offerta",
+      remove_from_quote:"Rimuovi dall'offerta",
+      quote_short:"Offerta",
+      comparison_specs:"Specifiche confronto",
+      no_differences:"Nessuna differenza nei campi confrontati.",
+      field:"Campo",
+      missing:"mancante",
+      loading:"Caricamento...",
+      type_code_first:"Inserisci prima un codice prodotto.",
+      set_requirement:"Imposta almeno un requisito oppure un codice prodotto di riferimento.",
+      project_requirement_missing:"Requisito progetto non caricato. Applica prima i requisiti.",
+      set_compare_inputs:"Imposta prima gli input di confronto.",
+    });
+    Object.values(TI18N).forEach(dict => {
+      for (const [key, value] of Object.entries(TI18N.en)) {
+        if (dict[key] === undefined) dict[key] = value;
+      }
+    });
     let toolsLang = "en";
     function tt(k){ return (TI18N[toolsLang]||TI18N.en)[k] || TI18N.en[k] || k; }
     function detectToolsLang(){ try{ const v=String(localStorage.getItem(UI_LANG_KEY)||"").toLowerCase(); if(TOOLS_LANGS.some(x=>x[0]===v)) return v; }catch(_e){} const b=String(navigator.language||"en").toLowerCase().split("-")[0]; return TOOLS_LANGS.some(x=>x[0]===b)?b:"en"; }
@@ -465,6 +569,17 @@
       document.documentElement.lang = toolsLang;
       document.documentElement.dir = toolsLang === "ar" ? "rtl" : "ltr";
       document.title = tt("title");
+      const setText = (sel, key) => { const el = document.querySelector(sel); if (el) el.textContent = tt(key); };
+      setText(".topBarTitle", "title");
+      setText(".topBarSub", "top_sub");
+      const introTitles = Array.from(document.querySelectorAll(".workspaceIntroTitle"));
+      if (introTitles[0]) introTitles[0].textContent = tt("intro_title");
+      if (introTitles[1]) introTitles[1].textContent = tt("flow_title");
+      const introTexts = Array.from(document.querySelectorAll(".workspaceIntroText"));
+      if (introTexts[0]) introTexts[0].textContent = tt("intro_text");
+      if (introTexts[1]) introTexts[1].textContent = tt("flow_text");
+      const pills = Array.from(document.querySelectorAll(".workspaceIntroPill"));
+      ["intro_pill_requirement","intro_pill_compare","intro_pill_quote"].forEach((key, idx) => { if (pills[idx]) pills[idx].textContent = tt(key); });
       $("toolsLangLabel") && ($("toolsLangLabel").textContent = tt("language"));
       $("btnFinder") && ($("btnFinder").textContent = tt("finder"));
       $("btnQuote") && ($("btnQuote").textContent = tt("quote"));
@@ -477,16 +592,18 @@
       if (hs[0]) hs[0].textContent = tt("tender_spec");
       if (hs[1]) hs[1].textContent = tt("comparison");
       if (hs[2]) hs[2].textContent = tt("solutions");
+      $("idealSourceCode") && ($("idealSourceCode").placeholder = tt("source_code_ph"));
+      $("cmpA") && ($("cmpA").placeholder = tt("cmp_ref_ph"));
+      $("cmpB") && ($("cmpB").placeholder = tt("cmp_b_ph"));
+      $("cmpC") && ($("cmpC").placeholder = tt("cmp_c_ph"));
+      const sortLabels = { score_desc:"score_high_low", score_asc:"score_low_high", price_asc:"price_low_high", price_desc:"price_high_low" };
+      Array.from($("idealSort")?.options || []).forEach(opt => { opt.textContent = tt(sortLabels[opt.value] || opt.value); });
       const reqHead = document.querySelector(".filterPanelHead .h");
       if (reqHead) reqHead.textContent = tt("requirements");
       const reqHint = document.querySelector(".filterPanelHead .small");
       if (reqHint) reqHint.textContent = tt("req_panel_hint");
       const tenderHint = document.querySelector(".mainCol > .card .small");
-      if (tenderHint) {
-        tenderHint.textContent = toolsLang === "it"
-          ? "Imposta il brief di confronto partendo da uno dei tuoi codici prodotto."
-          : "Seed the comparison brief from one of your product codes.";
-      }
+      if (tenderHint) tenderHint.textContent = tt("source_hint");
       refreshToolsQuoteButton();
     }
     function toolsDatasheetUrl(code){
@@ -579,8 +696,8 @@
     }
     async function promptQuoteEntryData(existingRow){
       return await window.ProductFinderQuoteUtils?.promptQuoteEntry?.(existingRow, {
-        title: "Add to quote",
-        confirmLabel: "Add",
+        title: tt("add_to_quote"),
+        confirmLabel: tt("add_to_quote"),
         cancelLabel: "Cancel",
         projectReferencePlaceholder: "L1",
       }) || null;
@@ -795,7 +912,7 @@
           }).join("")}
         </div>`;
       if(!visibleDifferences.length){
-        $("cmpOut").innerHTML = `${compareHeader}<div class="small">No differences on compared fields.</div>`;
+        $("cmpOut").innerHTML = `${compareHeader}<div class="small">${esc(tt("no_differences"))}</div>`;
         wireCompareQuoteButtons(itemSlots);
         return;
       }
@@ -803,7 +920,7 @@
         ${compareHeader}
         <div class="solutionsTableWrap">
         <table class="solutionsTable compareDiffTable">
-          <thead><tr><th>Field</th>${itemSlots.map(({item, slot}) => `<th>${slotTitle(slot)}${item ? "" : " (missing)"}</th>`).join("")}</tr></thead>
+          <thead><tr><th>${esc(tt("field"))}</th>${itemSlots.map(({item, slot}) => `<th>${slotTitle(slot)}${item ? "" : ` (${esc(tt("missing"))})`}</th>`).join("")}</tr></thead>
           <tbody>${visibleDifferences.map(x=>`<tr><td>${esc(prettyLabel(x.field))}</td>${itemSlots.map(({slot}) => `<td>${esc((x.values || [])[slot])}</td>`).join("")}</tr>`).join("")}</tbody>
         </table>
         </div>`;
@@ -901,13 +1018,13 @@
           const item = bySlot.get(String(btn.dataset.cmpQuoteSlot || ""));
           if (!item) return;
           const added = toggleQuoteProduct(item, "tools-compare");
-          btn.textContent = added ? "Remove from Quote" : "Add to Quote";
+          btn.textContent = added ? tt("remove_from_quote") : tt("add_to_quote");
           btn.classList.toggle("secondary", added);
         });
       });
     }
     function sortAlternatives(rows){
-      const mode = solutionsSortOverride || $("altSort")?.value || $("idealSort")?.value || "score_desc";
+      const mode = normalizeSortForAccess(solutionsSortOverride || $("altSort")?.value || $("idealSort")?.value || "score_desc");
       const arr = Array.isArray(rows) ? [...rows] : [];
       if (mode === "score_asc") arr.sort((a,b)=> Number(a?.score ?? Infinity) - Number(b?.score ?? Infinity));
       if (mode === "score_desc") arr.sort((a,b)=> Number(b?.score ?? -Infinity) - Number(a?.score ?? -Infinity));
@@ -932,13 +1049,13 @@
       return arr;
     }
     function nextSortModeForColumn(col){
-      const current = String(solutionsSortOverride || $("idealSort")?.value || "score_desc");
+      const current = normalizeSortForAccess(solutionsSortOverride || $("idealSort")?.value || "score_desc");
       const base = String(col || "").trim();
       if (!base) return current;
       return current === `${base}_asc` ? `${base}_desc` : `${base}_asc`;
     }
     function sortHeaderBtn(label, col){
-      const current = String(solutionsSortOverride || $("idealSort")?.value || "score_desc");
+      const current = normalizeSortForAccess(solutionsSortOverride || $("idealSort")?.value || "score_desc");
       let suffix = "";
       if (current === `${col}_asc`) suffix = " \u25B2";
       if (current === `${col}_desc`) suffix = " \u25BC";
@@ -1053,21 +1170,21 @@
         <table class="solutionsResultsTable">
           <thead>
             <tr>
-              <th>Image</th>
-              <th>${sortHeaderBtn("Code","code")}</th>
-              <th>${sortHeaderBtn("Name","name")}</th>
-              <th>${sortHeaderBtn("Manufacturer","manufacturer")}</th>
-              <th>${sortHeaderBtn("Family","family")}</th>
-              <th>${sortHeaderBtn("Score","score")}</th>
-              <th>Download</th>
-              <th>Actions</th>
+              <th>${esc(tt("image"))}</th>
+              <th>${sortHeaderBtn(tt("code"),"code")}</th>
+              <th>${sortHeaderBtn(tt("name"),"name")}</th>
+              <th>${sortHeaderBtn(tt("manufacturer"),"manufacturer")}</th>
+              <th>${sortHeaderBtn(tt("family"),"family")}</th>
+              <th>${sortHeaderBtn(tt("score"),"score")}</th>
+              <th>${esc(tt("download"))}</th>
+              <th>${esc(tt("actions"))}</th>
             </tr>
             <tr>
               <th></th>
-              <th><input type="text" ${filterAttr}="code" placeholder="Code" value="${esc(altColumnFilters.code)}" style="padding:5px 6px;border-radius:8px" /></th>
-              <th><input type="text" ${filterAttr}="name" placeholder="Name" value="${esc(altColumnFilters.name)}" style="padding:5px 6px;border-radius:8px" /></th>
+              <th><input type="text" ${filterAttr}="code" placeholder="${esc(tt("code"))}" value="${esc(altColumnFilters.code)}" style="padding:5px 6px;border-radius:8px" /></th>
+              <th><input type="text" ${filterAttr}="name" placeholder="${esc(tt("name"))}" value="${esc(altColumnFilters.name)}" style="padding:5px 6px;border-radius:8px" /></th>
               <th><input type="text" ${filterAttr}="manufacturer" placeholder="Mfr" value="${esc(altColumnFilters.manufacturer)}" style="padding:5px 6px;border-radius:8px" /></th>
-              <th><input type="text" ${filterAttr}="family" placeholder="Family" value="${esc(altColumnFilters.family)}" style="padding:5px 6px;border-radius:8px" /></th>
+              <th><input type="text" ${filterAttr}="family" placeholder="${esc(tt("family"))}" value="${esc(altColumnFilters.family)}" style="padding:5px 6px;border-radius:8px" /></th>
               <th><input type="number" min="0" max="100" step="0.1" ${filterAttr}="minScorePct" placeholder="Min %" value="${esc(altColumnFilters.minScorePct)}" style="padding:5px 6px;border-radius:8px" /></th>
               <th></th>
               <th>
@@ -1078,7 +1195,7 @@
               </th>
             </tr>
           </thead>
-          <tbody>${pageRows.map(r=>`<tr><td>${r.image_preview_url?`<img class="thumb" src="${esc(r.image_preview_url)}" data-full-img="${esc(`/full-image?product_code=${encodeURIComponent(String(r.product_code||""))}&manufacturer=${encodeURIComponent(String(r.manufacturer||""))}&website_url=${encodeURIComponent(toolsWebsiteUrl(r.product_code))}`)}" alt="Preview ${esc(r.product_code)}" loading="lazy" />`:""}</td><td class="mono"><a class="solTableLink" href="${esc(toolsWebsiteUrl(r.product_code))}" target="_blank" rel="noopener">${esc(r.product_code)}</a></td><td>${esc(r.product_name||"")}</td><td>${manufacturerLogoCell(r.manufacturer, r.product_code)}</td><td>${esc(r.product_family||"")}</td><td>${esc(scorePct(r.score))}</td><td>${r.product_code?`<a class="solTableLink" href="${esc(toolsDatasheetUrl(r.product_code))}" data-datasheet-code="${esc(r.product_code)}" target="_blank" rel="noopener">Datasheet</a>`:""}</td><td><div class="solActions"><button type="button" ${compareAttr}="${esc(r.product_code)}">Compare</button><button type="button" class="${isInQuote(r.product_code) ? "secondary" : ""}" ${quoteAttr}="${esc(r.product_code)}">Quote</button></div></td></tr>`).join("")}</tbody>
+      <tbody>${pageRows.map(r=>`<tr><td>${r.image_preview_url?`<img class="thumb" src="${esc(r.image_preview_url)}" data-full-img="${esc(`/full-image?product_code=${encodeURIComponent(String(r.product_code||""))}&manufacturer=${encodeURIComponent(String(r.manufacturer||""))}&website_url=${encodeURIComponent(toolsWebsiteUrl(r.product_code))}`)}" alt="Preview ${esc(r.product_code)}" loading="lazy" />`:""}</td><td class="mono"><a class="solTableLink" href="${esc(toolsWebsiteUrl(r.product_code))}" target="_blank" rel="noopener">${esc(r.product_code)}</a></td><td>${esc(r.product_name||"")}</td><td>${manufacturerLogoCell(r.manufacturer, r.product_code)}</td><td>${esc(r.product_family||"")}</td><td>${esc(scorePct(r.score))}</td><td>${r.product_code?`<a class="solTableLink" href="${esc(toolsDatasheetUrl(r.product_code))}" data-datasheet-code="${esc(r.product_code)}" target="_blank" rel="noopener">${esc(tt("datasheet"))}</a>`:""}</td><td><div class="solActions"><button type="button" ${compareAttr}="${esc(r.product_code)}">${esc(tt("compare"))}</button><button type="button" class="${isInQuote(r.product_code) ? "secondary" : ""}" ${quoteAttr}="${esc(r.product_code)}">${esc(tt("quote_short"))}</button></div></td></tr>`).join("")}</tbody>
         </table>
         </div>`;
 
@@ -1396,8 +1513,8 @@
       const limitRaw = String($("idealLimit")?.value || "").trim();
       const limitNum = Number(limitRaw);
       const limit = (limitRaw !== "" && Number.isFinite(limitNum) && limitNum > 0) ? Math.max(1, Math.min(5000, Math.round(limitNum))) : null;
-      const sort = String($("idealSort")?.value || "score_desc");
-      $("idealAltOut").innerHTML = '<div class="small">Loading...</div>';
+      const sort = normalizeSortForAccess($("idealSort")?.value || "score_desc");
+      $("idealAltOut").innerHTML = `<div class="small">${esc(tt("loading"))}</div>`;
       if (codeA && codeA !== "Project requirement"){
         try{
           const payload = { code: codeA, min_score: SOLUTIONS_MIN_SCORE };
@@ -1413,7 +1530,7 @@
       }
       const idealSpec = collectIdealSpec();
       if (!Object.keys(idealSpec).length){
-        $("idealAltOut").innerHTML = '<div class="small">Set at least one requirement or set a reference product code.</div>';
+        $("idealAltOut").innerHTML = `<div class="small">${esc(tt("set_requirement"))}</div>`;
         return;
       }
       try{
@@ -1432,7 +1549,7 @@
     $("btnIdealFromCode")?.addEventListener("click", async ()=>{
       const code = String($("idealSourceCode")?.value || "").trim();
       if (!code){
-        $("idealAltOut").innerHTML = '<div class="small">Type a product code first.</div>';
+        $("idealAltOut").innerHTML = `<div class="small">${esc(tt("type_code_first"))}</div>`;
         return;
       }
       await populateIdealSpecFromProductCode(code, true);
@@ -1581,11 +1698,11 @@
         ? { ideal_spec: (lastIdealSpec || collectIdealSpec() || {}), codes: [code_a, code_b, code_c].filter(Boolean) }
         : { codes: [code_a, code_b, code_c].filter(Boolean) };
       if (isProjectReq && !Object.keys(payload.ideal_spec || {}).length){
-        $("cmpOut").innerHTML = `<div class="small">Project requirement not loaded. Apply requirements first.</div>`;
+        $("cmpOut").innerHTML = `<div class="small">${esc(tt("project_requirement_missing"))}</div>`;
         return;
       }
       if ((!isProjectReq && payload.codes.length < 2) || (isProjectReq && payload.codes.filter(x => x !== "Project requirement").length < 1)){
-        $("cmpOut").innerHTML = `<div class="small">Set the comparison inputs first.</div>`;
+        $("cmpOut").innerHTML = `<div class="small">${esc(tt("set_compare_inputs"))}</div>`;
         return;
       }
       try{

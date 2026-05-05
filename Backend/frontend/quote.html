@@ -328,6 +328,105 @@
       sl:{title:"Košarica Ponudbe",finder:"Finder",tools:"Orodja",language:"Jezik",selected:"Izbrano: {n}",company_ph:"Naziv podjetja (obvezno za izvoz)",project_ph:"Naziv projekta (obvezno za izvoz)",export_csv:"Izvoz CSV",export_pdf:"Izvoz PDF",clear:"Počisti košarico",no_products:"Ni izbranih izdelkov.",quote_empty:"Košarica ponudbe je prazna",need_meta:"Nastavite podjetje in projekt pred izvozom",popup_blocked:"Pojavno okno blokirano.",pdf_backend_fallback:"Backend PDF ni na voljo. Prenesen lokalni PDF.",pdf_print_fallback:"Odprt predogled tiskanja. Uporabite 'Shrani kot PDF'.",pdf_failed:"Izvoz PDF ni uspel: {msg}",optional_note:"Neobvezna opomba",project_ref:"Ref. projekta",remove:"Odstrani"},
     };
     Object.values(QI18N).forEach(dict => { dict.finder = "Home"; });
+    Object.assign(QI18N.en, {
+      top_sub:"Prepare a clean project quote, keep the technical context connected, and export a client-ready summary without re-entering product information.",
+      project_identity:"Project identity",
+      project_identity_text:"Define the commercial context and project details together, then keep contractor, consultant, and notes attached to the saved quote.",
+      company_label:"Company name",
+      project_label:"Project name",
+      project_details:"Project details",
+      project_status:"Project status",
+      status_design_phase:"Design phase",
+      status_tender:"Tender",
+      status_job_in_hand_contractor:"Job in hand contractor",
+      status_job_in_hand:"Job in hand",
+      project_notes:"Project notes",
+      project_notes_ph:"Add a short project summary, client notes, or next actions",
+      contractor_name:"Contractor name",
+      consultant_name:"Consultant name",
+      unavailable:"Unavailable",
+      quick_actions:"Quick actions",
+      quick_actions_text:"Add products fast, save the project, and export the quote package from one clean area.",
+      add_by_code:"Add by product code",
+      add:"Add",
+      save_quote:"Save Quote",
+      comparison_sheets:"Comparison sheets",
+      saved_quotes:"Saved Quotes",
+      no_saved_quotes:"No saved quotes yet.",
+      th_code:"Code",
+      th_name:"Name",
+      th_qty:"Qty",
+      th_notes:"Notes",
+      th_project_ref:"Project Ref",
+      type_code_first:"Type a product code first",
+      code_not_found:"Code not found: {code}",
+      already_in_quote:"{code} already in quote, quantity increased",
+      add_cancelled:"Add cancelled",
+      added_to_quote:"Added {code} to quote",
+      quote_saved:"Quote saved.",
+      saved_quote_deleted:"Saved quote deleted.",
+      could_not_load_saved:"Could not load saved quotes: {msg}",
+      company_required:"Company name is required before export.",
+      contractor_required:"Set the contractor name before continuing.",
+      consultant_required:"Set the consultant name before continuing.",
+      contractor:"Contractor",
+      consultant:"Consultant",
+      total_quantity:"Total quantity",
+      products:"Products",
+      open_datasheet:"Open datasheet",
+    });
+    Object.assign(QI18N.it, {
+      top_sub:"Prepara un'offerta di progetto pulita, mantieni collegato il contesto tecnico ed esporta un riepilogo pronto per il cliente senza reinserire i dati prodotto.",
+      project_identity:"Identita progetto",
+      project_identity_text:"Definisci contesto commerciale e dettagli progetto, mantenendo appaltatore, consulente e note collegati all'offerta salvata.",
+      company_label:"Nome azienda",
+      project_label:"Nome progetto",
+      project_details:"Dettagli progetto",
+      project_status:"Stato progetto",
+      status_design_phase:"Fase di progettazione",
+      status_tender:"Gara",
+      status_job_in_hand_contractor:"Commessa in mano al contractor",
+      status_job_in_hand:"Commessa acquisita",
+      project_notes:"Note progetto",
+      project_notes_ph:"Aggiungi riepilogo progetto, note cliente o prossime azioni",
+      contractor_name:"Nome contractor",
+      consultant_name:"Nome consulente",
+      unavailable:"Non disponibile",
+      quick_actions:"Azioni rapide",
+      quick_actions_text:"Aggiungi prodotti velocemente, salva il progetto ed esporta il pacchetto offerta da un'unica area.",
+      add_by_code:"Aggiungi per codice prodotto",
+      add:"Aggiungi",
+      save_quote:"Salva offerta",
+      comparison_sheets:"Schede confronto",
+      saved_quotes:"Offerte salvate",
+      no_saved_quotes:"Nessuna offerta salvata.",
+      th_code:"Codice",
+      th_name:"Nome",
+      th_qty:"Qta",
+      th_notes:"Note",
+      th_project_ref:"Rif. progetto",
+      type_code_first:"Inserisci prima un codice prodotto",
+      code_not_found:"Codice non trovato: {code}",
+      already_in_quote:"{code} gia in offerta, quantita aumentata",
+      add_cancelled:"Aggiunta annullata",
+      added_to_quote:"Aggiunto {code} all'offerta",
+      quote_saved:"Offerta salvata.",
+      saved_quote_deleted:"Offerta salvata eliminata.",
+      could_not_load_saved:"Impossibile caricare le offerte salvate: {msg}",
+      company_required:"Il nome azienda e richiesto prima dell'export.",
+      contractor_required:"Imposta il nome contractor prima di continuare.",
+      consultant_required:"Imposta il nome consulente prima di continuare.",
+      contractor:"Contractor",
+      consultant:"Consulente",
+      total_quantity:"Quantita totale",
+      products:"Prodotti",
+      open_datasheet:"Apri scheda tecnica",
+    });
+    Object.values(QI18N).forEach(dict => {
+      for (const [key, value] of Object.entries(QI18N.en)) {
+        if (dict[key] === undefined) dict[key] = value;
+      }
+    });
     let quoteLang = "en";
     function tq(k, vars){ let s=(QI18N[quoteLang]||QI18N.en)[k] || QI18N.en[k] || k; if(vars){ for(const [kk,v] of Object.entries(vars)) s=s.replaceAll(`{${kk}}`, String(v)); } return s; }
     function detectQuoteLang(){ try{ const v=String(localStorage.getItem(UI_LANG_KEY)||"").toLowerCase(); if(QUOTE_LANGS.some(x=>x[0]===v)) return v; }catch(_e){} const b=String(navigator.language||"en").toLowerCase().split("-")[0]; return QUOTE_LANGS.some(x=>x[0]===b)?b:"en"; }
@@ -335,18 +434,44 @@
       document.documentElement.lang = quoteLang;
       document.documentElement.dir = quoteLang === "ar" ? "rtl" : "ltr";
       document.title = tq("title");
-      document.querySelector(".brandHead .h").textContent = tq("title");
+      const setText = (sel, key) => { const el = document.querySelector(sel); if (el) el.textContent = tq(key); };
+      const setPlaceholder = (id, key) => { const el = $(id); if (el) el.placeholder = tq(key); };
+      setText(".topBarTitle", "title");
+      setText(".topBarSub", "top_sub");
+      setText(".quoteMetaPanel > .quoteSectionTitle", "project_identity");
+      setText(".quoteMetaPanel > .quoteSectionText", "project_identity_text");
+      setText(".projectDetailsCard > .h", "project_details");
+      setText(".quoteActionsPanel > .quoteSectionTitle", "quick_actions");
+      setText(".quoteActionsPanel > .quoteSectionText", "quick_actions_text");
+      setText("#savedQuotesBox > .h", "saved_quotes");
+      const labels = Array.from(document.querySelectorAll(".quoteFieldLabel"));
+      const labelKeys = ["company_label","project_label","project_status","project_notes","contractor_name","consultant_name","add_by_code"];
+      labels.forEach((el, idx) => { if (labelKeys[idx]) el.textContent = tq(labelKeys[idx]); });
       $("quoteLangLabel").textContent = tq("language");
       $("btnBack").textContent = tq("finder");
       $("btnTools").textContent = tq("tools");
-      if ($("btnQuoteSave")) $("btnQuoteSave").textContent = "Save Quote";
+      if ($("btnQuoteSave")) $("btnQuoteSave").textContent = tq("save_quote");
       $("btnQuoteExport").textContent = tq("export_csv");
       $("btnQuoteExportPdf").textContent = tq("export_pdf");
-      if ($("btnQuoteCompareSheets")) $("btnQuoteCompareSheets").textContent = "Comparison sheets";
+      if ($("btnQuoteCompareSheets")) $("btnQuoteCompareSheets").textContent = tq("comparison_sheets");
       if ($("btnQuoteDatasheetsZip")) $("btnQuoteDatasheetsZip").textContent = tq("export_datasheets_zip");
       $("btnQuoteClear").textContent = tq("clear");
-      $("quoteCompany").placeholder = tq("company_ph");
-      $("quoteProject").placeholder = tq("project_ph");
+      if ($("btnQuoteAddCode")) $("btnQuoteAddCode").textContent = tq("add");
+      if ($("btnQuoteContractorUnavailable")) $("btnQuoteContractorUnavailable").textContent = tq("unavailable");
+      if ($("btnQuoteConsultantUnavailable")) $("btnQuoteConsultantUnavailable").textContent = tq("unavailable");
+      setPlaceholder("quoteCompany", "company_ph");
+      setPlaceholder("quoteProject", "project_ph");
+      setPlaceholder("quoteProjectNotes", "project_notes_ph");
+      setPlaceholder("quoteContractorName", "contractor_name");
+      setPlaceholder("quoteConsultantName", "consultant_name");
+      setPlaceholder("quoteCodeQuick", "add_by_code");
+      const statusOptions = {
+        design_phase: "status_design_phase",
+        tender: "status_tender",
+        job_in_hand_contractor: "status_job_in_hand_contractor",
+        job_in_hand: "status_job_in_hand",
+      };
+      Array.from($("quoteStatus")?.options || []).forEach(opt => { opt.textContent = tq(statusOptions[opt.value] || opt.value); });
     }
 
     function esc(s){
@@ -403,17 +528,17 @@
     function quoteStatusLabel(value){
       const key = String(value || "design_phase").trim().toLowerCase() || "design_phase";
       return {
-        design_phase: "Design phase",
-        tender: "Tender",
-        job_in_hand_contractor: "Job in hand contractor",
-        job_in_hand: "Job in hand",
+        design_phase: tq("status_design_phase"),
+        tender: tq("status_tender"),
+        job_in_hand_contractor: tq("status_job_in_hand_contractor"),
+        job_in_hand: tq("status_job_in_hand"),
       }[key] || key.replaceAll("_", " ");
     }
 
     function markUnavailable(fieldId){
       const input = $(fieldId);
       if (!input) return;
-      input.value = "Unavailable";
+      input.value = tq("unavailable");
       saveQuoteMeta();
     }
 
@@ -429,10 +554,10 @@
     }
 
     function validateRequiredQuoteMeta(meta, { requireCompany = false } = {}){
-      if (!meta.project) return "Set the project name before continuing.";
-      if (requireCompany && !meta.company) return "Company name is required before export.";
-      if (!meta.contractor_name) return "Set the contractor name before continuing.";
-      if (!meta.consultant_name) return "Set the consultant name before continuing.";
+      if (!meta.project) return tq("need_meta");
+      if (requireCompany && !meta.company) return tq("company_required");
+      if (!meta.contractor_name) return tq("contractor_required");
+      if (!meta.consultant_name) return tq("consultant_required");
       return "";
     }
 
@@ -605,7 +730,7 @@
       if (!input) return;
       const typed = String(input.value || "").trim();
       if (!typed){
-        setQuickAddHint("Type a product code first", true);
+        setQuickAddHint(tq("type_code_first"), true);
         return;
       }
       let found = findExactSuggestedByCode(typed, lastCodeSuggestions);
@@ -618,23 +743,23 @@
         }catch(_e){}
       }
       if (!found){
-        setQuickAddHint(`Code not found: ${typed}`, true);
+        setQuickAddHint(tq("code_not_found", { code: typed }), true);
         return;
       }
       const code = String(found.product_code || "").trim();
       if (!code){
-        setQuickAddHint(`Code not found: ${typed}`, true);
+        setQuickAddHint(tq("code_not_found", { code: typed }), true);
         return;
       }
       if (quoteCart.has(code)){
         const row = quoteCart.get(code);
         row.qty = Math.max(1, Math.round(Number(row.qty) || 1)) + 1;
         quoteCart.set(code, row);
-        setQuickAddHint(`${code} already in quote, quantity increased`);
+        setQuickAddHint(tq("already_in_quote", { code }));
       } else {
         const entry = await promptQuoteEntryData(null);
         if (!entry){
-          setQuickAddHint("Add cancelled", true);
+          setQuickAddHint(tq("add_cancelled"), true);
           return;
         }
         quoteCart.set(code, {
@@ -648,7 +773,7 @@
           sort_order: nextQuoteSortOrder(),
           compare_sheet: {},
         });
-        setQuickAddHint(`Added ${code} to quote`);
+        setQuickAddHint(tq("added_to_quote", { code }));
       }
       saveQuoteCart();
       renderQuoteCart();
@@ -667,23 +792,23 @@
         const groupQty = groupRows.reduce((sum, row) => sum + Math.max(1, Math.round(Number(row?.qty) || 1)), 0);
         return `
           <h3>${esc(title)} (${groupRows.length})</h3>
-          <div class="groupMeta">Products: ${groupRows.length} | Total quantity: ${groupQty}</div>
+          <div class="groupMeta">${esc(tq("products"))}: ${groupRows.length} | ${esc(tq("total_quantity"))}: ${groupQty}</div>
           <table>
             <thead>
               <tr>
                 <th>#</th>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Qty</th>
-                <th>Notes</th>
-                <th>Project Ref</th>
+                <th>${esc(tq("th_code"))}</th>
+                <th>${esc(tq("th_name"))}</th>
+                <th>${esc(tq("th_qty"))}</th>
+                <th>${esc(tq("th_notes"))}</th>
+                <th>${esc(tq("th_project_ref"))}</th>
               </tr>
             </thead>
             <tbody>
               ${groupRows.map((r, i) => `
                 <tr>
                   <td>${i + 1}</td>
-                  <td>${r.product_code ? `<a class="quoteCodeLink" href="${esc(quoteDatasheetUrl(r.product_code))}" target="_blank" rel="noopener" title="Open datasheet">${esc(r.product_code)}</a>` : ""}</td>
+                  <td>${r.product_code ? `<a class="quoteCodeLink" href="${esc(quoteDatasheetUrl(r.product_code))}" target="_blank" rel="noopener" title="${esc(tq("open_datasheet"))}">${esc(r.product_code)}</a>` : ""}</td>
                   <td>
                     <div>${esc(r.product_name || "")}</div>
                     ${renderQuoteContext(r)}
@@ -722,17 +847,17 @@
   </style>
 </head>
 <body>
-  <h1>Quote</h1>
+  <h1>${esc(tq("title"))}</h1>
   <h2>${esc(company)} - ${esc(project)}</h2>
     <div class="summary">
-    <div class="summaryItem"><span class="summaryLabel">Status</span>${esc(quoteStatusLabel(projectStatus))}</div>
+    <div class="summaryItem"><span class="summaryLabel">${esc(tq("project_status"))}</span>${esc(quoteStatusLabel(projectStatus))}</div>
     <div class="summaryItem"><span class="summaryLabel">Generated</span>${esc(exportedAt)}</div>
-    <div class="summaryItem"><span class="summaryLabel">Contractor</span>${esc(contractorName || "")}</div>
-    <div class="summaryItem"><span class="summaryLabel">Consultant</span>${esc(consultantName || "")}</div>
-    <div class="summaryItem"><span class="summaryLabel">Products</span>${sorted.length}</div>
-    <div class="summaryItem"><span class="summaryLabel">Total quantity</span>${totalQty}</div>
+    <div class="summaryItem"><span class="summaryLabel">${esc(tq("contractor"))}</span>${esc(contractorName || "")}</div>
+    <div class="summaryItem"><span class="summaryLabel">${esc(tq("consultant"))}</span>${esc(consultantName || "")}</div>
+    <div class="summaryItem"><span class="summaryLabel">${esc(tq("products"))}</span>${sorted.length}</div>
+    <div class="summaryItem"><span class="summaryLabel">${esc(tq("total_quantity"))}</span>${totalQty}</div>
   </div>
-  ${projectNotes ? `<div class="notesBox"><b>Project notes</b><div class="meta" style="margin:8px 0 0">${esc(projectNotes)}</div></div>` : ``}
+  ${projectNotes ? `<div class="notesBox"><b>${esc(tq("project_notes"))}</b><div class="meta" style="margin:8px 0 0">${esc(projectNotes)}</div></div>` : ``}
   ${groupTable("Disano", disanoRows)}
   ${groupTable("Fosnova", fosnovaRows)}
   <div class="hint">Use Print and choose "Save as PDF".</div>
@@ -1026,7 +1151,7 @@
         const data = await res.json();
         const items = Array.isArray(data?.items) ? data.items : [];
         if (!items.length){
-          list.innerHTML = "No saved quotes yet.";
+          list.innerHTML = tq("no_saved_quotes");
           return;
         }
         list.innerHTML = items.map(item => `
@@ -1037,7 +1162,7 @@
                 <span class="savedQuoteStatus">${esc(quoteStatusLabel(item.project_status || "design_phase"))}</span>
               </div>
               <div class="small">${esc(item.company || "")} | ${Number(item.item_count || 0)} items</div>
-              <div class="small">Contractor: ${esc(item.contractor_name || "Unavailable")} | Consultant: ${esc(item.consultant_name || "Unavailable")}</div>
+              <div class="small">${esc(tq("contractor"))}: ${esc(item.contractor_name || tq("unavailable"))} | ${esc(tq("consultant"))}: ${esc(item.consultant_name || tq("unavailable"))}</div>
               ${item.project_notes ? `<div class="small">${esc(String(item.project_notes || "").slice(0, 140))}</div>` : ``}
               <div class="small">Updated: ${esc(formatDate(item.updated_at || item.created_at || ""))}</div>
             </div>
@@ -1097,7 +1222,7 @@
               if (Number(currentSavedQuoteId || 0) === Number(quoteId)){
                 currentSavedQuoteId = null;
               }
-              toast("Saved quote deleted.");
+              toast(tq("saved_quote_deleted"));
               loadSavedQuotes();
             }catch(e){
               toast(`Could not delete quote: ${String(e.message || e)}`);
@@ -1105,7 +1230,7 @@
           });
         });
       }catch(e){
-        list.innerHTML = `Could not load saved quotes: ${esc(String(e.message || e))}`;
+        list.innerHTML = tq("could_not_load_saved", { msg: esc(String(e.message || e)) });
       }
     }
 
@@ -1145,7 +1270,7 @@
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         currentSavedQuoteId = Number(data?.quote?.id || 0) || currentSavedQuoteId;
-        toast("Quote saved.");
+        toast(tq("quote_saved"));
         loadSavedQuotes();
       }catch(e){
         toast(`Could not save quote: ${String(e.message || e)}`);
@@ -1190,11 +1315,11 @@
               <tr>
                 <th>#</th>
                 <th></th>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Qty</th>
-                <th>Notes</th>
-                <th>Project Ref</th>
+                <th>${esc(tq("th_code"))}</th>
+                <th>${esc(tq("th_name"))}</th>
+                <th>${esc(tq("th_qty"))}</th>
+                <th>${esc(tq("th_notes"))}</th>
+                <th>${esc(tq("th_project_ref"))}</th>
                 <th></th>
               </tr>
             </thead>
@@ -1206,7 +1331,7 @@
                     <button class="quoteOrderBtn" type="button" data-quote-move="${esc(r.product_code)}" data-direction="-1" aria-label="Move up" title="Move up">↑</button>
                     <button class="quoteOrderBtn" type="button" data-quote-move="${esc(r.product_code)}" data-direction="1" aria-label="Move down" title="Move down">↓</button>
                   </td>
-                  <td>${r.product_code ? `<a class="quoteCodeLink" href="${esc(quoteDatasheetUrl(r.product_code))}" target="_blank" rel="noopener" title="Open datasheet">${esc(r.product_code)}</a>` : ""}</td>
+                  <td>${r.product_code ? `<a class="quoteCodeLink" href="${esc(quoteDatasheetUrl(r.product_code))}" target="_blank" rel="noopener" title="${esc(tq("open_datasheet"))}">${esc(r.product_code)}</a>` : ""}</td>
                   <td>${esc(r.product_name || "")}</td>
                   <td><input class="qty" type="number" min="1" step="1" data-quote-code="${esc(r.product_code)}" data-field="qty" value="${esc(r.qty)}" /></td>
                   <td><input type="text" data-quote-code="${esc(r.product_code)}" data-field="notes" value="${esc(r.notes || "")}" placeholder="${esc(tq("optional_note"))}" /></td>

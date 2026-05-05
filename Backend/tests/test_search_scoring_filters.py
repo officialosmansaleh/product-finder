@@ -13,6 +13,19 @@ if _BACKEND_DIR not in sys.path:
 
 
 class SearchScoringFiltersTests(unittest.TestCase):
+    def _request_with_role(self, role):
+        class _State:
+            pass
+
+        class _Request:
+            headers = {}
+            cookies = {}
+            state = _State()
+
+        req = _Request()
+        req.state.current_user = {"role": role}
+        return req
+
     def test_all_active_filters_are_passed_into_scoring(self):
         from app import main as main_mod
         from app.schema import SearchRequest
@@ -247,6 +260,70 @@ class SearchScoringFiltersTests(unittest.TestCase):
 
         self.assertTrue(resp.exact)
         self.assertIsNone(resp.exact[0].preview.get("price"))
+
+    def test_authenticated_non_admin_search_redacts_price_preview(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "X1",
+                    "product_name": "Street Sample",
+                    "manufacturer": "DISANO",
+                    "product_family": "Street lighting",
+                    "price": 123.45,
+                }
+            ]
+        )
+
+        req = SearchRequest(
+            text="street",
+            filters={},
+            limit=5,
+            include_similar=True,
+            debug=False,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value={}), patch.object(
+            main_mod, "llm_intent_to_filters", return_value={}
+        ), patch.object(main_mod, "PRODUCT_DB", None), patch.object(main_mod, "DB", fake_rows_df):
+            resp = main_mod.search(req, self._request_with_role("user"))
+
+        self.assertTrue(resp.exact)
+        self.assertIsNone(resp.exact[0].preview.get("price"))
+
+    def test_admin_search_keeps_price_preview(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "X1",
+                    "product_name": "Street Sample",
+                    "manufacturer": "DISANO",
+                    "product_family": "Street lighting",
+                    "price": 123.45,
+                }
+            ]
+        )
+
+        req = SearchRequest(
+            text="street",
+            filters={},
+            limit=5,
+            include_similar=True,
+            debug=False,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value={}), patch.object(
+            main_mod, "llm_intent_to_filters", return_value={}
+        ), patch.object(main_mod, "PRODUCT_DB", None), patch.object(main_mod, "DB", fake_rows_df):
+            resp = main_mod.search(req, self._request_with_role("admin"))
+
+        self.assertTrue(resp.exact)
+        self.assertEqual(resp.exact[0].preview.get("price"), 123.45)
 
     def test_text_only_search_tolerates_adjacent_name_typo(self):
         from app import main as main_mod

@@ -21,11 +21,14 @@ def handle_alternatives_from_spec(
     build_datasheet_url: Callable[[str, str], str],
     quote_plus: Callable[[str], str],
     to_num: Callable[[Any], Any],
+    include_price: bool = False,
 ) -> Dict[str, Any]:
     ideal_spec = normalize_ui_filters(sanitize_filters(req.ideal_spec or {}))
     limit_raw = getattr(req, "limit", None)
     limit = max(1, min(int(limit_raw), cfg_int("main.alternatives_max_limit", 5000))) if limit_raw is not None else None
     sort_mode = str(getattr(req, "sort", "score_desc") or "score_desc").strip()
+    if not include_price and sort_mode in {"price_asc", "price_desc"}:
+        sort_mode = "score_desc"
     min_score_raw = getattr(req, "min_score", None)
     min_score = None if min_score_raw is None else max(0.0, min(float(min_score_raw), 1.0))
     if not ideal_spec:
@@ -74,7 +77,7 @@ def handle_alternatives_from_spec(
                 "manufacturer": manufacturer,
                 "product_family": candidate.get("product_family"),
                 "score": round(float(score), 4),
-                "price": candidate.get("price"),
+                "price": candidate.get("price") if include_price else None,
                 "datasheet_url": build_datasheet_url(product_code, manufacturer),
                 "image_preview_url": f"/preview-image?product_code={quote_plus(product_code)}&manufacturer={quote_plus(manufacturer)}&website_url={quote_plus(website_url)}",
             }
@@ -126,6 +129,7 @@ def handle_alternatives(
     build_website_url: Callable[[str, str], str],
     build_datasheet_url: Callable[[str, str], str],
     quote_plus: Callable[[str], str],
+    include_price: bool = False,
 ) -> Dict[str, Any]:
     base = find_product_by_code_any(req.code)
     if not base:
@@ -177,7 +181,7 @@ def handle_alternatives(
                 "manufacturer": manufacturer,
                 "product_family": candidate.get("product_family"),
                 "score": round(float(score), 4),
-                "price": candidate.get("price"),
+                "price": candidate.get("price") if include_price else None,
                 "datasheet_url": build_datasheet_url(product_code, manufacturer),
                 "image_preview_url": f"/preview-image?product_code={quote_plus(product_code)}&manufacturer={quote_plus(manufacturer)}&website_url={quote_plus(website_url)}",
             }
@@ -188,6 +192,8 @@ def handle_alternatives(
         scored = [x for x in scored if float(x.get("score") or 0.0) >= min_score]
     top = scored[:limit] if limit is not None else scored
     base_public = row_to_public_dict(base)
+    if not include_price:
+        base_public.pop("price", None)
     base_code_out = str(base_public.get("product_code") or base_code).strip()
     base_mfr = manufacturer_label(base_public.get("manufacturer"))
     base_public["manufacturer"] = base_mfr

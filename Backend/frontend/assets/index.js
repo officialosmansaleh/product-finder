@@ -30,7 +30,7 @@
   let allExactResults = [];
   let allSimilarResults = [];
   let activeResultsTab = "exact";
-  let finderSortModes = { exact: "price_asc", similar: "score_desc" };
+  let finderSortModes = { exact: "score_desc", similar: "score_desc" };
   let lastUnderstoodFilterChips = [];
   let lastUnderstoodFilterItems = [];
   let lastImportedFilterItems = [];
@@ -85,7 +85,7 @@
     { code: "sl", label: "Slovenšcina" },
   ];
   const I18N = {
-    en: { lang_label:"Language", title:"Laiting Workspace", tagline:"search, compare, and quote from one workspace", btn_tools:"Compare", btn_quote:"Quote cart", btn_filters:"Filters", btn_reset:"Reset", btn_search:"Search", btn_searching:"Searching...", btn_import_pdf:"Import PDF", btn_import_image:"Import Image", q_placeholder:"e.g. downlight for office, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Type your query...", sort:"Sort", exact:"Exact", similar:"Similar", prev:"Prev", next:"Next", dismiss:"Dismiss", close:"Close", quick_start:"Quick start", recovery_title:"No exact matches. Try one of these:", no_filters_selected:"No filters selected", parsed_from_query:"Parsed from query text", stats_searching:"Searching...", stats_search_failed:"Search failed", metric_latency:"Latency", metric_exact:"Exact", metric_similar:"Similar", metric_filters:"Filters", page_label:"Page", page_loading:"Page ...", toast_set_min_or_max:"Set min or max", toast_facets_failed:"Filters could not be loaded. Check backend logs.", toast_search_error:"Search failed. Check that the backend is running and reachable.", sort_score_desc:"Recommended", sort_score_asc:"Score asc", sort_code_asc:"Code A-Z", sort_code_desc:"Code Z-A", sort_price_asc:"Price low-high", sort_price_desc:"Price high-low", sort_power_asc:"Power low-high", sort_power_desc:"Power high-low", sort_efficacy_desc:"Efficiency high-low", sort_lumen_desc:"Lumens high-low", filter_family:"Family", filter_manufacturer:"Manufacturer", filter_name_prefix:"Product name", filter_ip_rating:"IP total", filter_ip_visible:"IP v.l.", filter_ip_non_visible:"IP v.a.", filter_power_max_w:"Power W", filter_lumen_output:"Lumen", filter_efficacy_lm_w:"Efficacy", filter_beam_angle_deg:"Beam", filter_shape:"Shape", filter_housing_color:"Color", filter_control_protocol:"Control", filter_interface:"Interface", filter_emergency_present:"Emergency", filter_warranty_years:"Warranty", filter_lifetime_hours:"Lifetime h", filter_led_rated_life_h:"Lifetime h", filter_lumen_maintenance_pct:"Lumen maint.", filter_diameter:"Diameter", filter_luminaire_length:"Length", filter_luminaire_width:"Width", filter_luminaire_height:"Height", filter_ambient_temp_min_c:"Min temp (°C)", filter_ambient_temp_max_c:"Max temp (°C)", ai:"AI", quote_selected:"{n} selected", no_products_selected:"No products selected." },
+    en: { lang_label:"Language", title:"Laiting Workspace", tagline:"search, compare, and quote from one workspace", btn_tools:"Compare", btn_quote:"Quote cart", btn_filters:"Filters", btn_reset:"Reset", btn_search:"Search", btn_searching:"Searching...", btn_import_pdf:"Import PDF", btn_import_image:"Import Image", q_placeholder:"e.g. downlight for office, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Type your query...", sort:"Sort", exact:"Exact", similar:"Similar", prev:"Prev", next:"Next", dismiss:"Dismiss", close:"Close", quick_start:"Quick start", recovery_title:"No exact matches. Try one of these:", no_filters_selected:"No filters selected", parsed_from_query:"Parsed from query text", stats_searching:"Searching...", stats_search_failed:"Search failed", metric_latency:"Latency", metric_exact:"Exact", metric_similar:"Similar", metric_filters:"Filters", page_label:"Page", page_loading:"Page ...", toast_set_min_or_max:"Set min or max", toast_facets_failed:"Filters could not be loaded. Check backend logs.", toast_search_error:"Search failed. Check that the backend is running and reachable.", sort_score_desc:"Recommended", sort_score_asc:"Score asc", sort_code_asc:"Code A-Z", sort_code_desc:"Code Z-A", sort_price_asc:"Price low-high", sort_price_desc:"Price high-low", sort_power_asc:"Power low-high", sort_power_desc:"Power high-low", sort_efficacy_desc:"Efficiency high-low", sort_lumen_asc:"Lumens low-high", sort_lumen_desc:"Lumens high-low", filter_family:"Family", filter_manufacturer:"Manufacturer", filter_name_prefix:"Product name", filter_ip_rating:"IP total", filter_ip_visible:"IP v.l.", filter_ip_non_visible:"IP v.a.", filter_power_max_w:"Power W", filter_lumen_output:"Lumen", filter_efficacy_lm_w:"Efficacy", filter_beam_angle_deg:"Beam", filter_shape:"Shape", filter_housing_color:"Color", filter_control_protocol:"Control", filter_interface:"Interface", filter_emergency_present:"Emergency", filter_warranty_years:"Warranty", filter_lifetime_hours:"Lifetime h", filter_led_rated_life_h:"Lifetime h", filter_lumen_maintenance_pct:"Lumen maint.", filter_diameter:"Diameter", filter_luminaire_length:"Length", filter_luminaire_width:"Width", filter_luminaire_height:"Height", filter_ambient_temp_min_c:"Min temp (°C)", filter_ambient_temp_max_c:"Max temp (°C)", ai:"AI", quote_selected:"{n} selected", no_products_selected:"No products selected." },
     it: { lang_label:"Lingua", title:"Workspace Laiting", tagline:"cerca, confronta e prepara offerte in un unico spazio", btn_tools:"Confronta", btn_quote:"Carrello offerta", btn_filters:"Filtri", btn_reset:"Reset", btn_search:"Cerca", btn_searching:"Ricerca...", btn_import_pdf:"Import PDF", btn_import_image:"Importa immagine", q_placeholder:"es. downlight ufficio, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Scrivi la tua richiesta...", sort:"Ordina", exact:"Esatti", similar:"Simili", prev:"Prec", next:"Succ", dismiss:"Chiudi", close:"Chiudi", quick_start:"Avvio rapido", recovery_title:"Nessuna corrispondenza esatta. Prova una di queste:", no_filters_selected:"Nessun filtro selezionato", parsed_from_query:"Estratto dal testo query", stats_searching:"Ricerca...", stats_search_failed:"Ricerca fallita", metric_latency:"Latenza", metric_exact:"Esatti", metric_similar:"Simili", metric_filters:"Filtri", page_label:"Pagina", page_loading:"Pagina ...", toast_set_min_or_max:"Imposta minimo o massimo", toast_facets_failed:"Impossibile caricare i filtri. Controlla i log backend.", toast_search_error:"Ricerca non riuscita. Verifica che il backend sia attivo.", quote_selected:"{n} selezionati", no_products_selected:"Nessun prodotto selezionato." },
     fr: { lang_label:"Langue", title:"Recherche Produits", tagline:"exactement ce que vous cherchez", btn_tools:"Outils", btn_quote:"Devis", btn_filters:"Filtres", btn_reset:"Réinit.", btn_search:"Rechercher", btn_searching:"Recherche...", btn_import_pdf:"Import PDF", btn_import_image:"Importer Image", q_placeholder:"ex. downlight bureau, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Saisissez votre requête...", sort:"Tri", exact:"Exacts", similar:"Similaires", prev:"Préc.", next:"Suiv.", dismiss:"Fermer", close:"Fermer", quick_start:"Démarrage rapide", recovery_title:"Aucun résultat exact. Essayez :", no_filters_selected:"Aucun filtre sélectionné", parsed_from_query:"Analysé depuis la requête", stats_searching:"Recherche...", stats_search_failed:"Recherche échouée", metric_latency:"Latence", metric_exact:"Exacts", metric_similar:"Similaires", metric_filters:"Filtres", page_label:"Page", page_loading:"Page ...", toast_set_min_or_max:"Définissez min ou max", toast_facets_failed:"Échec du chargement des facettes : vérifiez les logs backend", toast_search_error:"Erreur de recherche. Vérifiez le backend et les endpoints.", quote_selected:"{n} sélectionnés", no_products_selected:"Aucun produit sélectionné." },
     es: { lang_label:"Idioma", title:"Buscador de Productos", tagline:"exactamente lo que estás buscando", btn_tools:"Herramientas", btn_quote:"Cotización", btn_filters:"Filtros", btn_reset:"Reset", btn_search:"Buscar", btn_searching:"Buscando...", btn_import_pdf:"Import PDF", btn_import_image:"Importar Imagen", q_placeholder:"p. ej. downlight oficina, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Escribe tu consulta...", sort:"Ordenar", exact:"Exactos", similar:"Similares", prev:"Ant.", next:"Sig.", dismiss:"Cerrar", close:"Cerrar", quick_start:"Inicio rápido", recovery_title:"Sin coincidencias exactas. Prueba una de estas:", no_filters_selected:"No hay filtros seleccionados", parsed_from_query:"Analizado desde la consulta", stats_searching:"Buscando...", stats_search_failed:"Búsqueda fallida", metric_latency:"Latencia", metric_exact:"Exactos", metric_similar:"Similares", metric_filters:"Filtros", page_label:"Página", page_loading:"Página ...", toast_set_min_or_max:"Define mínimo o máximo", toast_facets_failed:"Error al cargar facetas: revisa logs del backend", toast_search_error:"Error de búsqueda. Verifica backend y endpoints.", quote_selected:"{n} seleccionados", no_products_selected:"No hay productos seleccionados." },
@@ -97,6 +97,179 @@
     hr: { lang_label:"Jezik", title:"Pretraživač Proizvoda", tagline:"točno ono što tražite", btn_tools:"Alati", btn_quote:"Ponuda", btn_filters:"Filteri", btn_reset:"Reset", btn_search:"Pretraži", btn_searching:"Pretraživanje...", btn_import_pdf:"Import PDF", btn_import_image:"Uvezi Sliku", q_placeholder:"npr. downlight za ured, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Upišite upit...", sort:"Sortiranje", exact:"Točni", similar:"Slični", prev:"Preth.", next:"Slj.", dismiss:"Zatvori", close:"Zatvori", quick_start:"Brzi početak", recovery_title:"Nema točnih rezultata. Pokušajte:", no_filters_selected:"Nema odabranih filtera", parsed_from_query:"Prepoznato iz teksta upita", stats_searching:"Pretraživanje...", stats_search_failed:"Pretraga nije uspjela", metric_latency:"Latencija", metric_exact:"Točni", metric_similar:"Slični", metric_filters:"Filteri", page_label:"Stranica", page_loading:"Stranica ...", toast_set_min_or_max:"Postavite minimum ili maksimum", toast_facets_failed:"Učitavanje facet-a nije uspjelo: provjerite backend logove", toast_search_error:"Greška pretrage. Provjerite backend i endpointe.", quote_selected:"Odabrano: {n}", no_products_selected:"Nema odabranih proizvoda." },
     sl: { lang_label:"Jezik", title:"Iskalnik Izdelkov", tagline:"točno to, kar iščete", btn_tools:"Orodja", btn_quote:"Ponudba", btn_filters:"Filtri", btn_reset:"Ponastavi", btn_search:"Išči", btn_searching:"Iskanje...", btn_import_pdf:"Import PDF", btn_import_image:"Uvozi Sliko", q_placeholder:"npr. downlight za pisarno, UGR<19, 4000K, DALI, IP54", q_mobile_placeholder:"Vnesite poizvedbo...", sort:"Razvrsti", exact:"Točni", similar:"Podobni", prev:"Prej", next:"Naprej", dismiss:"Zapri", close:"Zapri", quick_start:"Hiter začetek", recovery_title:"Ni točnih zadetkov. Poskusite:", no_filters_selected:"Ni izbranih filtrov", parsed_from_query:"Prepoznano iz besedila poizvedbe", stats_searching:"Iskanje...", stats_search_failed:"Iskanje ni uspelo", metric_latency:"Zakasnitev", metric_exact:"Točni", metric_similar:"Podobni", metric_filters:"Filtri", page_label:"Stran", page_loading:"Stran ...", toast_set_min_or_max:"Nastavite minimum ali maksimum", toast_facets_failed:"Nalaganje facetov ni uspelo: preverite backend dnevnike", toast_search_error:"Napaka pri iskanju. Preverite backend in endpoint-e.", quote_selected:"Izbrano: {n}", no_products_selected:"Ni izbranih izdelkov." },
   };
+  Object.assign(I18N.en, {
+    welcome:"Welcome to Laiting",
+    welcome_sub:"Search, compare, and quote from one workspace.",
+    next:"Next",
+    catalog_search:"Catalog search",
+    catalog_hint:"Search by product name, product code, or family. Use the filters below to narrow the catalog.",
+    enter_search:"Use Enter to run search.",
+    selected_filters:"Selected filters",
+    chip_remove_hint:"Click a chip to remove it. Search auto-runs.",
+    product_families:"Product families",
+    protection:"Protection",
+    photometric:"Photometric",
+    electrical:"Electrical / Control",
+    mechanical:"Mechanical",
+    mechanical_dimensions:"Mechanical dimensions",
+    lifetime:"Lifetime",
+    all:"All",
+    search_select:"Search / select",
+    select:"Select",
+    from_to:"From / To",
+    min:"min",
+    max:"max",
+    apply:"Apply",
+    minimum_equal_better:"Minimum value (equal or better)",
+    exact_cri_ph:"Exact CRI (e.g. 9)",
+    exact_filter:"Exact",
+    lower_bound:"Lower bound",
+    upper_bound:"Upper bound",
+    analyze_brief:"Analyze brief",
+    group_families:"Product families",
+    group_protection:"Protection",
+    group_light:"Photometric",
+    group_electrical:"Electrical",
+    group_mechanical:"Mechanical",
+    group_quality:"Lifetime",
+    group_all:"All",
+    filter_cct:"CCT",
+    filter_cri:"CRI",
+    filter_ugr:"UGR",
+    filter_ik_rating:"IK",
+    filter_ip_visible_full:"IP v.l. (visible)",
+    filter_ip_non_visible_full:"IP v.a. (non visible)",
+    filter_lumen_output_full:"Lumen output",
+    filter_power_max_full:"Power max (W)",
+    filter_efficacy_full:"Lumen efficacy (lm/W)",
+    filter_ambient_min_full:"Min ambient temp (°C)",
+    filter_ambient_max_full:"Max ambient temp (°C)",
+    search_manufacturer_ph:"Manufacturer...",
+    search_families_ph:"Search families...",
+    search_product_name_ph:"Search product name...",
+    search_cct_ph:"Search CCT...",
+    search_cri_ph:"Search CRI...",
+    search_ugr_ph:"Search UGR...",
+    search_beam_ph:"Search beam angle...",
+    search_color_ph:"Search color...",
+    search_shape_ph:"Search shape...",
+    search_ip_total_ph:"Search IP total...",
+    search_ik_ph:"Search IK...",
+    search_ip_visible_ph:"Search IP v.l....",
+    search_ip_non_visible_ph:"Search IP v.a....",
+    search_led_life_ph:"Search LED life...",
+    search_warranty_ph:"Search warranty...",
+    search_lumen_maintenance_ph:"Search lumen maintenance...",
+    search_protocol_ph:"Search protocol...",
+    search_interface_ph:"Search interface...",
+  });
+  Object.assign(I18N.it, {
+    sort_score_desc:"Consigliati",
+    sort_score_asc:"Score crescente",
+    sort_code_asc:"Codice A-Z",
+    sort_code_desc:"Codice Z-A",
+    sort_price_asc:"Prezzo basso-alto",
+    sort_price_desc:"Prezzo alto-basso",
+    sort_power_asc:"Potenza basso-alto",
+    sort_power_desc:"Potenza alto-basso",
+    sort_efficacy_desc:"Efficienza alto-basso",
+    sort_lumen_asc:"Lumen basso-alto",
+    sort_lumen_desc:"Lumen alto-basso",
+    filter_family:"Famiglia",
+    filter_manufacturer:"Produttore",
+    filter_name_prefix:"Nome prodotto",
+    filter_ip_rating:"IP totale",
+    filter_ip_visible:"IP v.l.",
+    filter_ip_non_visible:"IP v.a.",
+    filter_power_max_w:"Potenza W",
+    filter_lumen_output:"Lumen",
+    filter_efficacy_lm_w:"Efficienza",
+    filter_beam_angle_deg:"Fascio",
+    filter_shape:"Forma",
+    filter_housing_color:"Colore",
+    filter_control_protocol:"Controllo",
+    filter_interface:"Interfaccia",
+    filter_emergency_present:"Emergenza",
+    filter_warranty_years:"Garanzia",
+    filter_lifetime_hours:"Vita utile h",
+    filter_led_rated_life_h:"Vita LED h",
+    filter_lumen_maintenance_pct:"Mantenimento lumen",
+    filter_diameter:"Diametro",
+    filter_luminaire_length:"Lunghezza",
+    filter_luminaire_width:"Larghezza",
+    filter_luminaire_height:"Altezza",
+    filter_ambient_temp_min_c:"Temp min (°C)",
+    filter_ambient_temp_max_c:"Temp max (°C)",
+    welcome:"Benvenuto in Laiting",
+    welcome_sub:"Cerca, confronta e prepara offerte da un unico workspace.",
+    next:"Avanti",
+    catalog_search:"Ricerca catalogo",
+    catalog_hint:"Cerca per nome prodotto, codice o famiglia. Usa i filtri sotto per restringere il catalogo.",
+    enter_search:"Premi Invio per cercare.",
+    selected_filters:"Filtri selezionati",
+    chip_remove_hint:"Clicca un chip per rimuoverlo. La ricerca si aggiorna automaticamente.",
+    product_families:"Famiglie prodotto",
+    protection:"Protezione",
+    photometric:"Fotometria",
+    electrical:"Elettrico / Controllo",
+    mechanical:"Meccanica",
+    mechanical_dimensions:"Dimensioni meccaniche",
+    lifetime:"Vita utile",
+    all:"Tutto",
+    search_select:"Cerca / seleziona",
+    select:"Seleziona",
+    from_to:"Da / A",
+    min:"min",
+    max:"max",
+    apply:"Applica",
+    minimum_equal_better:"Valore minimo (uguale o migliore)",
+    exact_cri_ph:"CRI esatto (es. 9)",
+    exact_filter:"Esatto",
+    lower_bound:"Limite inferiore",
+    upper_bound:"Limite superiore",
+    analyze_brief:"Analizza brief",
+    group_families:"Famiglie prodotto",
+    group_protection:"Protezione",
+    group_light:"Fotometria",
+    group_electrical:"Elettrico",
+    group_mechanical:"Meccanica",
+    group_quality:"Vita utile",
+    group_all:"Tutto",
+    filter_cct:"CCT",
+    filter_cri:"CRI",
+    filter_ugr:"UGR",
+    filter_ik_rating:"IK",
+    filter_ip_visible_full:"IP v.l. (visibile)",
+    filter_ip_non_visible_full:"IP v.a. (non visibile)",
+    filter_lumen_output_full:"Flusso luminoso",
+    filter_power_max_full:"Potenza max (W)",
+    filter_efficacy_full:"Efficienza lumen (lm/W)",
+    filter_ambient_min_full:"Temp ambiente min (°C)",
+    filter_ambient_max_full:"Temp ambiente max (°C)",
+    search_manufacturer_ph:"Produttore...",
+    search_families_ph:"Cerca famiglie...",
+    search_product_name_ph:"Cerca nome prodotto...",
+    search_cct_ph:"Cerca CCT...",
+    search_cri_ph:"Cerca CRI...",
+    search_ugr_ph:"Cerca UGR...",
+    search_beam_ph:"Cerca angolo fascio...",
+    search_color_ph:"Cerca colore...",
+    search_shape_ph:"Cerca forma...",
+    search_ip_total_ph:"Cerca IP totale...",
+    search_ik_ph:"Cerca IK...",
+    search_ip_visible_ph:"Cerca IP v.l....",
+    search_ip_non_visible_ph:"Cerca IP v.a....",
+    search_led_life_ph:"Cerca vita LED...",
+    search_warranty_ph:"Cerca garanzia...",
+    search_lumen_maintenance_ph:"Cerca mantenimento lumen...",
+    search_protocol_ph:"Cerca protocollo...",
+    search_interface_ph:"Cerca interfaccia...",
+  });
+  Object.values(I18N).forEach(dict => {
+    for (const [key, value] of Object.entries(I18N.en)) {
+      if (dict[key] === undefined) dict[key] = value;
+    }
+  });
   let currentLang = "en";
   let lastMetricsSnapshot = { ms: NaN, exact: 0, similar: 0, filters: 0 };
 
@@ -425,9 +598,116 @@
   }
 
   function applyStaticTranslations(){
+    updateSortOptionsForAccess();
     document.documentElement.lang = currentLang;
     document.documentElement.dir = currentLang === "ar" ? "rtl" : "ltr";
     document.title = t("title");
+    const textKeyByEnglish = {
+      "Welcome to Laiting":"welcome",
+      "Search, compare, and quote from one workspace.":"welcome_sub",
+      "Next":"next",
+      "Filters":"btn_filters",
+      "Catalog search":"catalog_search",
+      "Search by product name, product code, or family. Use the filters below to narrow the catalog.":"catalog_hint",
+      "Use Enter to run search.":"enter_search",
+      "Selected filters":"selected_filters",
+      "Click a chip to remove it. Search auto-runs.":"chip_remove_hint",
+      "Product families":"product_families",
+      "Protection":"protection",
+      "Photometric":"photometric",
+      "Electrical / Control":"electrical",
+      "Mechanical":"mechanical",
+      "Mechanical dimensions":"mechanical_dimensions",
+      "Lifetime":"lifetime",
+      "All":"all",
+      "Search / select":"search_select",
+      "Select":"select",
+      "From / To":"from_to",
+      "Minimum value (equal or better)":"minimum_equal_better",
+      "Lower bound":"lower_bound",
+      "Upper bound":"upper_bound",
+      "Lumen output":"filter_lumen_output_full",
+      "Power max (W)":"filter_power_max_full",
+      "Lumen efficacy (lm/W)":"filter_efficacy_full",
+      "CCT":"filter_cct",
+      "CRI":"filter_cri",
+      "UGR":"filter_ugr",
+      "Beam":"filter_beam_angle_deg",
+      "Color":"filter_housing_color",
+      "Shape":"filter_shape",
+      "IP total":"filter_ip_rating",
+      "IK":"filter_ik_rating",
+      "IP v.l. (visible)":"filter_ip_visible_full",
+      "IP v.a. (non visible)":"filter_ip_non_visible_full",
+      "Lifetime h":"filter_lifetime_hours",
+      "Warranty":"filter_warranty_years",
+      "Lumen maint.":"filter_lumen_maintenance_pct",
+      "Control":"filter_control_protocol",
+      "Interface (CP)":"filter_interface",
+      "Emergency":"filter_emergency_present",
+      "Min ambient temp (°C)":"filter_ambient_min_full",
+      "Max ambient temp (°C)":"filter_ambient_max_full",
+      "Diameter":"filter_diameter",
+      "Height":"filter_luminaire_height",
+      "Length":"filter_luminaire_length",
+      "Width":"filter_luminaire_width",
+      "Apply":"apply",
+      "Reset":"btn_reset",
+      "Exact":"exact_filter",
+    };
+    const placeholderKeyByEnglish = {
+      "Manufacturer...":"search_manufacturer_ph",
+      "Search families...":"search_families_ph",
+      "Search product name...":"search_product_name_ph",
+      "min":"min",
+      "max":"max",
+      "e.g. 120":"e.g. 120",
+      "Search CCT...":"search_cct_ph",
+      "Search CRI...":"search_cri_ph",
+      "Exact CRI (e.g. 9)":"exact_cri_ph",
+      "Search UGR...":"search_ugr_ph",
+      "Search beam angle...":"search_beam_ph",
+      "Search color...":"search_color_ph",
+      "Search shape...":"search_shape_ph",
+      "Search IP total...":"search_ip_total_ph",
+      "Search IK...":"search_ik_ph",
+      "Search IP v.l....":"search_ip_visible_ph",
+      "Search IP v.a....":"search_ip_non_visible_ph",
+      "Search LED life...":"search_led_life_ph",
+      "Search warranty...":"search_warranty_ph",
+      "Search lumen maintenance...":"search_lumen_maintenance_ph",
+      "Search protocol...":"search_protocol_ph",
+      "Search interface...":"search_interface_ph",
+      "e.g. -20":"e.g. -20",
+      "e.g. 45":"e.g. 45",
+    };
+    Array.from(document.querySelectorAll(".welcomeCopy,.welcomeSub,#btnWelcomeNext,.filterPanelTitle,#finderQueryTitle,#finderQueryHint,#finderQueryHelp,.filterPanel .h,.filterPanel .filterLabel,.filterPanel .filterHint,.filterPanel .filterCardTitle,.filterPanel button,.groupBtn")).forEach(el => {
+      const raw = String(el.dataset.i18nKey || "").trim();
+      const key = raw || textKeyByEnglish[String(el.textContent || "").trim()];
+      if (!key) return;
+      el.dataset.i18nKey = key;
+      el.textContent = t(key);
+    });
+    Array.from(document.querySelectorAll(".filterPanel input[placeholder],#q[placeholder],#qMobile[placeholder]")).forEach(el => {
+      const raw = String(el.dataset.i18nPlaceholderKey || "").trim();
+      const key = raw || placeholderKeyByEnglish[String(el.placeholder || "").trim()];
+      if (!key) return;
+      el.dataset.i18nPlaceholderKey = key;
+      el.placeholder = I18N.en[key] ? t(key) : key;
+    });
+    const groupKeys = {
+      families:"group_families",
+      protection:"group_protection",
+      light:"group_light",
+      electrical:"group_electrical",
+      mechanical:"group_mechanical",
+      quality:"group_quality",
+      all:"group_all",
+    };
+    Array.from(document.querySelectorAll(".groupBtn")).forEach(btn => {
+      const key = groupKeys[String(btn.dataset.group || "")];
+      if (key) btn.textContent = t(key);
+    });
     const buildEl = $("buildLabel");
     if (buildEl){
       buildEl.textContent = "";
@@ -458,7 +738,7 @@
     if (onbTitle) onbTitle.textContent = t("quick_start");
     const sortSel = $("sortSel");
     if (sortSel){
-      const map = { score_desc:"sort_score_desc", score_asc:"sort_score_asc", code_asc:"sort_code_asc", code_desc:"sort_code_desc", price_asc:"sort_price_asc", price_desc:"sort_price_desc", power_asc:"sort_power_asc", power_desc:"sort_power_desc", efficacy_desc:"sort_efficacy_desc", lumen_desc:"sort_lumen_desc" };
+      const map = { score_desc:"sort_score_desc", score_asc:"sort_score_asc", code_asc:"sort_code_asc", code_desc:"sort_code_desc", price_asc:"sort_price_asc", price_desc:"sort_price_desc", power_asc:"sort_power_asc", power_desc:"sort_power_desc", efficacy_desc:"sort_efficacy_desc", lumen_asc:"sort_lumen_asc", lumen_desc:"sort_lumen_desc" };
       Array.from(sortSel.options).forEach(opt => {
         const k = map[opt.value];
         if (k && I18N.en[k]) opt.textContent = t(k);
@@ -468,6 +748,7 @@
 
   function applyLanguage(){
     applyStaticTranslations();
+    applyAccessModeUI();
     refreshResultsTabLabels();
     renderSelected();
     renderQuoteCart();
@@ -1235,7 +1516,7 @@ function resetRange(key, minId, maxId){
               source: "import",
             }))
           : [],
-        sort: String($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc"),
+        sort: normalizeSortModeForAccess($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc"),
         sort_modes: { ...finderSortModes },
         activeTab: String(activeResultsTab || "exact"),
         currentPage: Number(currentPage || 1),
@@ -1274,7 +1555,7 @@ function resetRange(key, minId, maxId){
 
       const savedSortModes = state?.sort_modes && typeof state.sort_modes === "object" ? state.sort_modes : null;
       finderSortModes = {
-        exact: String(savedSortModes?.exact || state?.sort || "price_asc"),
+        exact: normalizeSortModeForAccess(savedSortModes?.exact || state?.sort || "score_desc"),
         similar: String(savedSortModes?.similar || "score_desc"),
       };
       syncSortSelectToActiveTab();
@@ -1472,13 +1753,13 @@ function resetRange(key, minId, maxId){
       manufacturer: t("filter_manufacturer"),
       product_name_short: t("filter_name_prefix"),
       name_prefix: t("filter_name_prefix"),
-      ip_rating: "IP total",
-      ip_visible: "IP v.l.",
-      ip_non_visible: "IP v.a.",
-      ik_rating: "IK",
-      cct_k: "CCT",
-      cri: "CRI",
-      ugr: "UGR",
+      ip_rating: t("filter_ip_rating"),
+      ip_visible: t("filter_ip_visible"),
+      ip_non_visible: t("filter_ip_non_visible"),
+      ik_rating: t("filter_ik_rating"),
+      cct_k: t("filter_cct"),
+      cri: t("filter_cri"),
+      ugr: t("filter_ugr"),
       power_max_w: t("filter_power_max_w"),
       lumen_output: t("filter_lumen_output"),
       efficacy_lm_w: t("filter_efficacy_lm_w"),
@@ -2165,6 +2446,33 @@ function resetRange(key, minId, maxId){
     }
   }
 
+  function isAdminUser(){
+    return currentUserRole() === "admin";
+  }
+
+  function isPriceSortMode(mode){
+    return mode === "price_asc" || mode === "price_desc";
+  }
+
+  function normalizeSortModeForAccess(mode){
+    const clean = String(mode || "score_desc");
+    return (!isAdminUser() && isPriceSortMode(clean)) ? "score_desc" : clean;
+  }
+
+  function updateSortOptionsForAccess(){
+    const sel = $("sortSel");
+    if (!sel) return;
+    Array.from(sel.options).forEach(opt => {
+      if (opt.dataset.adminOnly === "1"){
+        opt.hidden = !isAdminUser();
+        opt.disabled = !isAdminUser();
+      }
+    });
+    finderSortModes.exact = normalizeSortModeForAccess(finderSortModes.exact);
+    finderSortModes.similar = normalizeSortModeForAccess(finderSortModes.similar);
+    if (isPriceSortMode(sel.value) && !isAdminUser()) sel.value = "score_desc";
+  }
+
   function canUseCompareAndQuote(){
     return hasAuthenticatedSession() && currentUserRole() !== "it";
   }
@@ -2227,6 +2535,7 @@ function resetRange(key, minId, maxId){
     setVisible($("finderImportRow"), compareAndQuoteEnabled, "");
     setVisible($("visionInfo"), !publicMode, "");
     setVisible($("onboardingBox"), !publicMode, "");
+    updateSortOptionsForAccess();
   }
 
   function priceSortValue(value){
@@ -2291,8 +2600,8 @@ function resetRange(key, minId, maxId){
   }
 
   function sortHits(hits, tab = activeResultsTab){
-    const fallback = tab === "exact" ? "price_asc" : "score_desc";
-    const mode = String(finderSortModes[tab] || fallback);
+    const fallback = "score_desc";
+    const mode = normalizeSortModeForAccess(finderSortModes[tab] || fallback);
     const arr = Array.isArray(hits) ? [...hits] : [];
     if (mode === "score_asc") arr.sort((a,b)=> (a.score??0)-(b.score??0));
     if (mode === "score_desc") arr.sort((a,b)=> (b.score??0)-(a.score??0));
@@ -2303,6 +2612,7 @@ function resetRange(key, minId, maxId){
     if (mode === "power_asc") arr.sort((a,b)=> compareSpecNumber(a, b, "power_max_w", "asc"));
     if (mode === "power_desc") arr.sort((a,b)=> compareSpecNumber(a, b, "power_max_w", "desc"));
     if (mode === "efficacy_desc") arr.sort((a,b)=> compareSpecNumber(a, b, "efficacy_lm_w", "desc"));
+    if (mode === "lumen_asc") arr.sort((a,b)=> compareSpecNumber(a, b, "lumen_output", "asc"));
     if (mode === "lumen_desc") arr.sort((a,b)=> compareSpecNumber(a, b, "lumen_output", "desc"));
     return arr;
   }
@@ -2359,7 +2669,7 @@ function resetRange(key, minId, maxId){
         filters: buildFiltersPayload(),
         limit: 100,
         include_similar: true,
-        sort: String($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc"),
+        sort: normalizeSortModeForAccess($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc"),
         debug: false
       };
       const data = await postJSON("/search", payload);
@@ -2424,7 +2734,6 @@ function resetRange(key, minId, maxId){
     ["lifetime_hours", "Lifetime h"],
     ["led_rated_life_h", "LED life h"],
     ["lumen_maintenance_pct", "Lumen maint."],
-    ["price", "Price"],
   ];
 
   function specValueForKey(preview, key){
@@ -2585,8 +2894,9 @@ function getCurrentQueryText(){
 function syncSortSelectToActiveTab(){
   const sel = $("sortSel");
   if (!sel) return;
-  const fallback = activeResultsTab === "exact" ? "price_asc" : "score_desc";
-  const mode = String(finderSortModes[activeResultsTab] || fallback);
+  updateSortOptionsForAccess();
+  const fallback = "score_desc";
+  const mode = normalizeSortModeForAccess(finderSortModes[activeResultsTab] || fallback);
   const hasOption = Array.from(sel.options).some(opt => opt.value === mode);
   finderSortModes[activeResultsTab] = hasOption ? mode : fallback;
   sel.value = finderSortModes[activeResultsTab];
@@ -3045,7 +3355,7 @@ document.addEventListener("keydown", (ev)=>{
       filters: rawFilters,
       limit: 100,
       include_similar: true,
-      sort: String($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc"),
+      sort: normalizeSortModeForAccess($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc"),
       allow_ai: !isPublicCatalogMode(),
       debug: false
     };
@@ -3234,7 +3544,7 @@ document.addEventListener("keydown", (ev)=>{
       if (isMobileViewport()) closeFiltersPanel();
     });
     $("sortSel").addEventListener("change", ()=>{
-      finderSortModes[activeResultsTab] = String($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc");
+      finderSortModes[activeResultsTab] = normalizeSortModeForAccess($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc");
       runSearch();
       saveFinderState();
     });
