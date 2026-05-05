@@ -233,7 +233,11 @@ def _get_optional_current_user(request: Optional[FastAPIRequest]) -> Optional[Di
 
 
 def _can_view_ai_diagnostics(user: Optional[Dict[str, Any]]) -> bool:
-    role = str((user or {}).get("role") or "").strip().lower()
+    if isinstance(user, dict):
+        role_value = user.get("role")
+    else:
+        role_value = getattr(user, "role", "")
+    role = str(role_value or "").strip().lower()
     return role in {"admin", "it"}
 
 

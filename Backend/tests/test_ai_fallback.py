@@ -88,6 +88,7 @@ class AIFallbackTests(unittest.TestCase):
 
     def test_ai_diagnostics_are_preserved_for_it_and_admin_roles(self):
         import app.main as main_mod
+        from app.auth import UserPublic
 
         interpreted = {
             "ai_status": "error",
@@ -102,6 +103,10 @@ class AIFallbackTests(unittest.TestCase):
         self.assertNotIn("ai_model", regular)
         self.assertIn("429", str(admin.get("ai_note") or ""))
         self.assertIn("429", str(it_user.get("ai_note") or ""))
+
+        admin_model = UserPublic(id=1, email="admin@test.local", role="admin", status="approved", created_at="2026-01-01T00:00:00Z")
+        model_result = main_mod._sanitize_ai_interpreted_for_user(interpreted, admin_model)
+        self.assertIn("429", str(model_result.get("ai_note") or ""))
 
 
 if __name__ == "__main__":
