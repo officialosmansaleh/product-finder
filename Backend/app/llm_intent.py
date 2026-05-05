@@ -70,12 +70,17 @@ def _image_system_prompt(allowed_families: Optional[list[str]]) -> str:
     )
 
 
-def llm_intent_to_filters_with_meta(text: str, allowed_families: Optional[list[str]] = None) -> Dict[str, Any]:
+def llm_intent_to_filters_with_meta(
+    text: str,
+    allowed_families: Optional[list[str]] = None,
+    log_context: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     result = infer_text_filters(
         text=text or "",
         allowed_families=allowed_families,
         response_model=IntentFilters,
         system_prompt=_text_system_prompt(allowed_families),
+        log_context=log_context,
     )
     content = dict(result.get("content") or {})
     content.pop("confidence", None)
@@ -90,19 +95,25 @@ def llm_intent_to_filters_with_meta(text: str, allowed_families: Optional[list[s
     }
 
 
-def llm_intent_to_filters(text: str, allowed_families: Optional[list[str]] = None) -> Dict[str, Any]:
-    return dict(llm_intent_to_filters_with_meta(text, allowed_families=allowed_families).get("filters") or {})
+def llm_intent_to_filters(
+    text: str,
+    allowed_families: Optional[list[str]] = None,
+    log_context: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    return dict(llm_intent_to_filters_with_meta(text, allowed_families=allowed_families, log_context=log_context).get("filters") or {})
 
 
 def llm_image_to_filters(
     image_bytes: bytes,
     mime_type: str = "image/jpeg",
     allowed_families: Optional[list[str]] = None,
+    log_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     meta = llm_image_to_inference(
         image_bytes=image_bytes,
         mime_type=mime_type,
         allowed_families=allowed_families,
+        log_context=log_context,
     )
     return dict(meta.get("filters") or {})
 
@@ -111,6 +122,7 @@ def llm_image_to_inference(
     image_bytes: bytes,
     mime_type: str = "image/jpeg",
     allowed_families: Optional[list[str]] = None,
+    log_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     result = infer_image_filters(
         image_bytes=image_bytes,
@@ -122,6 +134,7 @@ def llm_image_to_inference(
             "If clearly visible, include asymmetry and housing_color. "
             "Return strict JSON only."
         ),
+        log_context=log_context,
     )
     content = dict(result.get("content") or {})
     confidence = str(content.pop("confidence", "medium") or "medium")

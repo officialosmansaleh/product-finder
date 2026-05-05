@@ -88,6 +88,62 @@ def _should_soften_inferred_family(parsed_filters: Dict[str, Any], user_filters:
     return not other_parsed
 
 
+def _ai_interrogation_context_for_search(
+    *,
+    text: str,
+    local_parser_result: Dict[str, Any],
+    ui_filters: Dict[str, Any],
+    allowed_families: List[str],
+) -> Dict[str, Any]:
+    query = str(text or "")
+    local_keys = sorted(str(k) for k, v in (local_parser_result or {}).items() if v not in (None, "", []))
+    ui_keys = sorted(str(k) for k, v in (ui_filters or {}).items() if v not in (None, "", []))
+    lower = query.lower()
+    signals = {
+        "has_lumen": bool(re.search(r"\b\d+(?:[.,]\d+)?\s*(?:lm|lumen|lumens)\b", lower)),
+        "has_power": bool(re.search(r"\b\d+(?:[.,]\d+)?\s*w\b", lower)),
+        "has_ip": bool(re.search(r"\bip\s*\d{2}\b", lower)),
+        "has_ik": bool(re.search(r"\bik\s*\d{1,2}\b", lower)),
+        "has_ugr": "ugr" in lower,
+        "has_cct": bool(re.search(r"\b(?:2700|3000|3500|4000|5000|5700|6500)\s*k?\b", lower)),
+        "has_interface": bool(re.search(r"\b(?:dali|dmx|zhaga|1\s*-\s*10v|0\s*-\s*10v)\b", lower)),
+    }
+    reasons: list[str] = []
+    if not local_keys:
+        reasons.append("local_parser_returned_no_filters")
+    signal_to_key = {
+        "has_lumen": "lumen_output",
+        "has_power": "power_max_w",
+        "has_ip": "ip_rating",
+        "has_ik": "ik_rating",
+        "has_ugr": "ugr",
+        "has_cct": "cct_k",
+        "has_interface": "interface",
+    }
+    detected_missing = [
+        key
+        for signal, key in signal_to_key.items()
+        if signals.get(signal) and key not in local_parser_result
+    ]
+    if detected_missing:
+        reasons.append("local_parser_missing_detected_signal")
+    if query.strip() and not ui_keys:
+        reasons.append("natural_language_query")
+    return {
+        "source": "search",
+        "purpose": "improve_local_parser_reduce_ai_usage",
+        "reason": reasons or ["ai_allowed_for_query"],
+        "user_text": query,
+        "local_parser_result": dict(local_parser_result or {}),
+        "ui_filters": dict(ui_filters or {}),
+        "local_parser_keys": local_keys,
+        "ui_filter_keys": ui_keys,
+        "detected_missing_fields": detected_missing,
+        "detected_signals": signals,
+        "allowed_family_count": len(allowed_families or []),
+    }
+
+
 def handle_search(
     req: SearchRequest,
     *,
@@ -129,14 +185,22 @@ def handle_search(
 
     llm_extra: Dict[str, Any] = {}
     ai_meta: Dict[str, Any] = {"status": "skipped", "message": "", "used_retry": False, "model": "", "provider": "openai"}
+    pre_ai_user_filters = sanitize_filters(req.filters or {})
+    pre_ai_user_filters = normalize_ui_filters(pre_ai_user_filters)
+    ai_log_context = _ai_interrogation_context_for_search(
+        text=req.text or "",
+        local_parser_result=parsed,
+        ui_filters=pre_ai_user_filters,
+        allowed_families=allowed_families,
+    )
     try:
         if getattr(req, "allow_ai", True) and (req.text or "").strip():
             logger.info("Calling LLM...")
             if callable(llm_intent_to_filters_with_meta):
-                ai_meta = llm_intent_to_filters_with_meta(req.text or "", allowed_families=allowed_families) or ai_meta
+                ai_meta = llm_intent_to_filters_with_meta(req.text or "", allowed_families=allowed_families, log_context=ai_log_context) or ai_meta
                 llm_extra = dict(ai_meta.get("filters") or {})
             else:
-                llm_extra = llm_intent_to_filters(req.text or "", allowed_families=allowed_families) or {}
+                llm_extra = llm_intent_to_filters(req.text or "", allowed_families=allowed_families, log_context=ai_log_context) or {}
                 ai_meta = {
                     "status": "ok",
                     "message": "",
@@ -190,8 +254,7 @@ def handle_search(
                 if str(cur) == str(v):
                     parsed.pop(k, None)
 
-    user_filters = sanitize_filters(req.filters or {})
-    user_filters = normalize_ui_filters(user_filters)
+    user_filters = pre_ai_user_filters
     if not str(req.text or "").strip() and not user_filters:
         return SearchResponse(
             exact=[],

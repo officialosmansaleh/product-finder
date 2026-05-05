@@ -3689,6 +3689,16 @@ async def debug_parse_pdf_impl(file: UploadFile):
                         image_bytes=data,
                         mime_type=mime,
                         allowed_families=ALLOWED_FAMILIES,
+                        log_context={
+                            "source": "parse_pdf_image",
+                            "purpose": "improve_local_parser_reduce_ai_usage",
+                            "reason": ["embedded_pdf_image_requires_vision_inference"],
+                            "filename": name,
+                            "page": pi + 1,
+                            "image_index": ii + 1,
+                            "image_bytes": len(data),
+                            "allowed_family_count": len(ALLOWED_FAMILIES or []),
+                        },
                     ) or {}
                     one = dict(vision_one.get("filters") or {})
                     if not one and vision_one.get("notes"):
@@ -3773,6 +3783,15 @@ async def debug_parse_image_impl(file: UploadFile):
         image_bytes=raw,
         mime_type=(ctype or "image/jpeg"),
         allowed_families=ALLOWED_FAMILIES,
+        log_context={
+            "source": "parse_image",
+            "purpose": "improve_local_parser_reduce_ai_usage",
+            "reason": ["uploaded_image_requires_vision_inference"],
+            "filename": name,
+            "content_type": ctype or "image/jpeg",
+            "image_bytes": len(raw),
+            "allowed_family_count": len(ALLOWED_FAMILIES or []),
+        },
     ) or {}
     parsed = dict(vision.get("filters") or {})
     parsed = _sanitize_filters(parsed)

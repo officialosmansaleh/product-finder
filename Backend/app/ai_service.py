@@ -108,6 +108,7 @@ def _log_ai_interrogation(
     attempt: int,
     messages: list[dict[str, Any]],
     response_model: type[BaseModel],
+    log_context: Optional[Dict[str, Any]] = None,
 ) -> None:
     try:
         record = {
@@ -116,6 +117,7 @@ def _log_ai_interrogation(
             "model": model,
             "attempt": attempt,
             "response_model": getattr(response_model, "__name__", str(response_model)),
+            "context": dict(log_context or {}),
             "messages": _messages_for_ai_interrogation_log(messages),
         }
         _get_ai_interrogation_logger().info(json.dumps(record, ensure_ascii=False, separators=(",", ":")))
@@ -210,6 +212,7 @@ def _request_json_completion(
     model_candidates: Iterable[str],
     max_attempts: int = 2,
     sleep_seconds: float = 0.25,
+    log_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     client = _get_client()
     if client is None:
@@ -230,6 +233,7 @@ def _request_json_completion(
                     attempt=attempt,
                     messages=messages,
                     response_model=response_model,
+                    log_context=log_context,
                 )
                 parse_fn = getattr(client.chat.completions, "parse", None)
                 if callable(parse_fn):
@@ -290,6 +294,7 @@ def infer_text_filters(
     allowed_families: Optional[list[str]],
     response_model: type[BaseModel],
     system_prompt: str,
+    log_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     result = _request_json_completion(
         messages=[
@@ -298,6 +303,7 @@ def infer_text_filters(
         ],
         response_model=response_model,
         model_candidates=("gpt-4o-2024-08-06", "gpt-4.1-mini"),
+        log_context=log_context,
     )
     return result
 
@@ -309,6 +315,7 @@ def infer_image_filters(
     response_model: type[BaseModel],
     system_prompt: str,
     user_prompt: str,
+    log_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     if not image_bytes:
         return {
@@ -337,4 +344,5 @@ def infer_image_filters(
         ],
         response_model=response_model,
         model_candidates=("gpt-4.1-mini", "gpt-4o-mini"),
+        log_context=log_context,
     )

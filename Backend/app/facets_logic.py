@@ -36,11 +36,25 @@ def handle_facets(
 ) -> FacetsResponse:
     parsed = local_text_to_filters(req.text or "") or {}
     parsed = sanitize_filters(parsed)
+    pre_ai_user_filters = sanitize_filters(req.filters or {})
+    pre_ai_user_filters = normalize_ui_filters(pre_ai_user_filters)
 
     llm_extra = {}
     try:
         llm_extra = (
-            llm_intent_to_filters(req.text or "", allowed_families=allowed_families)
+            llm_intent_to_filters(
+                req.text or "",
+                allowed_families=allowed_families,
+                log_context={
+                    "source": "facets",
+                    "purpose": "improve_local_parser_reduce_ai_usage",
+                    "reason": ["facet_options_requested_with_ai_enabled"],
+                    "user_text": str(req.text or ""),
+                    "local_parser_result": dict(parsed or {}),
+                    "ui_filters": dict(pre_ai_user_filters or {}),
+                    "allowed_family_count": len(allowed_families or []),
+                },
+            )
             if getattr(req, "allow_ai", True) and (req.text or "").strip()
             else {}
         )
@@ -58,8 +72,7 @@ def handle_facets(
         if k not in parsed and v is not None:
             parsed[k] = v
 
-    user_filters = sanitize_filters(req.filters or {})
-    user_filters = normalize_ui_filters(user_filters)
+    user_filters = pre_ai_user_filters
     filters = {**parsed, **user_filters}
     sql_filters = map_filters_to_sql(filters)
 

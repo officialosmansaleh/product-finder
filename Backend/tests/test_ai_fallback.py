@@ -88,6 +88,14 @@ class AIFallbackTests(unittest.TestCase):
                 model="gpt-test",
                 attempt=1,
                 response_model=TmpModel,
+                log_context={
+                    "source": "search",
+                    "purpose": "improve_local_parser_reduce_ai_usage",
+                    "reason": ["local_parser_missing_detected_signal"],
+                    "user_text": "floodlight 54000 lm IP66",
+                    "local_parser_result": {"product_family": "floodlight"},
+                    "detected_missing_fields": ["lumen_output", "ip_rating"],
+                },
                 messages=[
                     {"role": "system", "content": "Return JSON only."},
                     {
@@ -110,6 +118,9 @@ class AIFallbackTests(unittest.TestCase):
         record = json.loads(line)
         self.assertEqual(record["provider"], "openai")
         self.assertEqual(record["model"], "gpt-test")
+        self.assertEqual(record["context"]["source"], "search")
+        self.assertEqual(record["context"]["local_parser_result"]["product_family"], "floodlight")
+        self.assertIn("lumen_output", record["context"]["detected_missing_fields"])
         self.assertEqual(record["messages"][1]["content"][0]["text"], "Identify the luminaire.")
         self.assertEqual(record["messages"][1]["content"][1]["image_url"], "[image data omitted]")
         self.assertNotIn("SECRET_IMAGE_DATA", line)
