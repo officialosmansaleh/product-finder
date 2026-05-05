@@ -374,6 +374,26 @@
       total_quantity:"Total quantity",
       products:"Products",
       open_datasheet:"Open datasheet",
+      context:"Context",
+      requirement_fields:"requirement fields",
+      open_compare:"Open compare",
+      add_to_quote:"Add to quote",
+      cancel:"Cancel",
+      generated:"Generated",
+      print_hint:"Use Print and choose \"Save as PDF\".",
+      load:"Load",
+      delete:"Delete",
+      updated:"Updated",
+      items:"items",
+      delete_quote_confirm:"Delete this saved quote?",
+      could_not_delete_quote:"Could not delete quote: {msg}",
+      login_to_save_quotes:"Log in to save quotes.",
+      could_not_save_quote:"Could not save quote: {msg}",
+      no_comparison_sheets:"No comparison sheets available for the current quote.",
+      comparison_sheets_downloaded:"Comparison sheets downloaded: {n}.",
+      skipped:"Skipped",
+      move_up:"Move up",
+      move_down:"Move down",
     });
     Object.assign(QI18N.it, {
       top_sub:"Prepara un'offerta di progetto pulita, mantieni collegato il contesto tecnico ed esporta un riepilogo pronto per il cliente senza reinserire i dati prodotto.",
@@ -421,6 +441,26 @@
       total_quantity:"Quantita totale",
       products:"Prodotti",
       open_datasheet:"Apri scheda tecnica",
+      context:"Contesto",
+      requirement_fields:"campi requisito",
+      open_compare:"Apri confronto",
+      add_to_quote:"Aggiungi all'offerta",
+      cancel:"Annulla",
+      generated:"Generato",
+      print_hint:"Usa Stampa e scegli \"Salva come PDF\".",
+      load:"Carica",
+      delete:"Elimina",
+      updated:"Aggiornato",
+      items:"articoli",
+      delete_quote_confirm:"Eliminare questa offerta salvata?",
+      could_not_delete_quote:"Impossibile eliminare l'offerta: {msg}",
+      login_to_save_quotes:"Accedi per salvare le offerte.",
+      could_not_save_quote:"Impossibile salvare l'offerta: {msg}",
+      no_comparison_sheets:"Nessuna scheda confronto disponibile per questa offerta.",
+      comparison_sheets_downloaded:"Schede confronto scaricate: {n}.",
+      skipped:"Saltati",
+      move_up:"Sposta su",
+      move_down:"Sposta giu",
     });
     Object.values(QI18N).forEach(dict => {
       for (const [key, value] of Object.entries(QI18N.en)) {
@@ -712,16 +752,16 @@
       const compareUrl = buildQuoteCompareSheetUrl(row);
       return `
         <div class="quoteContext">
-          <div class="quoteContextMeta">Context: ${esc(source)}${specCount ? ` | ${specCount} requirement fields` : ""}</div>
-          ${compareUrl ? `<a class="quoteMiniBtn" href="${esc(compareUrl)}">Open compare</a>` : ``}
+          <div class="quoteContextMeta">${esc(tq("context"))}: ${esc(source)}${specCount ? ` | ${specCount} ${esc(tq("requirement_fields"))}` : ""}</div>
+          ${compareUrl ? `<a class="quoteMiniBtn" href="${esc(compareUrl)}">${esc(tq("open_compare"))}</a>` : ``}
         </div>
       `;
     }
     async function promptQuoteEntryData(existingRow){
       return await window.ProductFinderQuoteUtils?.promptQuoteEntry?.(existingRow, {
-        title: "Add to quote",
-        confirmLabel: "Add",
-        cancelLabel: "Cancel",
+        title: tq("add_to_quote"),
+        confirmLabel: tq("add"),
+        cancelLabel: tq("cancel"),
         projectReferencePlaceholder: "L1",
       }) || null;
     }
@@ -851,7 +891,7 @@
   <h2>${esc(company)} - ${esc(project)}</h2>
     <div class="summary">
     <div class="summaryItem"><span class="summaryLabel">${esc(tq("project_status"))}</span>${esc(quoteStatusLabel(projectStatus))}</div>
-    <div class="summaryItem"><span class="summaryLabel">Generated</span>${esc(exportedAt)}</div>
+    <div class="summaryItem"><span class="summaryLabel">${esc(tq("generated"))}</span>${esc(exportedAt)}</div>
     <div class="summaryItem"><span class="summaryLabel">${esc(tq("contractor"))}</span>${esc(contractorName || "")}</div>
     <div class="summaryItem"><span class="summaryLabel">${esc(tq("consultant"))}</span>${esc(consultantName || "")}</div>
     <div class="summaryItem"><span class="summaryLabel">${esc(tq("products"))}</span>${sorted.length}</div>
@@ -860,7 +900,7 @@
   ${projectNotes ? `<div class="notesBox"><b>${esc(tq("project_notes"))}</b><div class="meta" style="margin:8px 0 0">${esc(projectNotes)}</div></div>` : ``}
   ${groupTable("Disano", disanoRows)}
   ${groupTable("Fosnova", fosnovaRows)}
-  <div class="hint">Use Print and choose "Save as PDF".</div>
+  <div class="hint">${esc(tq("print_hint"))}</div>
   <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),200));<\/script>
 </body>
 </html>`;
@@ -931,7 +971,7 @@
       lines.push(`Company: ${company}`);
       lines.push(`Project: ${project}`);
       lines.push(`Status: ${quoteStatusLabel(projectStatus)}`);
-      lines.push(`Generated: ${new Date().toLocaleString()}`);
+      lines.push(`${tq("generated")}: ${new Date().toLocaleString()}`);
       lines.push(`Contractor: ${contractorName}`);
       lines.push(`Consultant: ${consultantName}`);
       lines.push(`Products: ${sorted.length} | Total quantity: ${totalQty}`);
@@ -1106,7 +1146,7 @@
       const rows = getQuoteRowsInDisplayOrder();
       const eligible = rows.filter(r => r?.compare_sheet?.ideal_spec && Object.keys(r.compare_sheet.ideal_spec || {}).length);
       if (!eligible.length){
-        toast("No comparison sheets available for the current quote.");
+        toast(tq("no_comparison_sheets"));
         return;
       }
       let downloaded = 0;
@@ -1133,8 +1173,8 @@
           skipped.push(String(row?.product_code || ""));
         }
       }
-      const suffix = skipped.length ? ` Skipped: ${skipped.filter(Boolean).join(", ")}` : "";
-      toast(`Comparison sheets downloaded: ${downloaded}.${suffix}`);
+      const suffix = skipped.length ? ` ${tq("skipped")}: ${skipped.filter(Boolean).join(", ")}` : "";
+      toast(`${tq("comparison_sheets_downloaded", { n: downloaded })}${suffix}`);
     }
 
     async function loadSavedQuotes(){
@@ -1161,14 +1201,14 @@
                 <b>${esc(item.project || "")}</b>
                 <span class="savedQuoteStatus">${esc(quoteStatusLabel(item.project_status || "design_phase"))}</span>
               </div>
-              <div class="small">${esc(item.company || "")} | ${Number(item.item_count || 0)} items</div>
+              <div class="small">${esc(item.company || "")} | ${Number(item.item_count || 0)} ${esc(tq("items"))}</div>
               <div class="small">${esc(tq("contractor"))}: ${esc(item.contractor_name || tq("unavailable"))} | ${esc(tq("consultant"))}: ${esc(item.consultant_name || tq("unavailable"))}</div>
               ${item.project_notes ? `<div class="small">${esc(String(item.project_notes || "").slice(0, 140))}</div>` : ``}
-              <div class="small">Updated: ${esc(formatDate(item.updated_at || item.created_at || ""))}</div>
+              <div class="small">${esc(tq("updated"))}: ${esc(formatDate(item.updated_at || item.created_at || ""))}</div>
             </div>
             <div class="savedQuoteActions">
-              <button class="btn secondary" type="button" data-load-quote="${esc(item.id)}" style="padding:6px 10px">Load</button>
-              <button class="btn secondary" type="button" data-delete-quote="${esc(item.id)}" style="padding:6px 10px">Delete</button>
+              <button class="btn secondary" type="button" data-load-quote="${esc(item.id)}" style="padding:6px 10px">${esc(tq("load"))}</button>
+              <button class="btn secondary" type="button" data-delete-quote="${esc(item.id)}" style="padding:6px 10px">${esc(tq("delete"))}</button>
             </div>
           </div>
         `).join("");
@@ -1214,7 +1254,7 @@
           btn.addEventListener("click", async ()=>{
             const quoteId = String(btn.dataset.deleteQuote || "").trim();
             if (!quoteId) return;
-            const ok = window.confirm("Delete this saved quote?");
+            const ok = window.confirm(tq("delete_quote_confirm"));
             if (!ok) return;
             try{
               const res = await fetchAuthed(`/auth/quotes/${encodeURIComponent(quoteId)}`, { method: "DELETE" });
@@ -1225,7 +1265,7 @@
               toast(tq("saved_quote_deleted"));
               loadSavedQuotes();
             }catch(e){
-              toast(`Could not delete quote: ${String(e.message || e)}`);
+              toast(tq("could_not_delete_quote", { msg: String(e.message || e) }));
             }
           });
         });
@@ -1247,7 +1287,7 @@
         return;
       }
       if (!hasAuthToken()){
-        toast("Log in to save quotes.");
+        toast(tq("login_to_save_quotes"));
         return;
       }
       const payload = {
@@ -1273,7 +1313,7 @@
         toast(tq("quote_saved"));
         loadSavedQuotes();
       }catch(e){
-        toast(`Could not save quote: ${String(e.message || e)}`);
+        toast(tq("could_not_save_quote", { msg: String(e.message || e) }));
       }
     }
 
@@ -1539,7 +1579,13 @@
     if (ql){
       ql.innerHTML = QUOTE_LANGS.map(([c,l])=>`<option value="${c}">${l}</option>`).join("");
       ql.value = quoteLang;
-      ql.addEventListener("change", ()=>{ quoteLang = ql.value; try{ localStorage.setItem(UI_LANG_KEY, quoteLang); }catch(_e){} applyQuoteI18n(); renderQuoteCart(); });
+      ql.addEventListener("change", ()=>{
+        quoteLang = ql.value;
+        try{ localStorage.setItem(UI_LANG_KEY, quoteLang); }catch(_e){}
+        document.dispatchEvent(new CustomEvent("productfinder:language-changed", { detail: { language: quoteLang } }));
+        applyQuoteI18n();
+        renderQuoteCart();
+      });
     }
     document.addEventListener("productfinder:auth-changed", (event) => {
       const nextUser = event?.detail?.user || null;

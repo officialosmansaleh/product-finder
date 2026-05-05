@@ -1,6 +1,21 @@
 (function () {
   const USER_KEY = "productFinderAuthUserV1";
+  const UI_LANG_KEY = "productFinderUiLangV1";
   const MODAL_ID = "pfQuoteEntryModal";
+  const QUOTE_UTILS_I18N = {
+    en: { add_to_quote:"Add to quote", add:"Add", cancel:"Cancel", quantity:"Quantity", notes:"Notes", project_reference:"Project reference", comment:"Comment" },
+    it: { add_to_quote:"Aggiungi all'offerta", add:"Aggiungi", cancel:"Annulla", quantity:"Quantita", notes:"Note", project_reference:"Rif. progetto", comment:"Commento" },
+  };
+  ["fr","es","pt","ru","ar","pl","cs","hr","sl"].forEach(code => { QUOTE_UTILS_I18N[code] = QUOTE_UTILS_I18N.en; });
+
+  function currentLang() {
+    try { return String(localStorage.getItem(UI_LANG_KEY) || "en").toLowerCase().split("-")[0] || "en"; } catch (_e) { return "en"; }
+  }
+
+  function tq(key) {
+    const pack = QUOTE_UTILS_I18N[currentLang()] || QUOTE_UTILS_I18N.en;
+    return pack[key] || QUOTE_UTILS_I18N.en[key] || key;
+  }
 
   function esc(value) {
     return String(value ?? "")
@@ -39,9 +54,9 @@
   function ensureQuoteEntryModal(options) {
     let modal = document.getElementById(MODAL_ID);
     if (modal) return modal;
-    const title = esc(options?.title || "Add to quote");
-    const confirmLabel = esc(options?.confirmLabel || "Add");
-    const cancelLabel = esc(options?.cancelLabel || "Cancel");
+    const title = esc(options?.title || tq("add_to_quote"));
+    const confirmLabel = esc(options?.confirmLabel || tq("add"));
+    const cancelLabel = esc(options?.cancelLabel || tq("cancel"));
     const fieldLabelStyle = "display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#475569";
     const inputStyle = "width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:12px";
     const wrapper = document.createElement("div");
@@ -52,15 +67,15 @@
           <div id="${MODAL_ID}Title" style="font-weight:800;margin:0 0 10px 0;font-size:16px">${title}</div>
           <div style="display:grid;gap:10px">
             <label style="${fieldLabelStyle}">
-              <span>Quantity</span>
-              <input id="${MODAL_ID}Qty" type="number" min="1" step="1" placeholder="Quantity" style="${inputStyle}" />
+              <span data-quote-entry-i18n="quantity">Quantity</span>
+              <input id="${MODAL_ID}Qty" type="number" min="1" step="1" placeholder="${esc(tq("quantity"))}" style="${inputStyle}" />
             </label>
             <label style="${fieldLabelStyle}">
-              <span>Notes</span>
-              <input id="${MODAL_ID}Notes" type="text" placeholder="Comment" style="${inputStyle}" />
+              <span data-quote-entry-i18n="notes">Notes</span>
+              <input id="${MODAL_ID}Notes" type="text" placeholder="${esc(tq("comment"))}" style="${inputStyle}" />
             </label>
             <label style="${fieldLabelStyle}">
-              <span>Project reference</span>
+              <span data-quote-entry-i18n="project_reference">Project reference</span>
               <input id="${MODAL_ID}ProjectRef" type="text" placeholder="L1" style="${inputStyle}" />
             </label>
           </div>
@@ -73,7 +88,21 @@
     `;
     document.body.appendChild(wrapper.firstElementChild);
     modal = document.getElementById(MODAL_ID);
+    applyQuoteEntryI18n(modal);
     return modal;
+  }
+
+  function applyQuoteEntryI18n(modal) {
+    const root = modal || document.getElementById(MODAL_ID);
+    if (!root) return;
+    Array.from(root.querySelectorAll("[data-quote-entry-i18n]")).forEach(el => {
+      const key = String(el.getAttribute("data-quote-entry-i18n") || "").trim();
+      if (key) el.textContent = tq(key);
+    });
+    const qty = document.getElementById(`${MODAL_ID}Qty`);
+    const notes = document.getElementById(`${MODAL_ID}Notes`);
+    if (qty) qty.placeholder = tq("quantity");
+    if (notes) notes.placeholder = tq("comment");
   }
 
   async function promptQuoteEntry(existingRow, options) {
@@ -86,9 +115,10 @@
     const title = document.getElementById(`${MODAL_ID}Title`);
     if (!modal || !qty || !notes || !projectRef || !btnSave || !btnCancel || !title) return null;
 
-    title.textContent = String(options?.title || "Add to quote");
-    btnSave.textContent = String(options?.confirmLabel || "Add");
-    btnCancel.textContent = String(options?.cancelLabel || "Cancel");
+    applyQuoteEntryI18n(modal);
+    title.textContent = String(options?.title || tq("add_to_quote"));
+    btnSave.textContent = String(options?.confirmLabel || tq("add"));
+    btnCancel.textContent = String(options?.cancelLabel || tq("cancel"));
     qty.value = String(Math.max(1, Math.round(Number(existingRow?.qty) || 1)));
     notes.value = String(existingRow?.notes || "");
     projectRef.value = String(existingRow?.project_reference || "");

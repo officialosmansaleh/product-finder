@@ -162,6 +162,50 @@
     search_lumen_maintenance_ph:"Search lumen maintenance...",
     search_protocol_ph:"Search protocol...",
     search_interface_ph:"Search interface...",
+    add_to_quote:"Add to quote",
+    add:"Add",
+    cancel:"Cancel",
+    optional_note:"Optional note",
+    project_ref:"Project ref",
+    remove:"Remove",
+    th_code:"Code",
+    th_name:"Name",
+    th_qty:"Qty",
+    th_notes:"Notes",
+    th_project_ref:"Project Ref",
+    quote_empty:"Quote cart is empty",
+    need_quote_meta:"Set company and project name before export",
+    quote_export:"Quote Export",
+    quote_request:"Quote Request",
+    company:"Company",
+    project:"Project",
+    exported_at:"Exported at",
+    total_items:"Total items",
+    popup_blocked:"Popup blocked. Enable popups for PDF export.",
+    datasheet:"Datasheet",
+    website:"Website",
+    compare:"Compare",
+    alternatives:"Alternatives",
+    top_match:"Top match",
+    why_it_appears:"Why it appears",
+    what_differs:"What differs",
+    not_available:"Not available",
+    vision_guess:"Vision Guess",
+    confidence:"Confidence",
+    model:"Model",
+    notes:"Notes",
+    compare_label:"Compare",
+    removed_from_comparison:"Removed {code} from comparison",
+    results_summary:"Results: {exact} exact, {close} close, {broader} broader",
+    open_compare_workspace:"Open compare workspace",
+    clear_filters_keep_query:"Clear filters and keep the query",
+    public_search_placeholder:"Search name, code, or family...",
+    matches_search_on:"Matches your search on {fields}.",
+    close_search_on:"Close to your search on {fields}.",
+    related_search_on:"Related to your search on {fields}.",
+    onboarding_step_1:"1. Type a natural query like: <b>office downlight UGR&lt;19 4000K DALI</b>.",
+    onboarding_step_2:"2. Add filters from the left panel to narrow exact matches.",
+    onboarding_step_3:"3. Add products to <b>Quote</b> and export from the Quote page.",
   });
   Object.assign(I18N.it, {
     sort_score_desc:"Consigliati",
@@ -264,6 +308,50 @@
     search_lumen_maintenance_ph:"Cerca mantenimento lumen...",
     search_protocol_ph:"Cerca protocollo...",
     search_interface_ph:"Cerca interfaccia...",
+    add_to_quote:"Aggiungi all'offerta",
+    add:"Aggiungi",
+    cancel:"Annulla",
+    optional_note:"Nota opzionale",
+    project_ref:"Rif. progetto",
+    remove:"Rimuovi",
+    th_code:"Codice",
+    th_name:"Nome",
+    th_qty:"Qta",
+    th_notes:"Note",
+    th_project_ref:"Rif. progetto",
+    quote_empty:"Il carrello offerta e vuoto",
+    need_quote_meta:"Imposta azienda e progetto prima dell'export",
+    quote_export:"Export offerta",
+    quote_request:"Richiesta offerta",
+    company:"Azienda",
+    project:"Progetto",
+    exported_at:"Esportato il",
+    total_items:"Totale articoli",
+    popup_blocked:"Popup bloccato. Abilita i popup per esportare il PDF.",
+    datasheet:"Scheda tecnica",
+    website:"Sito web",
+    compare:"Confronta",
+    alternatives:"Alternative",
+    top_match:"Miglior risultato",
+    why_it_appears:"Perche appare",
+    what_differs:"Differenze",
+    not_available:"Non disponibile",
+    vision_guess:"Analisi immagine",
+    confidence:"Confidenza",
+    model:"Modello",
+    notes:"Note",
+    compare_label:"Confronta",
+    removed_from_comparison:"Rimosso {code} dal confronto",
+    results_summary:"Risultati: {exact} esatti, {close} vicini, {broader} ampliati",
+    open_compare_workspace:"Apri workspace confronto",
+    clear_filters_keep_query:"Cancella filtri e mantieni la query",
+    public_search_placeholder:"Cerca nome, codice o famiglia...",
+    matches_search_on:"Corrisponde alla ricerca su {fields}.",
+    close_search_on:"Vicino alla ricerca su {fields}.",
+    related_search_on:"Collegato alla ricerca su {fields}.",
+    onboarding_step_1:"1. Scrivi una query naturale, per esempio: <b>downlight ufficio UGR&lt;19 4000K DALI</b>.",
+    onboarding_step_2:"2. Aggiungi filtri dal pannello sinistro per restringere i risultati esatti.",
+    onboarding_step_3:"3. Aggiungi prodotti all'<b>offerta</b> ed esporta dalla pagina offerta.",
   });
   Object.values(I18N).forEach(dict => {
     for (const [key, value] of Object.entries(I18N.en)) {
@@ -432,12 +520,12 @@
       return;
     }
     box.innerHTML = `
-      <div class="title">Vision Guess</div>
+      <div class="title">${escapeHtml(t("vision_guess"))}</div>
       <div class="meta">
-        ${confidence ? `<span><b>Confidence:</b> ${escapeHtml(confidence)}</span>` : ""}
-        ${model ? ` ${confidence ? "|" : ""} <span><b>Model:</b> ${escapeHtml(model)}</span>` : ""}
+        ${confidence ? `<span><b>${escapeHtml(t("confidence"))}:</b> ${escapeHtml(confidence)}</span>` : ""}
+        ${model ? ` ${confidence ? "|" : ""} <span><b>${escapeHtml(t("model"))}:</b> ${escapeHtml(model)}</span>` : ""}
       </div>
-      ${notes ? `<div class="small" style="margin-top:4px"><b>Notes:</b> ${escapeHtml(notes)}</div>` : ""}
+      ${notes ? `<div class="small" style="margin-top:4px"><b>${escapeHtml(t("notes"))}:</b> ${escapeHtml(notes)}</div>` : ""}
       ${chips ? `<div class="chips">${chips}</div>` : ""}
     `;
     box.style.display = "block";
@@ -581,7 +669,7 @@
     const tokens = slots.map((c, idx) =>
       c ? `<span class="chip" data-cmp-slot="${idx}" data-cmp-code="${escapeHtml(c)}"><b>${escapeHtml(c)}</b> x</span>` : ""
     ).filter(Boolean).join(" ");
-    el.innerHTML = `<span class="small"><b>Compare:</b></span> ${tokens}`;
+    el.innerHTML = `<span class="small"><b>${escapeHtml(t("compare_label"))}:</b></span> ${tokens}`;
     el.title = `Comparison sheet: ${codes.join(" | ")}`;
     el.style.display = "flex";
     Array.from(el.querySelectorAll(".chip[data-cmp-slot]")).forEach(chip=>{
@@ -591,7 +679,7 @@
         const res = removeCompareSlotFromToolsState(idx);
         if (res.ok){
           renderToolsComparePreview();
-          toast(`Removed ${code} from comparison`);
+          toast(t("removed_from_comparison", { code }));
         }
       });
     });
@@ -715,13 +803,13 @@
     }
     if ($("btnTools")){
       $("btnTools").textContent = t("btn_tools");
-      $("btnTools").setAttribute("title", "Open compare workspace");
-      $("btnTools").setAttribute("aria-label", "Open compare workspace");
+      $("btnTools").setAttribute("title", t("open_compare_workspace"));
+      $("btnTools").setAttribute("aria-label", t("open_compare_workspace"));
     }
     if ($("btnQuote")) $("btnQuote").textContent = t("btn_quote");
     if ($("btnOpenFilters")) $("btnOpenFilters").textContent = t("btn_filters");
     if ($("btnClearAll")) $("btnClearAll").textContent = t("btn_reset");
-    if ($("btnFinderFilesParse")) $("btnFinderFilesParse").textContent = currentLang === "it" ? "Analizza brief" : "Analyze brief";
+    if ($("btnFinderFilesParse")) $("btnFinderFilesParse").textContent = t("analyze_brief");
     if ($("q")) $("q").placeholder = t("q_placeholder");
     if ($("qMobile")) $("qMobile").placeholder = t("q_mobile_placeholder");
     if ($("btnPrevPage")) $("btnPrevPage").textContent = t("prev");
@@ -736,6 +824,10 @@
     if (recoveryTitle) recoveryTitle.textContent = t("recovery_title");
     const onbTitle = document.querySelector("#onboardingBox .onbHead .h");
     if (onbTitle) onbTitle.textContent = t("quick_start");
+    const onbLines = Array.from(document.querySelectorAll("#onboardingBox .small"));
+    ["onboarding_step_1","onboarding_step_2","onboarding_step_3"].forEach((key, idx) => {
+      if (onbLines[idx]) onbLines[idx].innerHTML = t(key);
+    });
     const sortSel = $("sortSel");
     if (sortSel){
       const map = { score_desc:"sort_score_desc", score_asc:"sort_score_asc", code_asc:"sort_code_asc", code_desc:"sort_code_desc", price_asc:"sort_price_asc", price_desc:"sort_price_desc", power_asc:"sort_power_asc", power_desc:"sort_power_desc", efficacy_desc:"sort_efficacy_desc", lumen_asc:"sort_lumen_asc", lumen_desc:"sort_lumen_desc" };
@@ -758,6 +850,7 @@
   function setLanguage(code){
     currentLang = SUPPORTED_LANGS.some(x => x.code === code) ? code : "en";
     try { localStorage.setItem(UI_LANG_KEY, currentLang); } catch(_e){}
+    document.dispatchEvent(new CustomEvent("productfinder:language-changed", { detail: { language: currentLang } }));
     applyLanguage();
     renderPage();
   }
@@ -977,9 +1070,9 @@
 
   async function promptQuoteEntryData(existingRow){
     return await window.ProductFinderQuoteUtils?.promptQuoteEntry?.(existingRow, {
-      title: "Add to quote",
-      confirmLabel: "Add",
-      cancelLabel: "Cancel",
+      title: t("add_to_quote"),
+      confirmLabel: t("add"),
+      cancelLabel: t("cancel"),
       projectReferencePlaceholder: "L1",
     }) || null;
   }
@@ -1022,11 +1115,11 @@
           </colgroup>
           <thead>
             <tr>
-              <th>Code</th>
-              <th>Name</th>
-              <th>Qty</th>
-              <th>Notes</th>
-              <th>Project Ref</th>
+              <th>${escapeHtml(t("th_code"))}</th>
+              <th>${escapeHtml(t("th_name"))}</th>
+              <th>${escapeHtml(t("th_qty"))}</th>
+              <th>${escapeHtml(t("th_notes"))}</th>
+              <th>${escapeHtml(t("th_project_ref"))}</th>
               <th></th>
             </tr>
           </thead>
@@ -1036,9 +1129,9 @@
                 <td>${escapeHtml(r.product_code)}</td>
                 <td>${escapeHtml(r.product_name || "")}</td>
                 <td><input class="qty" type="number" min="1" step="1" data-quote-code="${escapeHtml(r.product_code)}" data-field="qty" value="${escapeHtml(r.qty)}" /></td>
-                <td><input type="text" data-quote-code="${escapeHtml(r.product_code)}" data-field="notes" value="${escapeHtml(r.notes || "")}" placeholder="Optional note" /></td>
-                <td><input type="text" data-quote-code="${escapeHtml(r.product_code)}" data-field="project_reference" value="${escapeHtml(r.project_reference || "")}" placeholder="Project ref" /></td>
-                <td><button class="btn secondary" style="padding:6px 8px" data-quote-remove="${escapeHtml(r.product_code)}">Remove</button></td>
+                <td><input type="text" data-quote-code="${escapeHtml(r.product_code)}" data-field="notes" value="${escapeHtml(r.notes || "")}" placeholder="${escapeHtml(t("optional_note"))}" /></td>
+                <td><input type="text" data-quote-code="${escapeHtml(r.product_code)}" data-field="project_reference" value="${escapeHtml(r.project_reference || "")}" placeholder="${escapeHtml(t("project_ref"))}" /></td>
+                <td><button class="btn secondary" style="padding:6px 8px" data-quote-remove="${escapeHtml(r.product_code)}">${escapeHtml(t("remove"))}</button></td>
               </tr>
             `).join("")}
           </tbody>
@@ -1106,11 +1199,11 @@
 
   function exportQuoteCsv(){
     const rows = Array.from(quoteCart.values());
-    if (!rows.length){ toast("Quote cart is empty"); return; }
+    if (!rows.length){ toast(t("quote_empty")); return; }
     const company = String(($("quoteCompany")?.value || "")).trim();
     const project = String(($("quoteProject")?.value || "")).trim();
     if (!company || !project){
-      toast("Set company and project name before export");
+      toast(t("need_quote_meta"));
       return;
     }
     const header = ["product_code","product_name","qty","notes","project_reference","source"];
@@ -1144,11 +1237,11 @@
 
   function exportQuotePdf(){
     const rows = Array.from(quoteCart.values()).sort((a,b)=> String(a.product_code).localeCompare(String(b.product_code)));
-    if (!rows.length){ toast("Quote cart is empty"); return; }
+    if (!rows.length){ toast(t("quote_empty")); return; }
     const company = String(($("quoteCompany")?.value || "")).trim();
     const project = String(($("quoteProject")?.value || "")).trim();
     if (!company || !project){
-      toast("Set company and project name before export");
+      toast(t("need_quote_meta"));
       return;
     }
 
@@ -1163,11 +1256,11 @@
         <table>
           <thead>
             <tr>
-              <th>Code</th>
-              <th>Name</th>
-              <th>Qty</th>
-              <th>Notes</th>
-              <th>Project Ref</th>
+              <th>${escapeHtml(t("th_code"))}</th>
+              <th>${escapeHtml(t("th_name"))}</th>
+              <th>${escapeHtml(t("th_qty"))}</th>
+              <th>${escapeHtml(t("th_notes"))}</th>
+              <th>${escapeHtml(t("th_project_ref"))}</th>
             </tr>
           </thead>
           <tbody>
@@ -1190,7 +1283,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Quote Export</title>
+  <title>${escapeHtml(t("quote_export"))}</title>
   <style>
     body{font-family:Segoe UI,Arial,sans-serif;padding:20px;color:#111}
     h1{font-size:20px;margin:0 0 8px}
@@ -1204,17 +1297,17 @@
   </style>
 </head>
 <body>
-  <h1>Quote Request</h1>
-  <h2>Company: ${escapeHtml(company)}</h2>
-  <h2>Project: ${escapeHtml(project)}</h2>
-  <div class="meta">Exported at: ${escapeHtml(exportedAt)} | Total items: ${rows.length}</div>
+  <h1>${escapeHtml(t("quote_request"))}</h1>
+  <h2>${escapeHtml(t("company"))}: ${escapeHtml(company)}</h2>
+  <h2>${escapeHtml(t("project"))}: ${escapeHtml(project)}</h2>
+  <div class="meta">${escapeHtml(t("exported_at"))}: ${escapeHtml(exportedAt)} | ${escapeHtml(t("total_items"))}: ${rows.length}</div>
   ${buildGroup("Disano", disanoRows)}
   ${buildGroup("Fosnova", fosnovaRows)}
 </body>
 </html>`;
 
     const win = window.open("", "_blank");
-    if (!win){ toast("Popup blocked. Enable popups for PDF export."); return; }
+    if (!win){ toast(t("popup_blocked")); return; }
     win.document.open();
     win.document.write(html);
     win.document.close();
@@ -1357,7 +1450,7 @@
     if (getRecoveryFilterValue("ik_rating")) out.push({ id: "relax_ik", label: "Lower the IK requirement" });
     if (getRecoveryFilterValue("power_max_w")) out.push({ id: "widen_power", label: "Widen the power range" });
     if (Object.keys(selectedFilters).length || (Array.isArray(lastUnderstoodFilterItems) && lastUnderstoodFilterItems.length)) {
-      out.push({ id: "clear_filters", label: "Clear filters and keep the query" });
+      out.push({ id: "clear_filters", label: t("clear_filters_keep_query") });
     }
     return out.slice(0, 4);
   }
@@ -2519,7 +2612,7 @@ function resetRange(key, minId, maxId){
         : "e.g. downlight for office, UGR<19, 4000K, DALI, IP54";
     }
     if (qMobile) {
-      qMobile.placeholder = publicMode ? "Search name, code, or family..." : "Type your query...";
+      qMobile.placeholder = publicMode ? t("public_search_placeholder") : t("q_mobile_placeholder");
     }
     if (buildLabel) {
       buildLabel.textContent = publicMode
@@ -2860,28 +2953,28 @@ function summarizeMatchedFilters(hit, kind){
   if (!labels.length){
     return "";
   }
-  if (tier === "Exact") return `Matches your search on ${humanJoin(labels)}.`;
-  if (tier === "Close") return `Close to your search on ${humanJoin(labels)}.`;
-  return `Related to your search on ${humanJoin(labels)}.`;
+  if (tier === "Exact") return t("matches_search_on", { fields: humanJoin(labels) });
+  if (tier === "Close") return t("close_search_on", { fields: humanJoin(labels) });
+  return t("related_search_on", { fields: humanJoin(labels) });
 }
 
 function buildResultExplanation(hit, kind){
   const lines = [];
   const summary = summarizeMatchedFilters(hit, kind);
   if (summary){
-    lines.push(`<div><b>Why it appears:</b> ${escapeHtml(summary)}</div>`);
+    lines.push(`<div><b>${escapeHtml(t("why_it_appears"))}:</b> ${escapeHtml(summary)}</div>`);
   }
   const differences = Array.isArray(hit?.deviations)
     ? hit.deviations.map(formatDeviationText).filter(Boolean).slice(0, 2)
     : [];
   if (differences.length){
-    lines.push(`<div><b>What differs:</b> ${escapeHtml(differences.join(" | "))}</div>`);
+    lines.push(`<div><b>${escapeHtml(t("what_differs"))}:</b> ${escapeHtml(differences.join(" | "))}</div>`);
   }
   const missing = Array.isArray(hit?.missing)
     ? hit.missing.map(formatMissingText).filter(Boolean).slice(0, 3)
     : [];
   if (missing.length){
-    lines.push(`<div><b>Not available:</b> ${escapeHtml(missing.join(" | "))}</div>`);
+    lines.push(`<div><b>${escapeHtml(t("not_available"))}:</b> ${escapeHtml(missing.join(" | "))}</div>`);
   }
   if (!lines.length) return "";
   return `<div class="small" style="margin-top:10px">${lines.join("")}</div>`;
@@ -3068,20 +3161,20 @@ function renderHits(containerId, hits, kind){
               <span class="mfrLogoFallback" aria-hidden="true">${escapeHtml(mfrAlt)}</span>
             </a>
             <div class="hitLinks">
-              <a href="${datasheetUrl}" target="_blank" rel="noopener noreferrer">Datasheet</a>
-              <a href="${websiteUrl}" target="_blank" rel="noopener noreferrer">Website</a>
+              <a href="${datasheetUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(t("datasheet"))}</a>
+              <a href="${websiteUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(t("website"))}</a>
             </div>
             <div class="hitActions">
               <div class="badge ${badgeClass}">${badgeText} | ${formatScorePercent(score, { hasIssues })}</div>
-              ${showProductActions ? `<button class="btn hitActionBtn ${inQuote ? "secondary" : ""}" data-quote-toggle="${escapeHtml(orderCode)}">${inQuote ? "Remove" : "Add to quote"}</button>` : ``}
-              ${showProductActions ? `<button class="btn secondary hitActionBtn" type="button" data-compare-add="${escapeHtml(orderCode)}">Compare</button>` : ``}
-              ${showProductActions ? `<a class="btn secondary hitActionBtn" href="/frontend/tools.html?fresh=1&altCode=${encodeURIComponent(orderCode)}&auto=1${getCurrentQueryText() ? `&idealQuery=${encodeURIComponent(getCurrentQueryText())}` : ``}${getCurrentFiltersQueryParam() ? `&finderFilters=${getCurrentFiltersQueryParam()}` : ``}${getCurrentCompareSeedQueryParam() ? `&finderSeedSpec=${getCurrentCompareSeedQueryParam()}` : ``}">Alternatives</a>` : ``}
+              ${showProductActions ? `<button class="btn hitActionBtn ${inQuote ? "secondary" : ""}" data-quote-toggle="${escapeHtml(orderCode)}">${escapeHtml(inQuote ? t("remove") : t("add_to_quote"))}</button>` : ``}
+              ${showProductActions ? `<button class="btn secondary hitActionBtn" type="button" data-compare-add="${escapeHtml(orderCode)}">${escapeHtml(t("compare"))}</button>` : ``}
+              ${showProductActions ? `<a class="btn secondary hitActionBtn" href="/frontend/tools.html?fresh=1&altCode=${encodeURIComponent(orderCode)}&auto=1${getCurrentQueryText() ? `&idealQuery=${encodeURIComponent(getCurrentQueryText())}` : ``}${getCurrentFiltersQueryParam() ? `&finderFilters=${getCurrentFiltersQueryParam()}` : ``}${getCurrentCompareSeedQueryParam() ? `&finderSeedSpec=${getCurrentCompareSeedQueryParam()}` : ``}">${escapeHtml(t("alternatives"))}</a>` : ``}
             </div>
           </div>
           <div class="hitInfo">
             <div class="hitHead">
               <div>
-                ${isPrimary ? `<div class="topMark">Top match</div>` : ``}
+                ${isPrimary ? `<div class="topMark">${escapeHtml(t("top_match"))}</div>` : ``}
                 <div class="code">
                   <a href="${datasheetUrl}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; color:inherit;">
                     ${escapeHtml(orderCode)}
@@ -3383,7 +3476,7 @@ document.addEventListener("keydown", (ev)=>{
           const exactCount = Number(tiers.exact || 0);
           const closeCount = Number(tiers.close || 0);
           const broaderCount = Number(tiers.broader || 0);
-          iLine.textContent = `Results: ${exactCount} exact, ${closeCount} close, ${broaderCount} broader`;
+          iLine.textContent = t("results_summary", { exact: exactCount, close: closeCount, broader: broaderCount });
         } else {
           iLine.textContent = sizeLabel ? `Interpreted size: ${sizeLabel}` : "";
         }

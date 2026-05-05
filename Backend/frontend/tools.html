@@ -512,10 +512,45 @@
       field:"Field",
       missing:"missing",
       loading:"Loading...",
+      cancel:"Cancel",
       type_code_first:"Type a product code first.",
       set_requirement:"Set at least one requirement or set a reference product code.",
       project_requirement_missing:"Project requirement not loaded. Apply requirements first.",
       set_compare_inputs:"Set the comparison inputs first.",
+      price_unavailable:"Price comparison unavailable.",
+      same_price:"Same price",
+      lowest_price:"Lowest price",
+      highest_price:"Highest price",
+      reference:"Reference",
+      option_1:"Option 1",
+      option_2:"Option 2",
+      option_n:"Option {n}",
+      no_requirement_fields:"No project requirement fields available.",
+      comparing:"Comparing",
+      project_requirement:"Project requirement",
+      reference_image:"Reference image",
+      not_found:"Not found",
+      slots_full:"Comparison slots are full (3/3).",
+      error:"Error",
+      no_alt_match_filters:"No alternatives match current filters.",
+      score_threshold:"showing only score >= 60%",
+      clear_filters:"Clear filters",
+      prev:"Prev",
+      next:"Next",
+      page:"Page",
+      showing:"Showing {shown} of {count}",
+      total_matches:"total matches",
+      mfr:"Mfr",
+      min_pct:"Min %",
+      apply:"Apply",
+      base_not_found:"Base code not found.",
+      base:"Base",
+      no_alternatives:"No alternatives found.",
+      no_ideal_alternatives:"No alternatives found for current ideal spec.",
+      ideal_not_loaded:"Ideal Spec not loaded. Use \"Apply filters\" first.",
+      show_alternatives:"Show alternatives",
+      could_not_load_product_spec:"Could not load product spec from code: {msg}",
+      pdf_export_error:"PDF export error: {msg}",
     });
     Object.assign(TI18N.it, {
       top_sub:"Costruisci il requisito di progetto, confronta le opzioni e sposta la soluzione migliore nel flusso offerta.",
@@ -552,10 +587,45 @@
       field:"Campo",
       missing:"mancante",
       loading:"Caricamento...",
+      cancel:"Annulla",
       type_code_first:"Inserisci prima un codice prodotto.",
       set_requirement:"Imposta almeno un requisito oppure un codice prodotto di riferimento.",
       project_requirement_missing:"Requisito progetto non caricato. Applica prima i requisiti.",
       set_compare_inputs:"Imposta prima gli input di confronto.",
+      price_unavailable:"Confronto prezzi non disponibile.",
+      same_price:"Stesso prezzo",
+      lowest_price:"Prezzo piu basso",
+      highest_price:"Prezzo piu alto",
+      reference:"Riferimento",
+      option_1:"Opzione 1",
+      option_2:"Opzione 2",
+      option_n:"Opzione {n}",
+      no_requirement_fields:"Nessun campo requisito progetto disponibile.",
+      comparing:"Confronto",
+      project_requirement:"Requisito progetto",
+      reference_image:"Immagine riferimento",
+      not_found:"Non trovato",
+      slots_full:"Slot confronto pieni (3/3).",
+      error:"Errore",
+      no_alt_match_filters:"Nessuna alternativa corrisponde ai filtri attuali.",
+      score_threshold:"solo score >= 60%",
+      clear_filters:"Cancella filtri",
+      prev:"Prec",
+      next:"Avanti",
+      page:"Pagina",
+      showing:"Mostrati {shown} di {count}",
+      total_matches:"totale risultati",
+      mfr:"Prod.",
+      min_pct:"Min %",
+      apply:"Applica",
+      base_not_found:"Codice base non trovato.",
+      base:"Base",
+      no_alternatives:"Nessuna alternativa trovata.",
+      no_ideal_alternatives:"Nessuna alternativa trovata per il requisito ideale attuale.",
+      ideal_not_loaded:"Requisito ideale non caricato. Usa prima \"Applica filtri\".",
+      show_alternatives:"Mostra alternative",
+      could_not_load_product_spec:"Impossibile caricare la specifica prodotto dal codice: {msg}",
+      pdf_export_error:"Errore export PDF: {msg}",
     });
     Object.values(TI18N).forEach(dict => {
       for (const [key, value] of Object.entries(TI18N.en)) {
@@ -563,7 +633,11 @@
       }
     });
     let toolsLang = "en";
-    function tt(k){ return (TI18N[toolsLang]||TI18N.en)[k] || TI18N.en[k] || k; }
+    function tt(k, vars){
+      let s = (TI18N[toolsLang]||TI18N.en)[k] || TI18N.en[k] || k;
+      if (vars){ for (const [kk, v] of Object.entries(vars)) s = s.replaceAll(`{${kk}}`, String(v)); }
+      return s;
+    }
     function detectToolsLang(){ try{ const v=String(localStorage.getItem(UI_LANG_KEY)||"").toLowerCase(); if(TOOLS_LANGS.some(x=>x[0]===v)) return v; }catch(_e){} const b=String(navigator.language||"en").toLowerCase().split("-")[0]; return TOOLS_LANGS.some(x=>x[0]===b)?b:"en"; }
     function applyToolsI18n(){
       document.documentElement.lang = toolsLang;
@@ -585,6 +659,7 @@
       $("btnQuote") && ($("btnQuote").textContent = tt("quote"));
       $("btnResetFilters") && ($("btnResetFilters").textContent = tt("reset"));
       $("btnIdealFromCode") && ($("btnIdealFromCode").textContent = tt("apply_code"));
+      $("btnIdealAlt") && ($("btnIdealAlt").textContent = tt("show_alternatives"));
       $("btnCompare") && ($("btnCompare").textContent = tt("compare"));
       $("btnClearC") && ($("btnClearC").textContent = tt("clear"));
       $("btnImgLightboxClose") && ($("btnImgLightboxClose").textContent = tt("close"));
@@ -698,7 +773,7 @@
       return await window.ProductFinderQuoteUtils?.promptQuoteEntry?.(existingRow, {
         title: tt("add_to_quote"),
         confirmLabel: tt("add_to_quote"),
-        cancelLabel: "Cancel",
+        cancelLabel: tt("cancel"),
         projectReferencePlaceholder: "L1",
       }) || null;
     }
@@ -745,7 +820,7 @@
     }
     function priceSummaryGeneric(itemSlots, differences){
       const priceRow = getPriceDiffRow(differences);
-      if (!priceRow) return '<div class="small">Price comparison unavailable.</div>';
+      if (!priceRow) return `<div class="small">${esc(tt("price_unavailable"))}</div>`;
       const values = Array.isArray(priceRow.values) ? priceRow.values : [];
       const priced = itemSlots.map(({ item, slot }) => {
         const code = String(item?.product_code || `Code ${slotLabel(slot)}`);
@@ -755,7 +830,7 @@
       });
 
       const valid = priced.filter(x => x.price !== null);
-      if (valid.length < 2) return '<div class="small">Price comparison unavailable.</div>';
+      if (valid.length < 2) return `<div class="small">${esc(tt("price_unavailable"))}</div>`;
 
       const minP = Math.min(...valid.map(x => x.price));
       const maxP = Math.max(...valid.map(x => x.price));
@@ -763,10 +838,10 @@
       const highs = valid.filter(x => x.price === maxP);
 
       if (minP === maxP){
-        return `<div class="small"><b>Same price:</b> ${valid.map(x => `<span class="mono">${esc(x.code)}</span>`).join(", ")}</div>`;
+        return `<div class="small"><b>${esc(tt("same_price"))}:</b> ${valid.map(x => `<span class="mono">${esc(x.code)}</span>`).join(", ")}</div>`;
       }
       const fmtCodes = (arr) => arr.map(x => `<span class="mono">${esc(x.code)}</span>`).join(", ");
-      return `<div class="small"><b>Lowest price:</b> ${fmtCodes(lows)} | <b>Highest price:</b> ${fmtCodes(highs)}</div>`;
+      return `<div class="small"><b>${esc(tt("lowest_price"))}:</b> ${fmtCodes(lows)} | <b>${esc(tt("highest_price"))}:</b> ${fmtCodes(highs)}</div>`;
     }
     function attachPriceFromDiffs(a, b, diffs){
       const outA = { ...(a || {}) };
@@ -783,7 +858,7 @@
       return ["A","B","C"][idx] || String(idx + 1);
     }
     function slotTitle(idx){
-      return ["Reference", "Option 1", "Option 2"][idx] || `Option ${idx + 1}`;
+      return [tt("reference"), tt("option_1"), tt("option_2")][idx] || tt("option_n", { n: idx + 1 });
     }
     function normalizeCodeInputValue(v){
       return String(v || "").trim();
@@ -839,7 +914,7 @@
         if (!value) continue;
         rows.push(`<div class="small"><b>${esc(prettyLabel(key))}:</b> ${esc(value)}</div>`);
       }
-      if (!rows.length) return `<div class="small">No project requirement fields available.</div>`;
+      if (!rows.length) return `<div class="small">${esc(tt("no_requirement_fields"))}</div>`;
       return `<div class="cmpSpecSummary" style="margin-top:8px;display:grid;gap:4px">${rows.join("")}</div>`;
     }
 
@@ -862,11 +937,11 @@
       const visibleDifferences = (d.differences || []);
       const compareLine = itemSlots.map(({meta, item, slot}) => {
         const requested = meta?.requested_code || reqCodes[slot] || "";
-        if (!item) return `<span class="mono">${slotTitle(slot)}: ${esc(requested || "-")}</span> <span class="small">(missing)</span>`;
+        if (!item) return `<span class="mono">${slotTitle(slot)}: ${esc(requested || "-")}</span> <span class="small">(${esc(tt("missing"))})</span>`;
         return `<span class="mono">${slotTitle(slot)}: ${esc(item.product_code || requested)}</span>`;
       }).join(" | ");
       const compareHeader = `
-        <div class="small">Comparing ${compareLine}</div>
+        <div class="small">${esc(tt("comparing"))} ${compareLine}</div>
         ${validSlots.length >= 2 ? priceSummaryGeneric(itemSlots, d.differences || []) : ""}
         <div class="cmpGrid">
           ${itemSlots.map(({meta, item, slot}) => {
@@ -879,20 +954,20 @@
                     <div class="cmpMetaRow small">
                       <b>${slotTitle(slot)}</b>
                       <span>-</span>
-                      <span class="mono">${esc(requested || "Project requirement")}</span>
-                      <span>Reference image</span>
+                      <span class="mono">${esc(requested || tt("project_requirement"))}</span>
+                      <span>${esc(tt("reference_image"))}</span>
                     </div>
-                    <div class="cmpImgWrap"><img class="cmpImg" src="${esc(compareRefImage)}" alt="Reference requirement image" loading="eager" /></div>
+                    <div class="cmpImgWrap"><img class="cmpImg" src="${esc(compareRefImage)}" alt="${esc(tt("reference_image"))}" loading="eager" /></div>
                   </div>`;
               }
-              return `<div class="cmpCard"><div class="small"><b>${slotTitle(slot)}</b> - ${esc(requested)}</div><div class="small">Not found</div></div>`;
+              return `<div class="cmpCard"><div class="small"><b>${slotTitle(slot)}</b> - ${esc(requested)}</div><div class="small">${esc(tt("not_found"))}</div></div>`;
             }
             const inQuote = !isVirtualIdeal && isInQuote(item.product_code || requested);
             const showRefImage = isVirtualIdeal && !!compareRefImage;
             const previewSrc = showRefImage ? compareRefImage : String(item.image_preview_url || "");
             const previewHtml = previewSrc
               ? (showRefImage
-                  ? `<div class="cmpImgWrap"><img class="cmpImg" src="${esc(previewSrc)}" alt="Reference requirement image" loading="eager" /></div>`
+                  ? `<div class="cmpImgWrap"><img class="cmpImg" src="${esc(previewSrc)}" alt="${esc(tt("reference_image"))}" loading="eager" /></div>`
                   : `<div class="cmpImgWrap"><img class="cmpImg" src="${esc(previewSrc)}" data-full-img="${esc(`/full-image?product_code=${encodeURIComponent(String(item.product_code || requested || ""))}&manufacturer=${encodeURIComponent(String(item.manufacturer || ""))}&website_url=${encodeURIComponent(toolsWebsiteUrl(item.product_code || requested))}`)}" alt="Image ${esc(item.product_code || requested)}" loading="eager" /></div>`)
               : "";
             return `
@@ -906,7 +981,7 @@
                   <span>${esc(item.product_name || "")}</span>
                 </div>
                 ${isVirtualIdeal ? renderIdealSpecSummary(item) : ""}
-                ${!isVirtualIdeal ? `<div class="row" style="margin-top:8px"><button type="button" class="${inQuote ? "secondary" : ""}" data-cmp-quote-slot="${slot}">${inQuote ? "Remove from Quote" : "Add to Quote"}</button></div>` : ""}
+                ${!isVirtualIdeal ? `<div class="row" style="margin-top:8px"><button type="button" class="${inQuote ? "secondary" : ""}" data-cmp-quote-slot="${slot}">${esc(inQuote ? tt("remove_from_quote") : tt("add_to_quote"))}</button></div>` : ""}
                 ${previewHtml}
               </div>`;
           }).join("")}
@@ -931,7 +1006,7 @@
       if(!code_a || !code_b) return;
       const reqCodes = [code_a, code_b, code_c].map(x => String(x || "").trim()).filter(Boolean);
       setCompareInputCodes([code_a, code_b, code_c]);
-      $("cmpOut").innerHTML='<div class="small">Loading...</div>';
+      $("cmpOut").innerHTML=`<div class="small">${esc(tt("loading"))}</div>`;
       const d=await postJSON('/compare-products',{codes:reqCodes});
       renderComparePayload(d, reqCodes);
     }
@@ -939,7 +1014,7 @@
     async function runCompareIdeal(spec, code_b, code_c=""){
       const reqCodes = [String(code_b || "").trim(), String(code_c || "").trim()].filter(Boolean);
       if (!spec || !Object.keys(spec).length || !reqCodes.length) return;
-      $("cmpOut").innerHTML='<div class="small">Loading...</div>';
+      $("cmpOut").innerHTML=`<div class="small">${esc(tt("loading"))}</div>`;
       const d = await postJSON('/compare-spec-products', { ideal_spec: spec, codes: reqCodes });
       renderComparePayload(d, ["IDEAL_SPEC", ...reqCodes]);
     }
@@ -968,7 +1043,7 @@
       const nextA = (!curA || curA === "Project requirement") ? "Project requirement" : curA;
       const addRes = putCodeInFirstEmptySlot([nextA, curB, curC], picked, [1,2]);
       if (addRes.full){
-        $("cmpOut").innerHTML=`<div class="small">Comparison slots are full (3/3).</div>`;
+        $("cmpOut").innerHTML=`<div class="small">${esc(tt("slots_full"))}</div>`;
         return;
       }
       if ($("cmpA")) $("cmpA").value = addRes.codes[0];
@@ -980,7 +1055,7 @@
           await runCompareIdeal(specForCompare || lastIdealSpec, addRes.codes[1], addRes.codes[2]);
           window.scrollTo({ top: 0, behavior: "smooth" });
         }catch(e){
-          $("cmpOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+          $("cmpOut").innerHTML=`<div class="small">${esc(tt("error"))}: ${esc(e.message||e)}</div>`;
         }
       }
     }
@@ -994,7 +1069,7 @@
       const nextA = base || curA;
       const addRes = putCodeInFirstEmptySlot([nextA, curB, curC], picked, [1,2]);
       if (addRes.full){
-        $("cmpOut").innerHTML=`<div class="small">Comparison slots are full (3/3).</div>`;
+        $("cmpOut").innerHTML=`<div class="small">${esc(tt("slots_full"))}</div>`;
         return;
       }
       if ($("cmpA")) $("cmpA").value = nextA;
@@ -1006,7 +1081,7 @@
         }
         window.scrollTo({ top: 0, behavior: "smooth" });
       }catch(e){
-        $("cmpOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+        $("cmpOut").innerHTML=`<div class="small">${esc(tt("error"))}: ${esc(e.message||e)}</div>`;
       }
     }
     function wireCompareQuoteButtons(itemSlots){
@@ -1014,10 +1089,10 @@
       if (!root) return;
       const bySlot = new Map(itemSlots.filter(x => x.item).map(x => [String(x.slot), x.item]));
       Array.from(root.querySelectorAll("button[data-cmp-quote-slot]")).forEach(btn=>{
-        btn.addEventListener("click", ()=>{
+        btn.addEventListener("click", async ()=>{
           const item = bySlot.get(String(btn.dataset.cmpQuoteSlot || ""));
           if (!item) return;
-          const added = toggleQuoteProduct(item, "tools-compare");
+          const added = await toggleQuoteProduct(item, "tools-compare");
           btn.textContent = added ? tt("remove_from_quote") : tt("add_to_quote");
           btn.classList.toggle("secondary", added);
         });
@@ -1147,8 +1222,8 @@
       if (!rows.length){
         const total = Array.isArray(eligibleRows) ? eligibleRows.length : 0;
         wrap.innerHTML = `
-          <div class="small">${total ? "No alternatives match current filters." : `${emptyText} (showing only score >= 60%)`}</div>
-          ${total ? `<div class="row" style="margin-top:8px"><button type="button" class="secondary" ${clearAttr}>Clear filters</button></div>` : ""}
+          <div class="small">${total ? esc(tt("no_alt_match_filters")) : `${esc(emptyText)} (${esc(tt("score_threshold"))})`}</div>
+          ${total ? `<div class="row" style="margin-top:8px"><button type="button" class="secondary" ${clearAttr}>${esc(tt("clear_filters"))}</button></div>` : ""}
         `;
         if (total){
           wrap.querySelector(`[${clearAttr.split("=")[0]}]`)?.addEventListener("click", ()=>{
@@ -1161,11 +1236,11 @@
       wrap.innerHTML = `
         ${baseHeaderHtml || ""}
         <div class="solPager">
-          <button type="button" class="btn secondary" style="padding:6px 8px" data-sol-page-prev ${solutionsPage <= 1 ? "disabled" : ""}>Prev</button>
-          <div class="pagerInfo">Page ${solutionsPage}/${totalPages}</div>
-          <button type="button" class="btn secondary" style="padding:6px 8px" data-sol-page-next ${solutionsPage >= totalPages ? "disabled" : ""}>Next</button>
+          <button type="button" class="btn secondary" style="padding:6px 8px" data-sol-page-prev ${solutionsPage <= 1 ? "disabled" : ""}>${esc(tt("prev"))}</button>
+          <div class="pagerInfo">${esc(tt("page"))} ${solutionsPage}/${totalPages}</div>
+          <button type="button" class="btn secondary" style="padding:6px 8px" data-sol-page-next ${solutionsPage >= totalPages ? "disabled" : ""}>${esc(tt("next"))}</button>
         </div>
-        <div class="small" style="margin-bottom:6px">Showing ${pageRows.length} of ${rows.length}${Number.isFinite(Number(dataset?.total_matches)) ? ` (total matches: ${Number(dataset.total_matches)})` : ""} (score >= 60%)</div>
+        <div class="small" style="margin-bottom:6px">${esc(tt("showing", { shown: pageRows.length, count: rows.length }))}${Number.isFinite(Number(dataset?.total_matches)) ? ` (${esc(tt("total_matches"))}: ${Number(dataset.total_matches)})` : ""} (${esc(tt("score_threshold"))})</div>
         <div class="solutionsTableWrap">
         <table class="solutionsResultsTable">
           <thead>
@@ -1183,14 +1258,14 @@
               <th></th>
               <th><input type="text" ${filterAttr}="code" placeholder="${esc(tt("code"))}" value="${esc(altColumnFilters.code)}" style="padding:5px 6px;border-radius:8px" /></th>
               <th><input type="text" ${filterAttr}="name" placeholder="${esc(tt("name"))}" value="${esc(altColumnFilters.name)}" style="padding:5px 6px;border-radius:8px" /></th>
-              <th><input type="text" ${filterAttr}="manufacturer" placeholder="Mfr" value="${esc(altColumnFilters.manufacturer)}" style="padding:5px 6px;border-radius:8px" /></th>
+              <th><input type="text" ${filterAttr}="manufacturer" placeholder="${esc(tt("mfr"))}" value="${esc(altColumnFilters.manufacturer)}" style="padding:5px 6px;border-radius:8px" /></th>
               <th><input type="text" ${filterAttr}="family" placeholder="${esc(tt("family"))}" value="${esc(altColumnFilters.family)}" style="padding:5px 6px;border-radius:8px" /></th>
-              <th><input type="number" min="0" max="100" step="0.1" ${filterAttr}="minScorePct" placeholder="Min %" value="${esc(altColumnFilters.minScorePct)}" style="padding:5px 6px;border-radius:8px" /></th>
+              <th><input type="number" min="0" max="100" step="0.1" ${filterAttr}="minScorePct" placeholder="${esc(tt("min_pct"))}" value="${esc(altColumnFilters.minScorePct)}" style="padding:5px 6px;border-radius:8px" /></th>
               <th></th>
               <th>
                 <div class="solActions">
-                  <button type="button" ${applyAttr}>Apply</button>
-                  <button type="button" class="secondary" ${clearAttr}>Clear</button>
+                  <button type="button" ${applyAttr}>${esc(tt("apply"))}</button>
+                  <button type="button" class="secondary" ${clearAttr}>${esc(tt("clear"))}</button>
                 </div>
               </th>
             </tr>
@@ -1245,11 +1320,11 @@
         btn.addEventListener("click", ()=> onCompare(String(btn.getAttribute(compareAttr.replaceAll('"', "")) || "").trim()));
       });
       Array.from(wrap.querySelectorAll(`button[${quoteAttr.split("=")[0]}]`)).forEach(btn=>{
-        btn.addEventListener("click", ()=>{
+        btn.addEventListener("click", async ()=>{
           const code = String(btn.getAttribute(quoteAttr.replaceAll('"', "")) || "").trim();
           const row = rows.find(x => String(x?.product_code || "").trim() === code);
           if (!row) return;
-          const added = onQuote(row);
+          const added = await onQuote(row);
           btn.classList.toggle("secondary", added);
         });
       });
@@ -1266,15 +1341,15 @@
       const out = $("idealAltOut") || $("altOut");
       if (!out) return;
       if(!d.found){
-        out.innerHTML='<div class="small">Base code not found.</div>';
+        out.innerHTML=`<div class="small">${esc(tt("base_not_found"))}</div>`;
         return;
       }
       const baseCode = String(d.base?.product_code || originalCode || "");
       renderSolutionsTableShared({
         wrap: out,
         dataset: d,
-        baseHeaderHtml: `<div class="small">Base: <span class="mono"><a href="${esc(toolsWebsiteUrl(d.base.product_code))}" target="_blank" rel="noopener">${esc(d.base.product_code)}</a></span> - ${esc(d.base.product_name||"")}</div>`,
-        emptyText: "No alternatives found.",
+        baseHeaderHtml: `<div class="small">${esc(tt("base"))}: <span class="mono"><a href="${esc(toolsWebsiteUrl(d.base.product_code))}" target="_blank" rel="noopener">${esc(d.base.product_code)}</a></span> - ${esc(d.base.product_name||"")}</div>`,
+        emptyText: tt("no_alternatives"),
         filterAttr: 'data-sol-filter',
         clearAttr: 'data-sol-filters-clear',
         applyAttr: 'data-sol-filters-apply',
@@ -1446,7 +1521,7 @@
         if (autoRun) $("btnIdealAlt")?.click();
       }catch(e){
         const box = $("idealAltOut");
-        if (box) box.innerHTML = `<div class="small">Could not load product spec from code: ${esc(e.message || e)}</div>`;
+        if (box) box.innerHTML = `<div class="small">${esc(tt("could_not_load_product_spec", { msg: e.message || e }))}</div>`;
       }
     }
 
@@ -1457,7 +1532,7 @@
         wrap,
         dataset: d,
         baseHeaderHtml: ``,
-        emptyText: "No alternatives found for current ideal spec.",
+        emptyText: tt("no_ideal_alternatives"),
         filterAttr: 'data-sol-filter',
         clearAttr: 'data-sol-filters-clear',
         applyAttr: 'data-sol-filters-apply',
@@ -1484,14 +1559,14 @@
       const code_c = normalizeCodeInputValue($("cmpC")?.value);
       if (code_a === "Project requirement"){
         if (!lastIdealSpec){
-          $("cmpOut").innerHTML = `<div class="small">Ideal Spec not loaded. Use "Apply filters" first.</div>`;
+          $("cmpOut").innerHTML = `<div class="small">${esc(tt("ideal_not_loaded"))}</div>`;
           return;
         }
         if (!code_b) return;
         try{
           await runCompareIdeal(lastIdealSpec, code_b, code_c);
         }catch(e){
-          $("cmpOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+          $("cmpOut").innerHTML=`<div class="small">${esc(tt("error"))}: ${esc(e.message||e)}</div>`;
         }
         return;
       }
@@ -1499,7 +1574,7 @@
       try{
         await runCompare(code_a, code_b, code_c);
       }catch(e){
-        $("cmpOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+        $("cmpOut").innerHTML=`<div class="small">${esc(tt("error"))}: ${esc(e.message||e)}</div>`;
       }
     });
     $("btnClearC").addEventListener("click", ()=>{
@@ -1524,7 +1599,7 @@
           lastAltData = { data: d, code: codeA };
           renderAlternatives(d, codeA);
         }catch(e){
-          $("idealAltOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+          $("idealAltOut").innerHTML=`<div class="small">${esc(tt("error"))}: ${esc(e.message||e)}</div>`;
         }
         return;
       }
@@ -1543,7 +1618,7 @@
         if ($("cmpA")) $("cmpA").value = "Project requirement";
         renderIdealAlternatives(d);
       }catch(e){
-        $("idealAltOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+        $("idealAltOut").innerHTML=`<div class="small">${esc(tt("error"))}: ${esc(e.message||e)}</div>`;
       }
     });
     $("btnIdealFromCode")?.addEventListener("click", async ()=>{
@@ -1563,13 +1638,13 @@
       const code=$("altCode")?.value.trim();
       const limit=Math.max(1,Math.min(50,Number($("altLimit")?.value)||10));
       if(!code || !$("altOut")) return;
-      $("altOut").innerHTML='<div class="small">Loading...</div>';
+      $("altOut").innerHTML=`<div class="small">${esc(tt("loading"))}</div>`;
       try{
         const d=await postJSON('/alternatives',{code,limit});
         lastAltData = { data: d, code };
         renderAlternatives(d, code);
       }catch(e){
-        $("altOut").innerHTML=`<div class="small">Error: ${esc(e.message||e)}</div>`;
+        $("altOut").innerHTML=`<div class="small">${esc(tt("error"))}: ${esc(e.message||e)}</div>`;
       }
     });
     $("altSort")?.addEventListener("change", ()=>{
@@ -1601,6 +1676,7 @@
       tl.addEventListener("change", ()=>{
         toolsLang = tl.value;
         try{ localStorage.setItem(UI_LANG_KEY, toolsLang); }catch(_e){}
+        document.dispatchEvent(new CustomEvent("productfinder:language-changed", { detail: { language: toolsLang } }));
         applyToolsI18n();
         refreshToolsDatasheetLinks();
         if (lastAltData?.data) renderAlternatives(lastAltData.data, lastAltData.code);
@@ -1724,7 +1800,7 @@
         a.remove();
         setTimeout(()=> URL.revokeObjectURL(url), 1000);
       }catch(e){
-        $("cmpOut").innerHTML = `<div class="small">PDF export error: ${esc(e.message || e)}</div>`;
+        $("cmpOut").innerHTML = `<div class="small">${esc(tt("pdf_export_error", { msg: e.message || e }))}</div>`;
       }
     });
     document.addEventListener("keydown", (ev)=>{

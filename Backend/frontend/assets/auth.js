@@ -2,11 +2,81 @@
   const USER_KEY = "productFinderAuthUserV1";
   const AUTH_VIEW_KEY = "productFinderAuthViewV1";
   const LAST_ACTIVITY_KEY = "productFinderAuthLastActivityV1";
+  const UI_LANG_KEY = "productFinderUiLangV1";
   const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
   const listeners = new Set();
   let authNotice = "";
   let authNoticeTone = "info";
   let refreshPromise = null;
+  const AUTH_I18N = {
+    en: {
+      sign_in:"Sign in", request_access:"Request access", open_account_panel:"Open account panel", user:"User",
+      admin:"Admin", it:"IT", director:"Director", manager:"Manager", marketing:"Marketing",
+      status:"Status", country:"Country", not_set:"Not set", admin_tools:"Admin tools", full_access:"Full access available",
+      manager_countries:"Manager countries", none_assigned:"None assigned", manager_tools:"Manager tools", readonly_country:"Read-only country access",
+      open_panel:"Open panel", logout:"Logout", active:"Your account is active.", workspace_access:"Workspace access",
+      subtitle:"Sign in to search, compare, quote, and collaborate in one workspace.", auth_tabs:"Authentication tabs",
+      login:"Login", signup:"Sign up", work_email:"Work email", password:"Password", confirm_password:"Confirm password",
+      full_name:"Full name", company_name:"Company name", select_country:"Select country", enter_country:"Enter your country",
+      password_rules:"Password rules: at least 10 characters, with at least 1 letter and 1 number.",
+      login_helper:"Use your approved account to unlock search and filters.", signup_helper:"New access requests stay pending until an admin approves them.",
+      forgot_password:"Forgot password?", reset_helper:"We will send you a secure reset link if your account exists.",
+      login_status:"Use your approved account to continue.", signup_status:"Create your request and wait for approval before logging in.",
+      show:"Show", hide:"Hide", show_password:"Show password", hide_password:"Hide password", show_password_confirmation:"Show password confirmation",
+      close_account_panel:"Close account panel", close:"Close", idle_expired:"Your session expired after inactivity. Please log in again.",
+      invalid_credentials:"Email or password not recognized. Check both fields and try again.", pending:"Your account request is waiting for admin approval.",
+      rejected:"Your account was rejected. Contact an administrator if needed.", weak_password:"Use a stronger password with both letters and numbers.",
+      email_registered:"This email is already registered. Try logging in instead.", session_expired:"Your session expired. Please log in again.",
+      generic_error:"Something went wrong. Please try again.", logged_out:"You have been logged out.",
+      email_first:"Enter your email first.", password_first:"Enter your password first.", confirm_first:"Confirm your password before sending the request.",
+      passwords_mismatch:"The two passwords do not match.", full_name_first:"Add your full name so the admin can identify your request.",
+      company_first:"Add your company name so we can prefill your quotes after login.", country_first:"Add your country so the admin can route your request correctly.",
+      checking:"Checking your credentials...", creating:"Creating your access request...", account_created:"Account request created. Wait for admin approval before logging in.",
+      reset_email_first:"Enter your email first so we can send the reset link.", reset_preparing:"Preparing your reset link...",
+      reset_sent:"If the account exists, a reset link has been sent.", previous_invalid:"Your previous session is no longer valid. Please log in again.",
+    },
+    it: {
+      sign_in:"Accedi", request_access:"Richiedi accesso", open_account_panel:"Apri pannello account", user:"Utente",
+      admin:"Admin", it:"IT", director:"Direttore", manager:"Manager", marketing:"Marketing",
+      status:"Stato", country:"Paese", not_set:"Non impostato", admin_tools:"Strumenti admin", full_access:"Accesso completo disponibile",
+      manager_countries:"Paesi manager", none_assigned:"Nessuno assegnato", manager_tools:"Strumenti manager", readonly_country:"Accesso paese in sola lettura",
+      open_panel:"Apri pannello", logout:"Esci", active:"Il tuo account e attivo.", workspace_access:"Accesso workspace",
+      subtitle:"Accedi per cercare, confrontare, preparare offerte e collaborare in un unico workspace.", auth_tabs:"Schede autenticazione",
+      login:"Login", signup:"Registrati", work_email:"Email aziendale", password:"Password", confirm_password:"Conferma password",
+      full_name:"Nome completo", company_name:"Nome azienda", select_country:"Seleziona paese", enter_country:"Inserisci il tuo paese",
+      password_rules:"Regole password: almeno 10 caratteri, con almeno 1 lettera e 1 numero.",
+      login_helper:"Usa il tuo account approvato per sbloccare ricerca e filtri.", signup_helper:"Le nuove richieste restano in attesa finche un admin le approva.",
+      forgot_password:"Password dimenticata?", reset_helper:"Ti invieremo un link sicuro di reset se l'account esiste.",
+      login_status:"Usa il tuo account approvato per continuare.", signup_status:"Crea la richiesta e attendi approvazione prima di accedere.",
+      show:"Mostra", hide:"Nascondi", show_password:"Mostra password", hide_password:"Nascondi password", show_password_confirmation:"Mostra conferma password",
+      close_account_panel:"Chiudi pannello account", close:"Chiudi", idle_expired:"Sessione scaduta per inattivita. Accedi di nuovo.",
+      invalid_credentials:"Email o password non riconosciute. Controlla entrambi i campi e riprova.", pending:"La tua richiesta e in attesa di approvazione admin.",
+      rejected:"Il tuo account e stato rifiutato. Contatta un amministratore se necessario.", weak_password:"Usa una password piu forte con lettere e numeri.",
+      email_registered:"Questa email e gia registrata. Prova ad accedere.", session_expired:"Sessione scaduta. Accedi di nuovo.",
+      generic_error:"Qualcosa e andato storto. Riprova.", logged_out:"Logout effettuato.",
+      email_first:"Inserisci prima la tua email.", password_first:"Inserisci prima la password.", confirm_first:"Conferma la password prima di inviare la richiesta.",
+      passwords_mismatch:"Le due password non coincidono.", full_name_first:"Aggiungi il nome completo cosi l'admin puo identificarti.",
+      company_first:"Aggiungi il nome azienda per precompilare le offerte dopo il login.", country_first:"Aggiungi il paese per indirizzare correttamente la richiesta.",
+      checking:"Verifica credenziali...", creating:"Creazione richiesta di accesso...", account_created:"Richiesta creata. Attendi approvazione admin prima di accedere.",
+      reset_email_first:"Inserisci prima la tua email per inviare il link di reset.", reset_preparing:"Preparazione link di reset...",
+      reset_sent:"Se l'account esiste, e stato inviato un link di reset.", previous_invalid:"La sessione precedente non e piu valida. Accedi di nuovo.",
+    },
+  };
+  ["fr","es","pt","ru","ar","pl","cs","hr","sl"].forEach(code => { AUTH_I18N[code] = AUTH_I18N.en; });
+
+  function currentLang() {
+    try { return String(localStorage.getItem(UI_LANG_KEY) || "en").toLowerCase().split("-")[0] || "en"; } catch (_e) { return "en"; }
+  }
+
+  function ta(key, vars) {
+    const lang = currentLang();
+    const pack = AUTH_I18N[lang] || AUTH_I18N.en;
+    let text = pack[key] || AUTH_I18N.en[key] || key;
+    if (vars) {
+      for (const [k, v] of Object.entries(vars)) text = text.replaceAll(`{${k}}`, String(v));
+    }
+    return text;
+  }
 
   function sameOrigin(url) {
     try {
@@ -89,7 +159,7 @@
 
   function expireSessionForInactivity() {
     clearSession();
-    setGlobalNotice("Your session expired after inactivity. Please log in again.", "warn");
+    setGlobalNotice(ta("idle_expired"), "warn");
     renderAuthMount();
     renderModalBody();
     emit({ authenticated: false, user: null, reason: "idle-timeout" });
@@ -116,24 +186,24 @@
     const text = String(message || "").trim();
     const lower = text.toLowerCase();
     if (lower.includes("invalid credentials")) {
-      return { text: "Email or password not recognized. Check both fields and try again.", tone: "error" };
+      return { text: ta("invalid_credentials"), tone: "error" };
     }
     if (lower.includes("account status is pending")) {
-      return { text: "Your account request is waiting for admin approval.", tone: "warn" };
+      return { text: ta("pending"), tone: "warn" };
     }
     if (lower.includes("account status is rejected")) {
-      return { text: "Your account was rejected. Contact an administrator if needed.", tone: "error" };
+      return { text: ta("rejected"), tone: "error" };
     }
     if (lower.includes("password must contain letters and numbers")) {
-      return { text: "Use a stronger password with both letters and numbers.", tone: "error" };
+      return { text: ta("weak_password"), tone: "error" };
     }
     if (lower.includes("email already registered")) {
-      return { text: "This email is already registered. Try logging in instead.", tone: "warn" };
+      return { text: ta("email_registered"), tone: "warn" };
     }
     if (lower.includes("token expired") || lower.includes("session expired")) {
-      return { text: "Your session expired. Please log in again.", tone: "warn" };
+      return { text: ta("session_expired"), tone: "warn" };
     }
-    return { text: text || "Something went wrong. Please try again.", tone: "error" };
+    return { text: text || ta("generic_error"), tone: "error" };
   }
 
   function extractErrorText(payload) {
@@ -183,12 +253,12 @@
 
   function roleLabel(user) {
     const role = String(user?.role || "user").trim().toLowerCase();
-    if (role === "admin") return "Admin";
-    if (role === "it") return "IT";
-    if (role === "director") return "Director";
-    if (role === "manager") return "Manager";
-    if (role === "marketing") return "Marketing";
-    return "User";
+    if (role === "admin") return ta("admin");
+    if (role === "it") return ta("it");
+    if (role === "director") return ta("director");
+    if (role === "manager") return ta("manager");
+    if (role === "marketing") return ta("marketing");
+    return ta("user");
   }
 
   function countryOptions(selectedValue) {
@@ -197,7 +267,7 @@
       return api.optionList(selectedValue ? [selectedValue] : [], { includePlaceholder: true, placeholder: "Select country", includeOther: true });
     }
     const selected = String(selectedValue || "").trim();
-    return `<option value=""${selected ? "" : ' selected="selected"'}>Select country</option>${selected ? `<option value="${escapeHtml(selected)}" selected="selected">${escapeHtml(selected)}</option>` : ""}`;
+    return `<option value=""${selected ? "" : ' selected="selected"'}>${escapeHtml(ta("select_country"))}</option>${selected ? `<option value="${escapeHtml(selected)}" selected="selected">${escapeHtml(selected)}</option>` : ""}`;
   }
 
   function isOtherCountryValue(value) {
@@ -212,7 +282,7 @@
       <div id="authModal" class="authModal" aria-hidden="true">
         <div class="authModalBackdrop" data-auth-close="1"></div>
         <div class="authModalDialog" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
-          <button id="btnAuthModalClose" class="authModalClose" type="button" aria-label="Close account panel">Close</button>
+          <button id="btnAuthModalClose" class="authModalClose" type="button" aria-label="${escapeHtml(ta("close_account_panel"))}">${escapeHtml(ta("close"))}</button>
           <div id="authModalBody"></div>
         </div>
       </div>
@@ -260,10 +330,10 @@
     if (!mount) return;
     mount.innerHTML = `
       <div class="authTriggerGroup">
-        <button id="btnAuthAccount" class="authCompactTrigger" type="button" aria-label="Open account panel">
+        <button id="btnAuthAccount" class="authCompactTrigger" type="button" aria-label="${escapeHtml(ta("open_account_panel"))}">
           <span class="authCompactBadge">${escapeHtml(userInitials(user))}</span>
           <span class="authCompactMeta">
-            <span class="authCompactName">${escapeHtml(user.full_name || user.email || "User")}</span>
+            <span class="authCompactName">${escapeHtml(user.full_name || user.email || ta("user"))}</span>
             <span class="authCompactRole">${escapeHtml(roleLabel(user))}</span>
           </span>
         </button>
@@ -277,8 +347,8 @@
     if (!mount) return;
     mount.innerHTML = `
       <div class="authTriggerGroup">
-        <button id="btnAuthOpenLogin" class="btn secondary compact" type="button">Sign in</button>
-        <button id="btnAuthOpenSignup" class="btn compact" type="button">Request access</button>
+        <button id="btnAuthOpenLogin" class="btn secondary compact" type="button">${escapeHtml(ta("sign_in"))}</button>
+        <button id="btnAuthOpenSignup" class="btn compact" type="button">${escapeHtml(ta("request_access"))}</button>
       </div>
     `;
     mount.querySelector("#btnAuthOpenLogin")?.addEventListener("click", () => openModal("login"));
@@ -303,7 +373,7 @@
         <div class="authAccountHead">
           <div class="authIdentityBadge">${escapeHtml(userInitials(user))}</div>
           <div class="authUserMeta">
-            <div id="authModalTitle" class="authUserName">${escapeHtml(user.full_name || "User")}</div>
+            <div id="authModalTitle" class="authUserName">${escapeHtml(user.full_name || ta("user"))}</div>
             <div class="authUserRole">
               <span class="authRolePill">${escapeHtml(roleLabel(user))}</span>
               <span>${escapeHtml(user.email || "")}</span>
@@ -311,16 +381,16 @@
           </div>
         </div>
         <div class="authAccountInfo">
-          <div class="authInfoRow"><span>Status</span><strong>${escapeHtml(user.status || "approved")}</strong></div>
-          <div class="authInfoRow"><span>Country</span><strong>${escapeHtml(user.country || "Not set")}</strong></div>
-          ${isAdmin ? '<div class="authInfoRow"><span>Admin tools</span><strong>Full access available</strong></div>' : ""}
-          ${role === "manager" ? `<div class="authInfoRow"><span>Manager countries</span><strong>${escapeHtml(Array.isArray(user.assigned_countries) && user.assigned_countries.length ? user.assigned_countries.join(", ") : "None assigned")}</strong></div><div class="authInfoRow"><span>Manager tools</span><strong>Read-only country access</strong></div>` : ""}
+          <div class="authInfoRow"><span>${escapeHtml(ta("status"))}</span><strong>${escapeHtml(user.status || "approved")}</strong></div>
+          <div class="authInfoRow"><span>${escapeHtml(ta("country"))}</span><strong>${escapeHtml(user.country || ta("not_set"))}</strong></div>
+          ${isAdmin ? `<div class="authInfoRow"><span>${escapeHtml(ta("admin_tools"))}</span><strong>${escapeHtml(ta("full_access"))}</strong></div>` : ""}
+          ${role === "manager" ? `<div class="authInfoRow"><span>${escapeHtml(ta("manager_countries"))}</span><strong>${escapeHtml(Array.isArray(user.assigned_countries) && user.assigned_countries.length ? user.assigned_countries.join(", ") : ta("none_assigned"))}</strong></div><div class="authInfoRow"><span>${escapeHtml(ta("manager_tools"))}</span><strong>${escapeHtml(ta("readonly_country"))}</strong></div>` : ""}
         </div>
         <div class="authActions">
-          ${canOpenPanel ? '<button id="btnAuthOpenAdmin" class="btn compact" type="button">Open panel</button>' : ""}
-          <button id="btnAuthLogout" class="btn secondary compact" type="button">Logout</button>
+          ${canOpenPanel ? `<button id="btnAuthOpenAdmin" class="btn compact" type="button">${escapeHtml(ta("open_panel"))}</button>` : ""}
+          <button id="btnAuthLogout" class="btn secondary compact" type="button">${escapeHtml(ta("logout"))}</button>
         </div>
-        ${renderStatusLine("Your account is active.", "info")}
+        ${renderStatusLine(ta("active"), "info")}
       </div>
     `;
   }
@@ -331,39 +401,39 @@
       <div class="authBox authBoxExpanded">
         <div class="authHeader">
           <div>
-            <div id="authModalTitle" class="authTitle">Workspace access</div>
-            <div class="authSubtitle">Sign in to search, compare, quote, and collaborate in one workspace.</div>
+            <div id="authModalTitle" class="authTitle">${escapeHtml(ta("workspace_access"))}</div>
+            <div class="authSubtitle">${escapeHtml(ta("subtitle"))}</div>
           </div>
-          <div class="authTabs" role="tablist" aria-label="Authentication tabs">
-            <button id="btnAuthTabLogin" class="authTab ${loginActive ? "active" : ""}" type="button">Login</button>
-            <button id="btnAuthTabSignup" class="authTab ${!loginActive ? "active" : ""}" type="button">Sign up</button>
+          <div class="authTabs" role="tablist" aria-label="${escapeHtml(ta("auth_tabs"))}">
+            <button id="btnAuthTabLogin" class="authTab ${loginActive ? "active" : ""}" type="button">${escapeHtml(ta("login"))}</button>
+            <button id="btnAuthTabSignup" class="authTab ${!loginActive ? "active" : ""}" type="button">${escapeHtml(ta("signup"))}</button>
           </div>
         </div>
         <div class="authFields">
-          <input id="authEmail" type="email" placeholder="Work email" autocomplete="email" />
+          <input id="authEmail" type="email" placeholder="${escapeHtml(ta("work_email"))}" autocomplete="email" />
           <div class="authPasswordField">
-            <input id="authPassword" type="password" placeholder="Password" autocomplete="${loginActive ? "current-password" : "new-password"}" />
-            <button class="authPasswordToggle" type="button" data-auth-toggle-password="authPassword" aria-label="Show password">Show</button>
+            <input id="authPassword" type="password" placeholder="${escapeHtml(ta("password"))}" autocomplete="${loginActive ? "current-password" : "new-password"}" />
+            <button class="authPasswordToggle" type="button" data-auth-toggle-password="authPassword" aria-label="${escapeHtml(ta("show_password"))}">${escapeHtml(ta("show"))}</button>
           </div>
           ${loginActive ? "" : `
           <div class="authPasswordField">
-            <input id="authPasswordConfirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
-            <button class="authPasswordToggle" type="button" data-auth-toggle-password="authPasswordConfirm" aria-label="Show password confirmation">Show</button>
+            <input id="authPasswordConfirm" type="password" placeholder="${escapeHtml(ta("confirm_password"))}" autocomplete="new-password" />
+            <button class="authPasswordToggle" type="button" data-auth-toggle-password="authPasswordConfirm" aria-label="${escapeHtml(ta("show_password_confirmation"))}">${escapeHtml(ta("show"))}</button>
           </div>`}
-          <input id="authName" class="${loginActive ? "authHidden" : ""}" type="text" placeholder="Full name" autocomplete="name" />
-          <input id="authCompany" class="${loginActive ? "authHidden" : ""}" type="text" placeholder="Company name" autocomplete="organization" />
+          <input id="authName" class="${loginActive ? "authHidden" : ""}" type="text" placeholder="${escapeHtml(ta("full_name"))}" autocomplete="name" />
+          <input id="authCompany" class="${loginActive ? "authHidden" : ""}" type="text" placeholder="${escapeHtml(ta("company_name"))}" autocomplete="organization" />
           <select id="authCountry" class="${loginActive ? "authHidden" : ""}" autocomplete="country-name">
             ${countryOptions("")}
           </select>
-          <input id="authCountryOther" class="authHidden" type="text" placeholder="Enter your country" autocomplete="country-name" />
+          <input id="authCountryOther" class="authHidden" type="text" placeholder="${escapeHtml(ta("enter_country"))}" autocomplete="country-name" />
         </div>
-        ${loginActive ? "" : '<div class="authHelper">Password rules: at least 10 characters, with at least 1 letter and 1 number.</div>'}
+        ${loginActive ? "" : `<div class="authHelper">${escapeHtml(ta("password_rules"))}</div>`}
         <div class="authActions">
-          <button id="btnAuthPrimary" class="btn compact" type="button">${loginActive ? "Login" : "Request access"}</button>
-          <div class="authHelper">${loginActive ? "Use your approved account to unlock search and filters." : "New access requests stay pending until an admin approves them."}</div>
+          <button id="btnAuthPrimary" class="btn compact" type="button">${escapeHtml(loginActive ? ta("login") : ta("request_access"))}</button>
+          <div class="authHelper">${escapeHtml(loginActive ? ta("login_helper") : ta("signup_helper"))}</div>
         </div>
-        ${loginActive ? '<div class="authActions"><button id="btnAuthForgotPassword" class="btn secondary compact" type="button">Forgot password?</button><div class="authHelper">We will send you a secure reset link if your account exists.</div></div>' : ""}
-        ${renderStatusLine(loginActive ? "Use your approved account to continue." : "Create your request and wait for approval before logging in.", loginActive ? "info" : "warn")}
+        ${loginActive ? `<div class="authActions"><button id="btnAuthForgotPassword" class="btn secondary compact" type="button">${escapeHtml(ta("forgot_password"))}</button><div class="authHelper">${escapeHtml(ta("reset_helper"))}</div></div>` : ""}
+        ${renderStatusLine(loginActive ? ta("login_status") : ta("signup_status"), loginActive ? "info" : "warn")}
       </div>
     `;
   }
@@ -382,7 +452,7 @@
           await fetch("/auth/logout", { method: "POST", credentials: "same-origin" });
         } catch (_e) {}
         clearSession();
-        setGlobalNotice("You have been logged out.", "info");
+        setGlobalNotice(ta("logged_out"), "info");
         renderAuthMount();
         renderModalBody();
         emit({ authenticated: false, user: null, reason: "logout" });
@@ -432,8 +502,8 @@
         if (!target) return;
         const showing = target.getAttribute("type") === "text";
         target.setAttribute("type", showing ? "password" : "text");
-        button.textContent = showing ? "Show" : "Hide";
-        button.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+        button.textContent = showing ? ta("show") : ta("hide");
+        button.setAttribute("aria-label", showing ? ta("show_password") : ta("hide_password"));
       });
     });
     country?.addEventListener("change", syncCountryField);
@@ -451,37 +521,37 @@
         : String(country?.value || "").trim();
 
       if (!emailValue) {
-        setStatus("Enter your email first.", "warn");
+        setStatus(ta("email_first"), "warn");
         email?.focus();
         return;
       }
       if (!passwordValue) {
-        setStatus("Enter your password first.", "warn");
+        setStatus(ta("password_first"), "warn");
         password?.focus();
         return;
       }
       if (mode === "signup" && !passwordConfirmValue) {
-        setStatus("Confirm your password before sending the request.", "warn");
+        setStatus(ta("confirm_first"), "warn");
         passwordConfirm?.focus();
         return;
       }
       if (mode === "signup" && passwordValue !== passwordConfirmValue) {
-        setStatus("The two passwords do not match.", "error");
+        setStatus(ta("passwords_mismatch"), "error");
         passwordConfirm?.focus();
         return;
       }
       if (mode === "signup" && !nameValue) {
-        setStatus("Add your full name so the admin can identify your request.", "warn");
+        setStatus(ta("full_name_first"), "warn");
         name?.focus();
         return;
       }
       if (mode === "signup" && !companyValue) {
-        setStatus("Add your company name so we can prefill your quotes after login.", "warn");
+        setStatus(ta("company_first"), "warn");
         company?.focus();
         return;
       }
       if (mode === "signup" && !countryValue) {
-        setStatus("Add your country so the admin can route your request correctly.", "warn");
+        setStatus(ta("country_first"), "warn");
         if (isOtherCountryValue(country?.value)) {
           countryOther?.focus();
         } else {
@@ -492,7 +562,7 @@
 
       try {
         if (mode === "login") {
-          setStatus("Checking your credentials...", "info");
+          setStatus(ta("checking"), "info");
           const data = await jsonRequest("/auth/login", {
             email: emailValue,
             password: passwordValue,
@@ -505,7 +575,7 @@
           return;
         }
 
-        setStatus("Creating your access request...", "info");
+        setStatus(ta("creating"), "info");
         const data = await jsonRequest("/auth/signup", {
           email: emailValue,
           password: passwordValue,
@@ -513,7 +583,7 @@
           company_name: companyValue,
           country: countryValue,
         });
-        setGlobalNotice(data.message || "Account request created. Wait for admin approval before logging in.", "warn");
+        setGlobalNotice(data.message || ta("account_created"), "warn");
         writeView("login");
         renderModalBody();
       } catch (error) {
@@ -526,14 +596,14 @@
     body.querySelector("#btnAuthForgotPassword")?.addEventListener("click", async () => {
       const emailValue = String(email?.value || "").trim();
       if (!emailValue) {
-        setStatus("Enter your email first so we can send the reset link.", "warn");
+        setStatus(ta("reset_email_first"), "warn");
         email?.focus();
         return;
       }
       try {
-        setStatus("Preparing your reset link...", "info");
+        setStatus(ta("reset_preparing"), "info");
         await jsonRequest("/auth/password-reset/request", { email: emailValue });
-        setStatus("If the account exists, a reset link has been sent.", "info");
+        setStatus(ta("reset_sent"), "info");
       } catch (error) {
         const mapped = mapErrorMessage(error?.message || error);
         setStatus(mapped.text, mapped.tone);
@@ -585,7 +655,7 @@
         refreshPromise = null;
       }
       clearSession();
-      setGlobalNotice("Your session expired. Please log in again.", "warn");
+      setGlobalNotice(ta("session_expired"), "warn");
       renderAuthMount();
       renderModalBody();
       emit({ authenticated: false, user: null, reason: "expired" });
@@ -626,7 +696,7 @@
       emit({ authenticated: true, user, reason: "init" });
     } catch (_e) {
       clearSession();
-      setGlobalNotice("Your previous session is no longer valid. Please log in again.", "warn");
+      setGlobalNotice(ta("previous_invalid"), "warn");
       renderAuthMount();
       renderModalBody();
       emit({ authenticated: false, user: null, reason: "expired" });
@@ -666,4 +736,14 @@
   } else {
     bootstrapUser();
   }
+  document.addEventListener("productfinder:language-changed", () => {
+    renderAuthMount();
+    renderModalBody();
+  });
+  window.addEventListener("storage", (event) => {
+    if (event.key === UI_LANG_KEY) {
+      renderAuthMount();
+      renderModalBody();
+    }
+  });
 })();
