@@ -5,6 +5,46 @@ from typing import Any, Callable
 EXACT_MIN_SCORE = 1.0
 
 
+def _product_line_key(item: dict[str, Any]) -> str:
+    row = item.get("row") or {}
+    name = str(row.get("product_name") or "").strip().lower()
+    if not name:
+        return str(row.get("product_code") or "").strip().lower()
+    return name.split()[0].strip(".,;:/\\-_()[]{}<>\"'`")
+
+
+def _diversify_by_product_line(items: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    if limit <= 1 or len(items) <= 1:
+        return items
+
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    order: list[str] = []
+    for item in items:
+        key = _product_line_key(item)
+        if key not in buckets:
+            buckets[key] = []
+            order.append(key)
+        buckets[key].append(item)
+
+    if len(order) <= 1:
+        return items
+
+    diversified: list[dict[str, Any]] = []
+    while len(diversified) < len(items):
+        added = False
+        for key in order:
+            bucket = buckets.get(key) or []
+            if not bucket:
+                continue
+            diversified.append(bucket.pop(0))
+            added = True
+            if len(diversified) >= len(items):
+                break
+        if not added:
+            break
+    return diversified
+
+
 def select_exact_and_similar(
     *,
     exact_pool: list[dict[str, Any]],
@@ -101,6 +141,14 @@ def select_exact_and_similar(
             item["match_tier"] = "broader"
         else:
             item["match_tier"] = "close"
+
+    family_only_query = (
+        not hard_filters
+        and set((soft_filters or {}).keys()) == {"product_family"}
+        and bool((text_query or "").strip())
+    )
+    if family_only_query:
+        exact_scored = _diversify_by_product_line(exact_scored, limit)
 
     exact_scored = exact_scored[:limit]
     if include_similar:

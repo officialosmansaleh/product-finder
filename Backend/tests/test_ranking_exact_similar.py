@@ -11,13 +11,13 @@ if _BACKEND_DIR not in sys.path:
 from app.ranking import select_exact_and_similar
 
 
-def _mk_row(code: str):
-    return {"product_code": code, "product_name": code}
+def _mk_row(code: str, name: str | None = None):
+    return {"product_code": code, "product_name": name or code}
 
 
-def _mk_scored(code: str, score: float, rel: float, deviations=None, missing=None):
+def _mk_scored(code: str, score: float, rel: float, deviations=None, missing=None, name: str | None = None):
     return {
-        "row": _mk_row(code),
+        "row": _mk_row(code, name),
         "score": score,
         "text_relevance": rel,
         "matched": {},
@@ -122,6 +122,30 @@ class RankingSelectionTests(unittest.TestCase):
         self.assertEqual(exact, [])
         self.assertTrue(similar)
         self.assertEqual(similar[0]["match_tier"], "broader")
+
+    def test_family_only_query_diversifies_exact_product_lines(self):
+        exact_pool = [
+            _mk_scored("999", 1.0, 0.0, name="Rodio HE asymmetric"),
+            _mk_scored("998", 1.0, 0.0, name="Rodio HE wide beam"),
+            _mk_scored("997", 1.0, 0.0, name="Rodio LED asymmetric"),
+            _mk_scored("100", 1.0, 0.0, name="Astro HP"),
+            _mk_scored("090", 1.0, 0.0, name="Sevilla 1"),
+        ]
+        exact, _ = select_exact_and_similar(
+            exact_pool=exact_pool,
+            similar_pool=[],
+            rows=[],
+            text_query="floodlights",
+            hard_filters={},
+            soft_filters={"product_family": "floodlight"},
+            limit=3,
+            include_similar=False,
+            text_relevance_fn=lambda _row, _q: 0.0,
+        )
+        self.assertEqual(
+            [x["row"]["product_name"].split()[0] for x in exact],
+            ["Rodio", "Astro", "Sevilla"],
+        )
 
 
 if __name__ == "__main__":
