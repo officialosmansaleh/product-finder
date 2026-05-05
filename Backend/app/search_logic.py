@@ -387,17 +387,19 @@ def handle_search(
             family_seed_sql = map_filters_to_sql(family_seed_filters) if family_seed_filters else {}
             family_seed = product_db.search_products(family_seed_sql, limit=candidate_limit) if family_seed_sql else []
 
+            spec_seed = product_db.search_products(sql_filters, limit=candidate_limit) if sql_filters else []
             text_seed = search_rows_by_text_db(req.text or "", limit=candidate_limit)
             broad_rows = product_db.search_products({}, limit=candidate_limit)
-            rows = dedupe_rows_by_product_code(exact_seed + family_seed + name_seed + text_seed + broad_rows)[:candidate_limit]
+            rows = dedupe_rows_by_product_code(exact_seed + spec_seed + family_seed + name_seed + text_seed + broad_rows)[:candidate_limit]
         except Exception as e:
             print(f"Product database search failed: {e}")
             used_product_db = False
             rows = []
 
     if not rows and (db_dataframe is not None and not db_dataframe.empty):
-        narrowed = db_dataframe.copy()
-        rows = narrowed.head(candidate_limit).fillna("").to_dict(orient="records")
+        local_limit = cfg_int("main.search_candidate_max", 10000) if filters else candidate_limit
+        narrowed = db_dataframe.head(local_limit).copy()
+        rows = narrowed.fillna("").to_dict(orient="records")
 
     exact_pool: List[Dict[str, Any]] = []
     similar_pool: List[Dict[str, Any]] = []

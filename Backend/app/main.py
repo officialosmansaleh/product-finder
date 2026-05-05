@@ -1767,8 +1767,18 @@ def _df_filtered_subset(df: pd.DataFrame, filters: Dict[str, Any]) -> pd.DataFra
     def _apply_numeric(col: str, expr: Any):
         nonlocal out
         source_col = col
-        if col == "ugr" and "ugr_value" in out.columns:
-            source_col = "ugr_value"
+        helper_cols = {
+            "ugr": "ugr_value",
+            "power_max_w": "power_max_value",
+            "power_min_w": "power_min_value",
+            "lumen_output": "lumen_output_value",
+            "efficacy_lm_w": "efficacy_value",
+            "warranty_years": "warranty_y_value",
+            "lifetime_hours": "lifetime_h_value",
+            "led_rated_life_h": "led_rated_life_value",
+        }
+        if col in helper_cols and helper_cols[col] in out.columns:
+            source_col = helper_cols[col]
         elif col not in out.columns:
             return
         default_op = "<=" if col in {"ugr", "ambient_temp_min_c", "ambient_temp_max_c"} else ">="

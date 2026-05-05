@@ -475,6 +475,53 @@ class SearchScoringFiltersTests(unittest.TestCase):
             self.assertEqual(deviations, [])
             self.assertEqual(missing, [])
 
+    def test_soft_lumen_query_seeds_database_candidates(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        high_lumen = {
+            "product_code": "HIGH1",
+            "product_name": "High Output",
+            "manufacturer": "DISANO",
+            "product_family": "floodlight",
+            "lumen_output": "68900 lm",
+            "lumen_output_value": "68900",
+        }
+        low_lumen = {
+            "product_code": "LOW1",
+            "product_name": "Low Output",
+            "manufacturer": "DISANO",
+            "product_family": "floodlight",
+            "lumen_output": "53000 lm",
+            "lumen_output_value": "53000",
+        }
+
+        class FakeProductDb:
+            backend = "sqlite"
+
+            def search_products(self, filters, limit=100):
+                if filters and filters.get("lumen_output") == ">=54000":
+                    return [high_lumen]
+                return [low_lumen]
+
+        req = SearchRequest(
+            text="54000 lm",
+            filters={},
+            limit=5,
+            include_similar=True,
+            allow_ai=False,
+            debug=True,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value={"lumen_output": ">=54000"}), patch.object(
+            main_mod, "PRODUCT_DB", FakeProductDb()
+        ), patch.object(main_mod, "DB", pd.DataFrame()), patch.object(
+            main_mod, "_search_rows_by_text_db", return_value=[]
+        ):
+            resp = main_mod.search(req)
+
+        self.assertEqual([hit.product_code for hit in resp.exact], ["HIGH1"])
+
 
 if __name__ == "__main__":
     unittest.main()
