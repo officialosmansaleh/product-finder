@@ -541,10 +541,6 @@
             <div class="settingLabel">PIM Excel</div>
             <input id="catalogImportPim" class="settingInput" type="file" accept=".xlsx" />
           </label>
-          <label>
-            <div class="settingLabel">Optional family map for full catalog import</div>
-            <input id="catalogImportFamily" class="settingInput" type="file" accept=".xlsx" />
-          </label>
         </div>
         <div class="row" style="margin-top:10px">
           <button id="btnImportCatalog" class="btn small" type="button">Import PIM catalog</button>
@@ -743,7 +739,7 @@
     let visibleQuoteSort = { key: "updated_at", direction: "desc" };
     const SETTINGS_CATEGORY_META = {
       All: "All maintenance settings in one place.",
-      AI: "AI provider and external catalog enrichment settings.",
+      Catalog: "External catalog content and enrichment settings.",
       Email: "Delivery settings for password reset emails and outbound app mail.",
       Security: "Authentication, cookies, session lifetime, and browser access controls.",
       Administration: "Bootstrap admin and maintenance access defaults.",
@@ -1094,12 +1090,8 @@
       const mount = $("runtimeStatusPills");
       if (!mount) return;
       const byKey = Object.fromEntries((items || []).map((item) => [String(item.key || ""), item]));
-      const aiKey = byKey["openai_api_key"];
       const smtpKey = byKey["smtp_host"];
       const pills = [];
-      if (aiKey){
-        pills.push(`<span class="runtimePill ${aiKey.configured ? "ok" : "warn"}">AI ${aiKey.configured ? "configured" : "missing key"}</span>`);
-      }
       if (smtpKey){
         pills.push(`<span class="runtimePill ${smtpKey.configured ? "ok" : "warn"}">SMTP ${smtpKey.configured ? "configured" : "pending IT"}</span>`);
       }
@@ -2647,7 +2639,6 @@
       applyViewerLayout();
       const status = $("catalogImportStatus");
       const pimInput = $("catalogImportPim");
-      const familyInput = $("catalogImportFamily");
       if (!me || !isAdminViewer()){
         if (status) status.textContent = "Catalog import is available only to admins.";
         return;
@@ -2659,7 +2650,6 @@
       }
       const formData = new FormData();
       formData.append("pim_file", pimFile);
-      if (familyInput?.files?.[0]) formData.append("family_map_file", familyInput.files[0]);
       try{
         if (status) status.textContent = "Importing catalog. This can take a minute...";
         const data = await postFormData("/admin/catalog-import", formData);

@@ -100,7 +100,7 @@ def _missing_scoring_weight_definitions(existing_keys: set[str]) -> tuple[Settin
 
 
 CATEGORY_ORDER: tuple[str, ...] = (
-    "AI",
+    "Catalog",
     "Email",
     "Security",
     "Administration",
@@ -111,26 +111,17 @@ CATEGORY_ORDER: tuple[str, ...] = (
 
 SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
     SettingDefinition(
-        key="openai_api_key",
-        label="OpenAI API Key",
-        category="AI",
-        description="Backend key used for AI-powered parsing and reasoning.",
-        env_name="OPENAI_API_KEY",
-        secret=True,
-        placeholder="sk-...",
-    ),
-    SettingDefinition(
         key="disano_store_ids",
-        label="Disano Store IDs",
-        category="AI",
+        label="Disano GraphQL Store IDs",
+        category="Catalog",
         description="Comma-separated store IDs used for external product image lookups.",
         env_name="DISANO_STORE_IDS",
         placeholder="10051,10151",
     ),
     SettingDefinition(
         key="disano_lang_id",
-        label="Disano Language ID",
-        category="AI",
+        label="Disano GraphQL Language ID",
+        category="Catalog",
         description="Language identifier used when querying Disano product content.",
         env_name="DISANO_LANG_ID",
         placeholder="-4",

@@ -257,8 +257,8 @@ class AuthFlowTests(unittest.TestCase):
         self.assertGreaterEqual(settings_before.json()["count"], 1)
 
         update_secret = self.client.put(
-            "/admin/settings/openai_api_key",
-            json={"value": "sk-test-secret-value"},
+            "/admin/settings/smtp_password",
+            json={"value": "smtp-test-secret-value"},
             headers=admin_headers,
         )
         self.assertEqual(update_secret.status_code, 200, update_secret.text)
@@ -438,8 +438,8 @@ class AuthFlowTests(unittest.TestCase):
         self.assertEqual(settings_after.status_code, 200, settings_after.text)
         by_key = {item["key"]: item for item in settings_after.json()["items"]}
         self.assertEqual(by_key["auth_token_expire_minutes"]["value"], "90")
-        self.assertTrue(by_key["openai_api_key"]["configured"])
-        self.assertEqual(by_key["openai_api_key"]["value"], "")
+        self.assertTrue(by_key["smtp_password"]["configured"])
+        self.assertEqual(by_key["smtp_password"]["value"], "")
 
     def test_director_can_access_analytics_and_manage_roles_but_not_settings(self):
         director_signup = {
