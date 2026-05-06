@@ -67,15 +67,101 @@ def _num_from_item(item: dict[str, Any], key: str) -> float | None:
     return None
 
 
-def _sort_for_mode(items: list[dict[str, Any]], sort_mode: str) -> list[dict[str, Any]]:
+def _wanted_numeric_target(value: Any) -> tuple[str, float | tuple[float, float]] | None:
+    s = str(value or "").strip().replace(" ", "").replace(",", ".")
+    if not s:
+        return None
+    m = re.match(r"^(>=|<=|>|<|=)?(-?\d+(?:\.\d+)?)$", s)
+    if m:
+        return (m.group(1) or "=", float(m.group(2)))
+    if "-" in s and not s.startswith("-"):
+        a, b = s.split("-", 1)
+        try:
+            lo = float(a)
+            hi = float(b)
+            if lo > hi:
+                lo, hi = hi, lo
+            return ("range", (lo, hi))
+        except ValueError:
+            return None
+    m = re.search(r"(>=|<=|>|<|=)?\s*(-?\d+(?:\.\d+)?)", s)
+    if m:
+        return (m.group(1) or "=", float(m.group(2)))
+    return None
+
+
+def _numeric_proximity_distance(item: dict[str, Any], filters: dict[str, Any] | None) -> float:
+    numeric_keys = (
+        "power_max_w",
+        "power_min_w",
+        "lumen_output",
+        "efficacy_lm_w",
+        "beam_angle_deg",
+        "cri",
+        "ugr",
+        "cct_k",
+    )
+    distances: list[float] = []
+    for key in numeric_keys:
+        if key not in (filters or {}):
+            continue
+        got = _num_from_item(item, key)
+        if got is None:
+            distances.append(10.0)
+            continue
+        wanted = _wanted_numeric_target((filters or {}).get(key))
+        if wanted is None:
+            continue
+        op, target = wanted
+        if op == "range":
+            lo, hi = target  # type: ignore[misc]
+            midpoint = (float(lo) + float(hi)) / 2.0
+            denom = max(abs(midpoint), 1.0)
+            distances.append(abs(got - midpoint) / denom)
+            continue
+        target_f = float(target)  # type: ignore[arg-type]
+        denom = max(abs(target_f), 1.0)
+        distances.append(abs(got - target_f) / denom)
+    if not distances:
+        return 0.0
+    return sum(distances) / len(distances)
+
+
+def _has_numeric_proximity_filter(filters: dict[str, Any] | None) -> bool:
+    for key in (
+        "power_max_w",
+        "power_min_w",
+        "lumen_output",
+        "efficacy_lm_w",
+        "beam_angle_deg",
+        "cri",
+        "ugr",
+        "cct_k",
+    ):
+        if key in (filters or {}) and _wanted_numeric_target((filters or {}).get(key)) is not None:
+            return True
+    return False
+
+
+def _sort_for_mode(items: list[dict[str, Any]], sort_mode: str, relevance_filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     mode = str(sort_mode or "score_desc")
     if mode == "score_asc":
         return sorted(items, key=lambda x: (float(x.get("score") or 0.0), str((x.get("row") or {}).get("product_code") or "")))
     if mode == "score_desc":
+        if not _has_numeric_proximity_filter(relevance_filters):
+            return sorted(
+                items,
+                key=lambda x: (float(x.get("score") or 0.0), float(x.get("text_relevance") or 0.0), str((x.get("row") or {}).get("product_code") or "")),
+                reverse=True,
+            )
         return sorted(
             items,
-            key=lambda x: (float(x.get("score") or 0.0), float(x.get("text_relevance") or 0.0), str((x.get("row") or {}).get("product_code") or "")),
-            reverse=True,
+            key=lambda x: (
+                -float(x.get("score") or 0.0),
+                _numeric_proximity_distance(x, relevance_filters),
+                -float(x.get("text_relevance") or 0.0),
+                str((x.get("row") or {}).get("product_code") or ""),
+            ),
         )
     if mode == "code_asc":
         return sorted(items, key=lambda x: str((x.get("row") or {}).get("product_code") or ""))
@@ -118,8 +204,9 @@ def select_exact_and_similar(
     text_relevance_fn: Callable[[dict[str, Any], str], float],
     sort_mode: str = "score_desc",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    exact_pool = _sort_for_mode(exact_pool, "score_desc")
-    similar_pool = _sort_for_mode(similar_pool, "score_desc")
+    relevance_filters = {**(soft_filters or {}), **(hard_filters or {})}
+    exact_pool = _sort_for_mode(exact_pool, "score_desc", relevance_filters)
+    similar_pool = _sort_for_mode(similar_pool, "score_desc", relevance_filters)
 
     exact_scored: list[dict[str, Any]] = []
     q = (text_query or "").strip()
@@ -152,8 +239,12 @@ def select_exact_and_similar(
             promoted_similar.append(promoted)
         if promoted_similar:
             promoted_similar.sort(
-                key=lambda x: (x["score"], x.get("text_relevance", 0.0), str(x["row"].get("product_code", ""))),
-                reverse=True,
+                key=lambda x: (
+                    -float(x.get("score") or 0.0),
+                    _numeric_proximity_distance(x, relevance_filters),
+                    -float(x.get("text_relevance") or 0.0),
+                    str(x["row"].get("product_code", "")),
+                ),
             )
             similar_scored = promoted_similar + similar_scored
     elif overflow_exact:
@@ -182,8 +273,12 @@ def select_exact_and_similar(
                 }
             )
         similar_scored.sort(
-            key=lambda x: (x["score"], x.get("text_relevance", 0.0), str(x["row"].get("product_code", ""))),
-            reverse=True,
+            key=lambda x: (
+                -float(x.get("score") or 0.0),
+                _numeric_proximity_distance(x, relevance_filters),
+                -float(x.get("text_relevance") or 0.0),
+                str(x["row"].get("product_code", "")),
+            ),
         )
 
     for item in exact_scored:

@@ -187,6 +187,63 @@ class RankingSelectionTests(unittest.TestCase):
         )
         self.assertEqual([x["row"]["product_code"] for x in exact], ["B"])
 
+    def test_default_ranking_prefers_power_closest_to_requested_ceiling(self):
+        exact_pool = [
+            {**_mk_scored("A", 1.0, 0.0), "row": {"product_code": "A", "product_name": "Rodio", "power_max_w": "40 W"}},
+            {**_mk_scored("B", 1.0, 0.0), "row": {"product_code": "B", "product_name": "Rodio", "power_max_w": "98 W"}},
+            {**_mk_scored("C", 1.0, 0.0), "row": {"product_code": "C", "product_name": "Rodio", "power_max_w": "75 W"}},
+        ]
+        exact, _ = select_exact_and_similar(
+            exact_pool=exact_pool,
+            similar_pool=[],
+            rows=[],
+            text_query="rodio 100w",
+            hard_filters={},
+            soft_filters={"power_max_w": "<=100"},
+            limit=20,
+            include_similar=True,
+            text_relevance_fn=lambda _row, _q: 0.0,
+        )
+        self.assertEqual([x["row"]["product_code"] for x in exact], ["B", "C", "A"])
+
+    def test_default_ranking_prefers_lumen_closest_to_requested_minimum(self):
+        exact_pool = [
+            {**_mk_scored("A", 1.0, 0.0), "row": {"product_code": "A", "product_name": "Rodio", "lumen_output": "9000 lm"}},
+            {**_mk_scored("B", 1.0, 0.0), "row": {"product_code": "B", "product_name": "Rodio", "lumen_output": "5200 lm"}},
+            {**_mk_scored("C", 1.0, 0.0), "row": {"product_code": "C", "product_name": "Rodio", "lumen_output": "6500 lm"}},
+        ]
+        exact, _ = select_exact_and_similar(
+            exact_pool=exact_pool,
+            similar_pool=[],
+            rows=[],
+            text_query="rodio 5000 lm",
+            hard_filters={},
+            soft_filters={"lumen_output": ">=5000"},
+            limit=20,
+            include_similar=True,
+            text_relevance_fn=lambda _row, _q: 0.0,
+        )
+        self.assertEqual([x["row"]["product_code"] for x in exact], ["B", "C", "A"])
+
+    def test_default_ranking_prefers_efficacy_closest_to_requested_minimum(self):
+        exact_pool = [
+            {**_mk_scored("A", 1.0, 0.0), "row": {"product_code": "A", "product_name": "Rodio", "efficacy_lm_w": "180 lm/W"}},
+            {**_mk_scored("B", 1.0, 0.0), "row": {"product_code": "B", "product_name": "Rodio", "efficacy_lm_w": "122 lm/W"}},
+            {**_mk_scored("C", 1.0, 0.0), "row": {"product_code": "C", "product_name": "Rodio", "efficacy_lm_w": "145 lm/W"}},
+        ]
+        exact, _ = select_exact_and_similar(
+            exact_pool=exact_pool,
+            similar_pool=[],
+            rows=[],
+            text_query="rodio 120 lm/w",
+            hard_filters={},
+            soft_filters={"efficacy_lm_w": ">=120"},
+            limit=20,
+            include_similar=True,
+            text_relevance_fn=lambda _row, _q: 0.0,
+        )
+        self.assertEqual([x["row"]["product_code"] for x in exact], ["B", "C", "A"])
+
 
 if __name__ == "__main__":
     unittest.main()
