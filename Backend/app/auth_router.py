@@ -28,6 +28,11 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
     get_current_user, require_admin, require_leadership, require_staff, _get_token_from_request = build_auth_dependencies(auth_service)
 
     def require_settings_admin(user: UserPublic = Depends(get_current_user)) -> UserPublic:
+        if str(user.role or "").strip().lower() not in {"admin", "it", "marketing"}:
+            raise HTTPException(status_code=403, detail="Admin, IT, or marketing privileges required")
+        return user
+
+    def require_email_settings_admin(user: UserPublic = Depends(get_current_user)) -> UserPublic:
         if str(user.role or "").strip().lower() not in {"admin", "it"}:
             raise HTTPException(status_code=403, detail="Admin or IT privileges required")
         return user
@@ -174,7 +179,7 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
         )
 
     @router.post("/admin/settings/email-test")
-    def admin_send_email_test(payload: EmailTestRequest, settings_user: UserPublic = Depends(require_settings_admin)):
+    def admin_send_email_test(payload: EmailTestRequest, settings_user: UserPublic = Depends(require_email_settings_admin)):
         return auth_service.send_test_email(settings_user, to_email=payload.email)
 
     @router.get("/auth/me")
@@ -313,8 +318,11 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
     @router.get("/admin/settings")
     def admin_list_settings(settings_user: UserPublic = Depends(require_settings_admin)):
         items = auth_service.list_admin_settings()
-        if str(settings_user.role or "").strip().lower() == "it":
+        role = str(settings_user.role or "").strip().lower()
+        if role == "it":
             items = [item for item in items if str(item.category or "") != "Scoring"]
+        elif role == "marketing":
+            items = [item for item in items if str(item.category or "") == "Website"]
         return {"count": len(items), "items": [item.model_dump() for item in items]}
 
     @router.get("/admin/analytics/summary")
@@ -331,9 +339,12 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
         payload: AdminSettingUpdateRequest,
         admin_user: UserPublic = Depends(require_settings_admin),
     ):
-        if str(admin_user.role or "").strip().lower() == "it":
+        role = str(admin_user.role or "").strip().lower()
+        if role in {"it", "marketing"}:
             current = next((item for item in auth_service.list_admin_settings() if item.key == setting_key), None)
-            if current and str(current.category or "") == "Scoring":
+            if role == "marketing" and (not current or str(current.category or "") != "Website"):
+                raise HTTPException(status_code=403, detail="Marketing users can update website settings only")
+            if role == "it" and current and str(current.category or "") == "Scoring":
                 raise HTTPException(status_code=403, detail="Scoring controls require admin privileges")
         setting = auth_service.update_admin_setting(setting_key, payload.value, acting_admin_id=admin_user.id)
         return {"success": True, "setting": setting.model_dump()}

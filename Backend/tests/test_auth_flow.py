@@ -368,6 +368,26 @@ class AuthFlowTests(unittest.TestCase):
         health = self.client.get("/admin/catalog-health", headers=marketing_headers)
         self.assertEqual(health.status_code, 200, health.text)
 
+        settings = self.client.get("/admin/settings", headers=marketing_headers)
+        self.assertEqual(settings.status_code, 200, settings.text)
+        setting_items = settings.json()["items"]
+        self.assertGreater(len(setting_items), 0)
+        self.assertEqual({item["category"] for item in setting_items}, {"Website"})
+
+        update_website = self.client.put(
+            "/admin/settings/disano_lang_id",
+            json={"value": "-4"},
+            headers=marketing_headers,
+        )
+        self.assertEqual(update_website.status_code, 200, update_website.text)
+
+        update_email = self.client.put(
+            "/admin/settings/smtp_host",
+            json={"value": "smtp.example.com"},
+            headers=marketing_headers,
+        )
+        self.assertEqual(update_email.status_code, 403, update_email.text)
+
         original_product_db = self.main.PRODUCT_DB
         try:
             class _ReleaseDiffStub:

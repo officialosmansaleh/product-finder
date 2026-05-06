@@ -100,12 +100,10 @@ def _missing_scoring_weight_definitions(existing_keys: set[str]) -> tuple[Settin
 
 
 CATEGORY_ORDER: tuple[str, ...] = (
-    "Catalog",
+    "Website",
     "Email",
-    "Security",
     "Administration",
     "Scoring",
-    "Deployment",
 )
 
 
@@ -113,7 +111,7 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
     SettingDefinition(
         key="disano_store_ids",
         label="Disano GraphQL Store IDs",
-        category="Catalog",
+        category="Website",
         description="Comma-separated store IDs used for external product image lookups.",
         env_name="DISANO_STORE_IDS",
         placeholder="10051,10151",
@@ -121,7 +119,7 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
     SettingDefinition(
         key="disano_lang_id",
         label="Disano GraphQL Language ID",
-        category="Catalog",
+        category="Website",
         description="Language identifier used when querying Disano product content.",
         env_name="DISANO_LANG_ID",
         placeholder="-4",
@@ -129,7 +127,7 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
     SettingDefinition(
         key="app_domain",
         label="App Domain",
-        category="Deployment",
+        category="Website",
         description="Primary public domain used for deployment and SSL.",
         env_name="APP_DOMAIN",
         restart_required=True,
@@ -139,7 +137,7 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
     SettingDefinition(
         key="cors_allowed_origins",
         label="Allowed Origins",
-        category="Security",
+        category="Website",
         description="Comma-separated browser origins allowed to call the backend.",
         env_name="CORS_ALLOWED_ORIGINS",
         multiline=True,
@@ -150,7 +148,7 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
     SettingDefinition(
         key="auth_token_expire_minutes",
         label="Token Lifetime (minutes)",
-        category="Security",
+        category="Website",
         description="Lifetime of newly issued access tokens.",
         env_name="AUTH_TOKEN_EXPIRE_MINUTES",
         placeholder="120",
@@ -158,7 +156,7 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
     SettingDefinition(
         key="auth_refresh_token_expire_days",
         label="Refresh Token Lifetime (days)",
-        category="Security",
+        category="Website",
         description="How long refresh sessions remain valid before users must sign in again.",
         env_name="AUTH_REFRESH_TOKEN_EXPIRE_DAYS",
         placeholder="14",
@@ -166,7 +164,7 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
     SettingDefinition(
         key="auth_cookie_secure",
         label="Secure Cookies",
-        category="Security",
+        category="Website",
         description="Use secure cookies only over HTTPS. Set to true in production.",
         env_name="AUTH_COOKIE_SECURE",
         placeholder="true or false",
@@ -174,7 +172,7 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
     SettingDefinition(
         key="auth_cookie_samesite",
         label="Cookie SameSite",
-        category="Security",
+        category="Website",
         description="Cookie SameSite policy for auth cookies.",
         env_name="AUTH_COOKIE_SAMESITE",
         placeholder="lax, strict, or none",

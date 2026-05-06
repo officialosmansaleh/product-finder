@@ -665,7 +665,7 @@
         <span class="sectionBadge">Maintenance</span>
       </div>
       <div id="settingsNotice" class="notice">Loading settings...</div>
-      <div class="analyticsListCard" style="margin:12px 0">
+      <div id="emailTestCard" class="analyticsListCard" style="margin:12px 0">
         <h3 class="panelTitle">Email test</h3>
         <p class="panelSub">Send a test message using the current SMTP configuration.</p>
         <div class="settingsGrid">
@@ -739,12 +739,10 @@
     let visibleQuoteSort = { key: "updated_at", direction: "desc" };
     const SETTINGS_CATEGORY_META = {
       All: "All maintenance settings in one place.",
-      Catalog: "External catalog content and enrichment settings.",
+      Website: "Website, catalog content, deployment, and access settings.",
       Email: "Delivery settings for password reset emails and outbound app mail.",
-      Security: "Authentication, cookies, session lifetime, and browser access controls.",
       Administration: "Bootstrap admin and maintenance access defaults.",
       Operations: "Debugging and runtime operational behavior.",
-      Deployment: "Deployment-side values that usually need restart or redeploy.",
     };
 
     function esc(value){
@@ -1053,7 +1051,7 @@
       const allowed = [];
       if (!currentViewer) return ["overviewSection"];
       if (viewerRole() === "user") return ["passwordSection"];
-      if (isMarketingViewer()) return ["catalogHealthSection", "releaseChangesSection", "passwordSection"];
+      if (isMarketingViewer()) return ["catalogHealthSection", "releaseChangesSection", "settingsSection", "passwordSection"];
       if (isItViewer()) return ["settingsSection", "passwordSection"];
       if (currentViewer && isStaffViewer()){
         allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection", "catalogHealthSection", "passwordSection");
@@ -1506,7 +1504,7 @@
     }
 
     function canViewSettings(){
-      return isAdminViewer() || isItViewer();
+      return isAdminViewer() || isItViewer() || isMarketingViewer();
     }
 
     function isDirectorViewer(){
@@ -2346,7 +2344,7 @@
       const wrap = $("settingsWrap");
       if (!wrap) return;
       if (!canViewSettings()){
-        wrap.innerHTML = `<div class="empty">Settings are available only to admins or IT users.</div>`;
+        wrap.innerHTML = `<div class="empty">Settings are available only to admins, IT, or marketing users.</div>`;
         const tabs = $("settingsTabs");
         const summary = $("settingsSummary");
         if (tabs) tabs.innerHTML = "";
@@ -2501,7 +2499,7 @@
         currentViewer = me || null;
         applyViewerLayout();
         if (!me || !canViewSettings()){
-          setSettingsNotice("Settings are available only to admins or IT users.", true);
+          setSettingsNotice("Settings are available only to admins, IT, or marketing users.", true);
           setAdministrationNotice("Administration controls are available only to admins.", true);
           setScoringNotice("Scoring controls are available only to admins.", true);
           renderAdministration([]);
@@ -2512,6 +2510,8 @@
         setSettingsNotice("Loading settings...", false);
         setAdministrationNotice(isAdminViewer() ? "Loading administration settings..." : "Administration controls are available only to admins.", !isAdminViewer());
         setScoringNotice(isAdminViewer() ? "Loading scoring controls..." : "Scoring controls are available only to admins.", !isAdminViewer());
+        const emailTestCard = $("emailTestCard");
+        if (emailTestCard) emailTestCard.style.display = isMarketingViewer() ? "none" : "";
         const data = await getJSON("/admin/settings");
         allSettings = Array.isArray(data.items) ? data.items : [];
         renderRuntimeStatusPills(allSettings);
@@ -2520,7 +2520,7 @@
         renderSettings(allSettings);
         if (isAdminViewer()) setAdministrationNotice("Administration settings are up to date.", false);
         if (isAdminViewer()) setScoringNotice("Scoring controls are up to date.", false);
-        setSettingsNotice("Settings are up to date.", false);
+        setSettingsNotice(isMarketingViewer() ? "Website settings are up to date." : "Settings are up to date.", false);
       }catch(error){
         setAdministrationNotice(String(error.message || error), true);
         setScoringNotice(String(error.message || error), true);
@@ -2771,6 +2771,7 @@
         return;
       }
       if (isMarketingViewer()){
+        await loadSettings();
         await loadReleaseDiff();
         await loadCatalogHealth();
         setPasswordNotice("Change your own password here.", false);
