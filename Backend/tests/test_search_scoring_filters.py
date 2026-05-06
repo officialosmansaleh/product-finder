@@ -372,6 +372,61 @@ class SearchScoringFiltersTests(unittest.TestCase):
 
         self.assertGreater(main_mod._text_relevance(row, "2215031300"), 0)
 
+    def test_code_search_similar_stays_on_anchored_product_line(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "150232-00",
+                    "short_product_code": "832",
+                    "product_name": "Rodi UGR<lt/>22",
+                    "manufacturer": "Disano Illuminazione",
+                    "product_family": "Panels",
+                },
+                {
+                    "product_code": "150232-00412264",
+                    "short_product_code": "",
+                    "product_name": "Rodi IP65 - UGR<lt/>19",
+                    "manufacturer": "Disano Illuminazione",
+                    "product_family": "Panels",
+                },
+                {
+                    "product_code": "170000-00",
+                    "short_product_code": "",
+                    "product_name": "Rodi Emergency",
+                    "manufacturer": "Disano Illuminazione",
+                    "product_family": "Panels",
+                },
+                {
+                    "product_code": "164731-00",
+                    "short_product_code": "",
+                    "product_name": "Thema - LED",
+                    "manufacturer": "Disano Illuminazione",
+                    "product_family": "Waterproof",
+                },
+            ]
+        )
+
+        req = SearchRequest(
+            text="15023200",
+            filters={},
+            limit=10,
+            include_similar=True,
+            allow_ai=False,
+            debug=False,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value={}), patch.object(
+            main_mod, "llm_intent_to_filters", return_value={}
+        ), patch.object(main_mod, "PRODUCT_DB", None), patch.object(main_mod, "DB", fake_rows_df):
+            resp = main_mod.search(req)
+
+        similar_names = [hit.product_name for hit in resp.similar]
+        self.assertIn("Rodi Emergency", similar_names)
+        self.assertNotIn("Thema - LED", similar_names)
+
     def test_search_limit_is_capped_to_100(self):
         from app import main as main_mod
         from app.schema import SearchRequest

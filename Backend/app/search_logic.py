@@ -73,6 +73,13 @@ def _normalize_product_family_filter(filters: Dict[str, Any], allowed_families: 
     return out
 
 
+def _product_line_key(value: Any) -> str:
+    name = str(value or "").strip().lower()
+    if not name:
+        return ""
+    return re.split(r"\s+", name, 1)[0].strip(".,;:/\\-_()[]{}<>\"'`")
+
+
 def _should_soften_inferred_family(parsed_filters: Dict[str, Any], user_filters: Dict[str, Any]) -> bool:
     if user_filters.get("product_family") not in (None, "", []):
         return False
@@ -475,6 +482,7 @@ def handle_search(
     exact_pool: List[Dict[str, Any]] = []
     similar_pool: List[Dict[str, Any]] = []
     anchor_family = ""
+    anchor_product_line = ""
     anchor_rel = -1.0
     for r in rows:
         product_code = str((r or {}).get("product_code", "")).strip()
@@ -486,9 +494,11 @@ def handle_search(
         rel = text_relevance(r, req.text or "")
         if name_search_mode and rel > anchor_rel:
             fam = str(r.get("product_family") or "").strip().lower()
-            if fam:
+            line = _product_line_key(r.get("product_name"))
+            if fam or line:
                 anchor_rel = float(rel)
                 anchor_family = fam
+                anchor_product_line = line
 
         passes_manual_filters = float(exact_score) > 0.0
         if not passes_manual_filters:
@@ -518,8 +528,26 @@ def handle_search(
         if sim_score > 0 or rel > 0:
             similar_pool.append({"row": r, "score": sim_score, "text_relevance": float(rel), "matched": soft_matched, "deviations": soft_dev, "missing": soft_missing})
 
-    if name_search_mode and anchor_family:
-        similar_pool = [s for s in similar_pool if str((s.get("row") or {}).get("product_family") or "").strip().lower() == anchor_family]
+    if name_search_mode and anchor_product_line:
+        exact_pool = [
+            s for s in exact_pool
+            if float(s.get("text_relevance", 0.0)) > 0.0
+            or _product_line_key((s.get("row") or {}).get("product_name")) == anchor_product_line
+        ]
+        similar_pool = [
+            s for s in similar_pool
+            if _product_line_key((s.get("row") or {}).get("product_name")) == anchor_product_line
+        ]
+    elif name_search_mode and anchor_family:
+        exact_pool = [
+            s for s in exact_pool
+            if float(s.get("text_relevance", 0.0)) > 0.0
+            or str((s.get("row") or {}).get("product_family") or "").strip().lower() == anchor_family
+        ]
+        similar_pool = [
+            s for s in similar_pool
+            if str((s.get("row") or {}).get("product_family") or "").strip().lower() == anchor_family
+        ]
 
     if spec_like_search_mode and not exact_pool and similar_score_filters:
         top_sim: List[Dict[str, Any]] = []
