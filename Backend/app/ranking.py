@@ -298,6 +298,7 @@ def select_exact_and_similar(
         and bool((text_query or "").strip())
     )
     if family_only_query:
+        similar_scored = [s for s in similar_scored if float(s.get("score") or 0.0) > 0.0]
         exact_scored = _diversify_by_product_line(exact_scored, limit)
 
     if str(sort_mode or "score_desc") != "score_desc":

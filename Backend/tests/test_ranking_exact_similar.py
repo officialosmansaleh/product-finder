@@ -147,6 +147,28 @@ class RankingSelectionTests(unittest.TestCase):
             ["Rodio", "Astro", "Sevilla"],
         )
 
+    def test_family_only_query_drops_text_relevant_wrong_family_from_similar(self):
+        exact_pool = [
+            {**_mk_scored("D1", 1.0, 0.4, name="Recessed downlight"), "row": {"product_code": "D1", "product_name": "Recessed downlight", "product_family": "downlight"}},
+        ]
+        similar_pool = [
+            {**_mk_scored("P1", 0.0, 0.4, name="Recessed panel"), "row": {"product_code": "P1", "product_name": "Recessed panel", "product_family": "Panels"}},
+        ]
+        exact, similar = select_exact_and_similar(
+            exact_pool=exact_pool,
+            similar_pool=similar_pool,
+            rows=[],
+            text_query="downlight recessed",
+            hard_filters={},
+            soft_filters={"product_family": "downlight"},
+            limit=5,
+            include_similar=True,
+            text_relevance_fn=lambda _row, _q: 0.0,
+        )
+
+        self.assertEqual([x["row"]["product_code"] for x in exact], ["D1"])
+        self.assertEqual(similar, [])
+
     def test_power_sort_applies_before_limit(self):
         exact_pool = [
             {**_mk_scored("A", 1.0, 0.0), "row": {"product_code": "A", "product_name": "A", "power_max_w": "100 W"}},
