@@ -639,6 +639,49 @@ class SearchScoringFiltersTests(unittest.TestCase):
         self.assertEqual(resp.similar, [])
         self.assertEqual((resp.backend_debug_filters or {}).get("hard_filters"), parsed_filters)
 
+    def test_recessed_downlight_keeps_family_when_family_chip_is_ignored(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "D1",
+                    "product_name": "Recessed Downlight",
+                    "product_family": "downlight",
+                    "etim_search_key": "Recessed downlights",
+                    "manufacturer": "DISANO",
+                },
+                {
+                    "product_code": "P1",
+                    "product_name": "PanelTech",
+                    "product_family": "Panel",
+                    "etim_search_key": "Recessed downlights",
+                    "manufacturer": "DISANO",
+                },
+            ]
+        )
+
+        parsed_filters = {"product_family": "downlight", "etim_search_key": "recessed"}
+        req = SearchRequest(
+            text="downlight recessed",
+            filters={},
+            ignored_ai_filters=[{"key": "product_family", "value": "downlight"}],
+            limit=5,
+            include_similar=True,
+            allow_ai=False,
+            debug=True,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value=parsed_filters), patch.object(
+            main_mod, "PRODUCT_DB", None
+        ), patch.object(main_mod, "DB", fake_rows_df):
+            resp = main_mod.search(req)
+
+        self.assertEqual([hit.product_code for hit in resp.exact], ["D1"])
+        self.assertEqual(resp.similar, [])
+        self.assertEqual((resp.backend_debug_filters or {}).get("hard_filters"), parsed_filters)
+
     def test_text_db_search_matches_plural_accessory_poles(self):
         from app import main as main_mod
 

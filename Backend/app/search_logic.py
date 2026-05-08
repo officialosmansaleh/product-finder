@@ -247,6 +247,7 @@ def handle_search(
         if k not in parsed and v is not None:
             parsed[k] = v
 
+    original_parsed_filters = dict(parsed or {})
     ignored_ai_filters = getattr(req, "ignored_ai_filters", None) or []
     if isinstance(ignored_ai_filters, list) and ignored_ai_filters:
         for item in ignored_ai_filters:
@@ -271,6 +272,16 @@ def handle_search(
             else:
                 if str(cur) == str(v):
                     parsed.pop(k, None)
+
+    if (
+        original_parsed_filters.get("product_family") == "downlight"
+        and original_parsed_filters.get("etim_search_key") == "recessed"
+        and parsed.get("etim_search_key") == "recessed"
+    ):
+        # The ETIM "recessed" signal is valid here only as a refinement of
+        # explicit downlight intent. Without the family guard, recessed panels
+        # also satisfy ETIM and can leak into exact results.
+        parsed["product_family"] = "downlight"
 
     user_filters = pre_ai_user_filters
     if not str(req.text or "").strip() and not user_filters:
