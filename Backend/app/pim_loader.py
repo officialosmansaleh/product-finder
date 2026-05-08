@@ -7,6 +7,10 @@ import pandas as pd
 import os
 
 
+ACCESSORIES_FAMILY = "Accessories"
+DOWNLIGHT_FAMILY = "downlight"
+
+
 def _extract_first_number(x):
     if x is None:
         return None
@@ -648,14 +652,26 @@ def load_products(
         out.loc[missing_mask, 'family_key'] = out.loc[missing_mask, 'product_name'].apply(_first_word)
         out.loc[missing_mask, 'product_family'] = out.loc[missing_mask, 'family_key'].map(fam_map)
     
-    # Keep only rows with mapped family. This removes accessories/control gear
-    # and any unmapped lines from families/facets/search.
-    before_rows = len(out)
-    out = out[out['product_family'].notna()].copy()
+    # Keep rows without a mapped fixture family by grouping them as accessories.
+    missing_mask = out['product_family'].isna() | out['product_family'].astype(str).str.strip().eq("")
+    reassigned_unmapped = int(missing_mask.sum())
+    if reassigned_unmapped:
+        out.loc[missing_mask, 'product_family'] = ACCESSORIES_FAMILY
+        if verbose:
+            print(f"Assigned {reassigned_unmapped} unmapped rows to {ACCESSORIES_FAMILY}")
     out['product_family'] = out['product_family'].apply(_normalize_family_name)
-    dropped_unmapped = before_rows - len(out)
-    if verbose and dropped_unmapped:
-        print(f"ðŸ§¹ Dropped {dropped_unmapped} rows with unmapped family (strict map-only mode)")
+
+    # The family map can be too broad for some Fosnova rows whose PIM taxonomy
+    # is more precise. Example: Techno B is mapped as Linear by prefix, while
+    # ETIM marks the actual fixtures as recessed downlights.
+    if "etim_search_key" in out.columns:
+        etim_txt = out["etim_search_key"].fillna("").astype(str).str.lower()
+        downlight_mask = etim_txt.str.contains(r"\bdownlights?\b", regex=True, na=False)
+        reassigned_downlights = int((downlight_mask & (out["product_family"] != DOWNLIGHT_FAMILY)).sum())
+        if reassigned_downlights:
+            out.loc[downlight_mask, "product_family"] = DOWNLIGHT_FAMILY
+            if verbose:
+                print(f"Assigned {reassigned_downlights} ETIM downlight rows to {DOWNLIGHT_FAMILY}")
 
     # ---- Exclude non-luminaire lines (accessories, drivers, control gear, etc.) ----
     def _norm_text(x) -> str:
@@ -692,11 +708,11 @@ def load_products(
             | etim_txt.str.contains(re.escape(kw), na=False)
         )
 
-    removed_count = int(excl_mask.sum())
-    if removed_count:
-        out = out.loc[~excl_mask].reset_index(drop=True)
+    reassigned_count = int(excl_mask.sum())
+    if reassigned_count:
+        out.loc[excl_mask, "product_family"] = ACCESSORIES_FAMILY
         if verbose:
-            print(f"ðŸ§¹ Excluded {removed_count} accessory/driver rows from dataset")
+            print(f"Assigned {reassigned_count} accessory/driver rows to {ACCESSORIES_FAMILY}")
     
     # Rimuovi la colonna temporanea
     out = out.drop(columns=['family_key'])
