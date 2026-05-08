@@ -1,5 +1,5 @@
 ﻿// ---------------- State ----------------
-  const UI_BUILD = "2026-05-04-facet-typo-1";
+  const UI_BUILD = "2026-05-08-techno-accessory-facets-1";
   const selectedFilters = {}; // { key: Set(values as strings) }
   let hasRunSearchOnce = false;
   const $ = (id) => document.getElementById(id);
