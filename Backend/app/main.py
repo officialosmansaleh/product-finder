@@ -867,7 +867,9 @@ def _text_relevance(row: Dict[str, Any], text: str) -> float:
     code = str(row.get("product_code") or "")
     short_code = str(row.get("short_product_code") or "")
     name = str(row.get("product_name") or "").lower()
-    hay = " ".join([code.lower(), short_code.lower(), name])
+    etim = str(row.get("etim_search_key") or "").lower()
+    text_tokens = _text_match_tokens(name, etim)
+    hay = " ".join([code.lower(), short_code.lower(), name, etim])
     q_compact = _compact_code(q)
     code_compact = _compact_code(code)
     short_compact = _compact_code(short_code)
@@ -881,10 +883,10 @@ def _text_relevance(row: Dict[str, Any], text: str) -> float:
     variants = _text_search_variants(q)
     tokens = [x for variant in variants for x in re.split(r"\s+", variant) if x]
     if tokens:
-        token_hits = sum(1 for tok in tokens if tok in hay)
+        token_hits = sum(1 for tok in tokens if tok in text_tokens or tok in code.lower() or tok in short_code.lower())
         score += min(0.6, 0.2 * token_hits)
 
-    if any(variant in name for variant in variants):
+    if any(variant in name for variant in variants) and (len(tokens) != 1 or _row_has_single_token_text_match(row, q)):
         score += cfg_float("main.similar_text_boost", 0.35)
     elif len(tokens) == 1:
         name_tokens = _name_tokens_for_text_relevance(name)
@@ -1078,6 +1080,27 @@ def _text_search_variants(text: Any) -> List[str]:
     return list(dict.fromkeys(variants))
 
 
+def _text_match_tokens(*values: Any) -> List[str]:
+    return [
+        tok
+        for value in values
+        for tok in re.split(r"[^0-9a-z]+", str(value or "").lower())
+        if tok
+    ]
+
+
+def _row_has_single_token_text_match(row: Dict[str, Any], query: Any) -> bool:
+    variants = _text_search_variants(query)
+    if not variants:
+        return False
+    tokens = [tok for variant in variants for tok in re.split(r"\s+", variant) if tok]
+    if len(tokens) != 1 or len(_compact_for_match(tokens[0])) < 3:
+        return False
+    wanted = tokens[0]
+    text_tokens = _text_match_tokens(row.get("product_name"), row.get("etim_search_key"))
+    return any(tok == wanted or tok.startswith(wanted) for tok in text_tokens)
+
+
 def _find_product_by_code_any(code: str) -> Optional[Dict[str, Any]]:
     c = str(code or "").strip()
     if not c:
@@ -1180,6 +1203,11 @@ def _search_rows_by_text_db(text: str, limit: int = 3000) -> List[Dict[str, Any]
         rows = PRODUCT_DB.conn.execute(sql, params).fetchall()
         out = [_row_to_public_dict(dict(r)) for r in rows]
         if out:
+            query_tokens = [tok for tok in re.split(r"\s+", q_l) if tok]
+            if len(query_tokens) == 1 and len(_compact_for_match(query_tokens[0])) >= 3:
+                token_out = [r for r in out if _row_has_single_token_text_match(r, q_l)]
+                if token_out:
+                    return token_out
             return out
     except Exception:
         return []

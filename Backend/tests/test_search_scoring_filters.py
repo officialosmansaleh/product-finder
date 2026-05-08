@@ -632,6 +632,44 @@ class SearchScoringFiltersTests(unittest.TestCase):
         self.assertEqual([row.get("product_code") for row in rows], ["991906-00"])
         self.assertGreater(main_mod._text_relevance(rows[0], "poles"), 0.0)
 
+    def test_single_token_text_search_does_not_match_inside_words(self):
+        from app import main as main_mod
+
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        conn.execute(
+            """
+            CREATE TABLE products (
+                product_code TEXT,
+                short_product_code TEXT,
+                product_name TEXT,
+                manufacturer TEXT,
+                product_family TEXT,
+                etim_search_key TEXT
+            )
+            """
+        )
+        conn.executemany(
+            "INSERT INTO products VALUES (?, ?, ?, ?, ?, ?)",
+            [
+                ("S1", "1", "Street High Performance", "DISANO", "Street lighting", "Street lighting"),
+                ("F1", "997", "Forma LED - transparent glass", "DISANO", "Waterproof", "Waterproof"),
+            ],
+        )
+
+        class FakeProductDb:
+            def connect(self):
+                return None
+
+        fake_db = FakeProductDb()
+        fake_db.conn = conn
+
+        with patch.object(main_mod, "PRODUCT_DB", fake_db):
+            rows = main_mod._search_rows_by_text_db("forma", limit=5)
+
+        self.assertEqual([row.get("product_code") for row in rows], ["F1"])
+        self.assertEqual(main_mod._text_relevance({"product_name": "High Performance"}, "forma"), 0.0)
+
     def test_search_reports_user_friendly_recovery_actions(self):
         from app import main as main_mod
         from app.schema import SearchRequest
