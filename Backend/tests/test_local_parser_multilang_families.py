@@ -58,6 +58,13 @@ class LocalParserMultilangFamilyTests(unittest.TestCase):
         query = "recessed fixture 48W"
         parsed = local_text_to_filters(query)
         self.assertNotEqual(parsed.get("product_family"), "downlight", msg=f"Unexpected downlight inference: {parsed}")
+        self.assertNotIn("etim_search_key", parsed, msg=f"Unexpected ETIM constraint: {parsed}")
+
+    def test_explicit_recessed_downlight_uses_etim_recessed_signal(self):
+        for query in ("downlight recessed", "recessed downlight"):
+            parsed = local_text_to_filters(query)
+            self.assertEqual(parsed.get("product_family"), "downlight", msg=f"Expected downlight, got: {parsed}")
+            self.assertEqual(parsed.get("etim_search_key"), "recessed", msg=f"Expected recessed ETIM signal, got: {parsed}")
 
     def test_multilingual_application_family_inference(self):
         cases = [

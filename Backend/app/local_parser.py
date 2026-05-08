@@ -730,6 +730,8 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
     fam = _infer_family(text)
     if fam:
         filters["product_family"] = fam
+    if fam == "downlight" and re.search(r"\brecess(?:ed)?\b", t):
+        filters["etim_search_key"] = "recessed"
 
     # IP parser:
     # - if two IP values are present, map lower -> IP v.a. (non-visible side),

@@ -291,6 +291,8 @@ def handle_search(
         # Treat AI-inferred family as a hard constraint so AI and UI family searches
         # behave the same way in the exact-match path.
         hard_filters.setdefault("product_family", ai_family)
+    if parsed_filters.get("etim_search_key") not in (None, "", []):
+        hard_filters.setdefault("etim_search_key", parsed_filters.get("etim_search_key"))
     soft_filters: Dict[str, Any] = dict(parsed_filters)
     similar_score_filters = dict(filters)
     sql_filters = map_filters_to_sql(filters)
@@ -348,6 +350,7 @@ def handle_search(
     if parsed:
         label_map = {
             "product_family": "family",
+            "etim_search_key": "ETIM",
             "ip_rating": "IP total",
             "ip_visible": "IP v.l.",
             "ip_non_visible": "IP v.a.",
@@ -366,7 +369,7 @@ def handle_search(
             "lumen_maintenance_pct": "L maint",
         }
         preferred_order = [
-            "product_family", "ip_rating", "ip_visible", "ip_non_visible", "ik_rating", "cct_k", "cri", "ugr",
+            "product_family", "etim_search_key", "ip_rating", "ip_visible", "ip_non_visible", "ik_rating", "cct_k", "cri", "ugr",
             "lumen_output", "power_max_w", "efficacy_lm_w", "shape",
             "control_protocol", "interface", "emergency_present", "lifetime_hours", "lumen_maintenance_pct",
         ]
@@ -531,10 +534,10 @@ def handle_search(
             if (
                 float(sim_filter_score) >= spec_like_exact_threshold
                 and passes_manual_filters
-                and ((not hard_filters) or (product_code in exact_seed_codes))
+                and ((not hard_filters) or (not used_product_db) or (product_code in exact_seed_codes))
             ):
                 exact_pool.append({"row": r, "score": exact_candidate_score, "text_relevance": float(rel), "matched": exact_candidate_matched, "deviations": exact_candidate_dev, "missing": exact_candidate_missing})
-        elif exact_candidate_score > 0 and ((not hard_filters) or (product_code in exact_seed_codes)):
+        elif exact_candidate_score > 0 and ((not hard_filters) or (not used_product_db) or (product_code in exact_seed_codes)):
             exact_pool.append({"row": r, "score": exact_candidate_score, "text_relevance": float(rel), "matched": exact_candidate_matched, "deviations": exact_candidate_dev, "missing": exact_candidate_missing})
 
         if similar_score_filters:

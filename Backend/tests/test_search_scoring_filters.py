@@ -597,6 +597,48 @@ class SearchScoringFiltersTests(unittest.TestCase):
         self.assertEqual(seen_rows[0], ["F1"])
         self.assertEqual(seen_rows[1], ["F1", "A1"])
 
+    def test_recessed_downlight_uses_etim_as_hard_constraint(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "D1",
+                    "product_name": "Recessed Downlight",
+                    "product_family": "downlight",
+                    "etim_search_key": "Recessed downlights",
+                    "manufacturer": "DISANO",
+                },
+                {
+                    "product_code": "D2",
+                    "product_name": "Surface Downlight",
+                    "product_family": "downlight",
+                    "etim_search_key": "Interior floodlights",
+                    "manufacturer": "DISANO",
+                },
+            ]
+        )
+
+        parsed_filters = {"product_family": "downlight", "etim_search_key": "recessed"}
+        req = SearchRequest(
+            text="downlight recessed",
+            filters={},
+            limit=5,
+            include_similar=True,
+            allow_ai=False,
+            debug=True,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value=parsed_filters), patch.object(
+            main_mod, "PRODUCT_DB", None
+        ), patch.object(main_mod, "DB", fake_rows_df):
+            resp = main_mod.search(req)
+
+        self.assertEqual([hit.product_code for hit in resp.exact], ["D1"])
+        self.assertEqual(resp.similar, [])
+        self.assertEqual((resp.backend_debug_filters or {}).get("hard_filters"), parsed_filters)
+
     def test_text_db_search_matches_plural_accessory_poles(self):
         from app import main as main_mod
 

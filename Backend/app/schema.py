@@ -42,6 +42,7 @@ ALLOWED_FILTER_KEYS = {
     "product_name_short",
     "product_name_contains",
     "name_prefix",
+    "etim_search_key",
     "manufacturer",
 
 
@@ -67,6 +68,7 @@ HARD_FILTER_KEYS = {
     "lumen_maintenance_pct",
     "ambient_temp_min_c",
     "ambient_temp_max_c",
+    "etim_search_key",
 }
 
 SOFT_FILTER_KEYS = {
