@@ -560,6 +560,42 @@ class SearchScoringFiltersTests(unittest.TestCase):
         self.assertEqual((resp.exact[0].preview or {}).get("luminaire_width"), "120 mm")
         self.assertEqual((resp.exact[0].preview or {}).get("luminaire_height"), "80 mm")
 
+    def test_search_excludes_accessories_unless_requested(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {"product_code": "F1", "product_name": "Fixture", "product_family": "downlight", "manufacturer": "DISANO"},
+                {"product_code": "A1", "product_name": "Accessory", "product_family": "Accessories", "manufacturer": "DISANO"},
+            ]
+        )
+        seen_rows = []
+
+        def capture_select(**kwargs):
+            seen_rows.append([row.get("product_code") for row in kwargs.get("rows", [])])
+            return [], []
+
+        base_kwargs = dict(
+            text="fixture",
+            filters={},
+            limit=5,
+            include_similar=True,
+            allow_ai=False,
+            debug=False,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value={}), patch.object(
+            main_mod, "PRODUCT_DB", None
+        ), patch.object(main_mod, "DB", fake_rows_df), patch.object(
+            main_mod, "select_exact_and_similar", side_effect=capture_select
+        ):
+            main_mod.search(SearchRequest(**base_kwargs))
+            main_mod.search(SearchRequest(**base_kwargs, include_accessories=True))
+
+        self.assertEqual(seen_rows[0], ["F1"])
+        self.assertEqual(seen_rows[1], ["F1", "A1"])
+
     def test_search_reports_user_friendly_recovery_actions(self):
         from app import main as main_mod
         from app.schema import SearchRequest

@@ -1,5 +1,5 @@
 ﻿// ---------------- State ----------------
-  const UI_BUILD = "2026-05-08-result-dimensions-1";
+  const UI_BUILD = "2026-05-08-include-accessories-1";
   const selectedFilters = {}; // { key: Set(values as strings) }
   let hasRunSearchOnce = false;
   const $ = (id) => document.getElementById(id);
@@ -1569,12 +1569,15 @@
   else if (b) addFilter(key, `<=${b}`);
   else toast(t("toast_set_min_or_max"));
 }
-function resetRange(key, minId, maxId){
+  function resetRange(key, minId, maxId){
   $(minId).value = "";
   $(maxId).value = "";
   if (selectedFilters[key]) { selectedFilters[key].clear(); delete selectedFilters[key]; }
 }
 
+  function includeAccessoriesEnabled(){
+    return !!$("includeAccessories")?.checked;
+  }
 
   function buildFiltersPayload(){
     const out = {};
@@ -1601,6 +1604,7 @@ function resetRange(key, minId, maxId){
         ts: Date.now(),
         q: String($("q")?.value || ""),
         filters: buildFiltersPayload(),
+        include_accessories: includeAccessoriesEnabled(),
         imported_ai_items: Array.isArray(lastImportedFilterItems)
           ? lastImportedFilterItems.map(it => ({
               key: String(it?.key || ""),
@@ -1629,6 +1633,8 @@ function resetRange(key, minId, maxId){
         return false;
       }
       setQueryText(String(state?.q || ""));
+      const includeAccessories = $("includeAccessories");
+      if (includeAccessories) includeAccessories.checked = !!state?.include_accessories;
 
       for (const k of Object.keys(selectedFilters)) delete selectedFilters[k];
       const fs = state?.filters && typeof state.filters === "object" ? state.filters : {};
@@ -1824,6 +1830,8 @@ function resetRange(key, minId, maxId){
   }
   function clearAll(){
     for (const k of Object.keys(selectedFilters)) delete selectedFilters[k];
+    const includeAccessories = $("includeAccessories");
+    if (includeAccessories) includeAccessories.checked = false;
     ignoredAIFilterPairs = [];
     ignoredAIQuerySignature = "";
     lastUnderstoodFilterChips = [];
@@ -2764,6 +2772,7 @@ function resetRange(key, minId, maxId){
         filters: buildFiltersPayload(),
         limit: 100,
         include_similar: true,
+        include_accessories: includeAccessoriesEnabled(),
         sort: normalizeSortModeForAccess($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc"),
         debug: false
       };
@@ -3338,6 +3347,12 @@ document.addEventListener("click", (ev)=>{
 document.addEventListener("change", (ev)=>{
   const t = ev.target;
   if (!(t instanceof HTMLInputElement)) return;
+  if (t.id === "includeAccessories"){
+    loadFacets({ showErrorToast: false });
+    if (hasRunSearchOnce) runSearch();
+    saveFinderState();
+    return;
+  }
   if (!t.matches(".facet-list input.toggle[data-k][data-v]")) return;
   const k = t.dataset.k;
   const v = t.dataset.v;
@@ -3351,7 +3366,7 @@ document.addEventListener("keydown", (ev)=>{
 
   async function loadFacets(options = {}){
     const showErrorToast = options.showErrorToast !== false;
-    const payload = { text: $("q").value || "", filters: buildFacetsFiltersPayload(), debug: false };
+    const payload = { text: $("q").value || "", filters: buildFacetsFiltersPayload(), include_accessories: includeAccessoriesEnabled(), debug: false };
     payload.allow_ai = !isPublicCatalogMode();
     // /facets endpoint expected by your original UI
     // If backend doesn't have /facets, this call will fail gracefully.
@@ -3458,6 +3473,7 @@ document.addEventListener("keydown", (ev)=>{
       filters: rawFilters,
       limit: 100,
       include_similar: true,
+      include_accessories: includeAccessoriesEnabled(),
       sort: normalizeSortModeForAccess($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc"),
       allow_ai: !isPublicCatalogMode(),
       debug: false

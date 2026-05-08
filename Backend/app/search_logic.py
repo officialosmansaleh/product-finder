@@ -80,6 +80,17 @@ def _product_line_key(value: Any) -> str:
     return re.split(r"\s+", name, 1)[0].strip(".,;:/\\-_()[]{}<>\"'`")
 
 
+def _is_accessories_family(value: Any) -> bool:
+    return str(value or "").strip().lower() == "accessories"
+
+
+def _filters_request_accessories(filters: Dict[str, Any]) -> bool:
+    value = (filters or {}).get("product_family")
+    if isinstance(value, list):
+        return any(_is_accessories_family(item) for item in value)
+    return _is_accessories_family(value)
+
+
 def _should_soften_inferred_family(parsed_filters: Dict[str, Any], user_filters: Dict[str, Any]) -> bool:
     if user_filters.get("product_family") not in (None, "", []):
         return False
@@ -478,6 +489,13 @@ def handle_search(
         local_limit = cfg_int("main.search_candidate_max", 10000) if filters else candidate_limit
         narrowed = db_dataframe.head(local_limit).copy()
         rows = narrowed.fillna("").to_dict(orient="records")
+
+    include_accessories = bool(getattr(req, "include_accessories", False))
+    if not include_accessories and not _filters_request_accessories(filters):
+        rows = [
+            r for r in rows
+            if not _is_accessories_family((r or {}).get("product_family"))
+        ]
 
     exact_pool: List[Dict[str, Any]] = []
     similar_pool: List[Dict[str, Any]] = []

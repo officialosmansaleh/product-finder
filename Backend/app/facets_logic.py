@@ -115,6 +115,17 @@ def handle_facets(
     family_seed_filters = {k: v for k, v in seed_filters.items() if k != "product_family"}
     broad_family_df = df_filtered_subset(all_df, family_seed_filters) if not all_df.empty else pd.DataFrame()
     strict_df = narrowed if narrowed is not None else pd.DataFrame()
+    include_accessories = bool(getattr(req, "include_accessories", False))
+
+    def without_accessories(df: pd.DataFrame) -> pd.DataFrame:
+        if include_accessories or df is None or df.empty or "product_family" not in df.columns:
+            return df
+        return df[df["product_family"].astype(str).str.strip().str.lower() != "accessories"].copy()
+
+    broad_df = without_accessories(broad_df)
+    broad_family_df = without_accessories(broad_family_df)
+    strict_df = without_accessories(strict_df)
+    all_df = without_accessories(all_df)
 
     def facet_values(col: str, limit: int, fallback_col: Optional[str] = None) -> List[FacetValue]:
         vals = top_values(strict_df, col, limit=limit) or top_values(broad_df, col, limit=limit) or top_values(all_df, col, limit=limit)

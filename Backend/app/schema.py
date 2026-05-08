@@ -90,6 +90,7 @@ class SearchRequest(BaseModel):
     ignored_ai_filters: List[Dict[str, Any]] = Field(default_factory=list)
     limit: int = 20
     include_similar: bool = True
+    include_accessories: bool = False
     allow_ai: bool = True
     sort: str = "score_desc"
 
