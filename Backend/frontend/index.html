@@ -50,6 +50,10 @@
         <div id="finderQueryHelp" class="small">Use Enter to run search.</div>
         <button id="btnClearAll" class="btn secondary compact" type="button" title="Clear query + filters" aria-label="Reset query and filters">Reset</button>
       </div>
+      <label class="row" style="margin-top:8px;gap:8px;align-items:center">
+        <input id="includeAccessories" type="checkbox" />
+        <span class="filterLabel" style="margin:0">Include accessories in search</span>
+      </label>
       <div id="finderImportRow" class="row importFilesRow" style="display:none;margin-top:8px;align-items:stretch">
         <input id="finderPdfFile" type="file" accept=".pdf,application/pdf" />
         <input id="finderImageFile" type="file" accept="image/*" />
@@ -78,10 +82,6 @@
 
       <div class="filterGroup" data-group="families">
       <div class="h">Product families</div>
-      <label class="row" style="margin-top:10px;gap:8px;align-items:center">
-        <input id="includeAccessories" type="checkbox" />
-        <span class="filterLabel" style="margin:0">Include accessories in search</span>
-      </label>
       <div style="margin-top:10px">
         <div class="filterLabel">Manufacturer</div>
         <div class="filterHint">Search / select</div>
