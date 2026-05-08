@@ -267,6 +267,24 @@ class DbRuntimeTests(unittest.TestCase):
             finally:
                 db.close()
 
+    def test_plain_dimension_filter_uses_tolerance_not_minimum(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = os.path.join(td, "products.db")
+            db = ProductDatabase(db_path=db_path, database_url="")
+            try:
+                release = pd.DataFrame([
+                    {"product_code": "CLOSE", "product_name": "Close", "product_family": "downlight", "diameter": "165 mm"},
+                    {"product_code": "SMALL", "product_name": "Small", "product_family": "downlight", "diameter": "150 mm"},
+                    {"product_code": "LARGE", "product_name": "Large", "product_family": "downlight", "diameter": "220 mm"},
+                ])
+                with mock.patch("app.pim_loader.load_products", return_value=release):
+                    self.assertEqual(db.init_db("dimensions.xlsx"), 3)
+
+                rows = db.search_products({"diameter": "=165"}, limit=10)
+                self.assertEqual([row["product_code"] for row in rows], ["CLOSE"])
+            finally:
+                db.close()
+
 
 if __name__ == "__main__":
     unittest.main()

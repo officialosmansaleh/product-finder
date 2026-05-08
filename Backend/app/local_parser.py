@@ -232,6 +232,10 @@ _GENERIC_PRODUCT_QUERY_TOKENS = {
     "min", "max", "minimum", "maximum", "temp", "temperature", "ambient", "operating", "working",
     "beam", "angle", "degree", "degrees", "asymmetric", "asymmetry", "shape", "color", "colour",
     "interface", "control", "driver", "life", "lifetime", "hours", "hour", "hr", "hrs",
+    "diameter", "diametro", "diametre", "diam", "dia",
+    "length", "lunghezza", "longueur", "longitud", "width", "larghezza", "largeur", "height", "altezza", "hauteur",
+    "диаметр", "قطر", "średnica", "srednica", "длина", "طول", "ширина", "عرض", "высота", "ارتفاع",
+    "least", "most", "minimum", "maximum",
 }
 
 _SINGLE_TOKEN_FUZZY_FAMILY_ALIASES = {
@@ -701,7 +705,7 @@ def _parse_dimension_filters(text: str, filters: Dict[str, Any]) -> None:
                 lower,
             )
             if m:
-                op = m.group(1) or ">="
+                op = m.group(1) or "="
                 filters[key] = f"{op}{m.group(2)}"
                 break
 
@@ -711,7 +715,7 @@ def _parse_dimension_filters(text: str, filters: Dict[str, Any]) -> None:
                 lower,
             )
             if m:
-                filters[key] = f">={m.group(1)}"
+                filters[key] = f"={m.group(1)}"
                 break
 
 

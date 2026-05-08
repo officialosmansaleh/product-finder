@@ -888,7 +888,7 @@ class ProductDatabase:
 
             def _parse_numeric_filter(v: str, default_op: str = ">="):
                 txt = str(v).strip().replace(" ", "")
-                m = re.match(r"^(>=|<=|>|<)(-?\d+(?:\.\d+)?)$", txt)
+                m = re.match(r"^(>=|<=|>|<|=)(-?\d+(?:\.\d+)?)$", txt)
                 if m:
                     return m.group(1), float(m.group(2))
                 m = re.search(r"(-?\d+(?:\.\d+)?)", txt.replace(",", "."))
@@ -928,6 +928,8 @@ class ProductDatabase:
                         return (f'{numeric_expr(key)} {op} {ph}', [float(num) - tol])
                     if op in {"<=", "<"}:
                         return (f'{numeric_expr(key)} {op} {ph}', [float(num) + tol])
+                    if op == "=":
+                        return (f'({numeric_expr(key)} >= {ph} AND {numeric_expr(key)} <= {ph})', [float(num) - tol, float(num) + tol])
                 return (f'{numeric_expr(key)} {op} {ph}', [num])
 
             if key == "product_family":
