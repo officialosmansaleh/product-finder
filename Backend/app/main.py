@@ -441,7 +441,7 @@ PIM_CODES_CACHE: Dict[str, Any] = {"path": "", "mtime": 0.0, "rows": []}
 FACETS_CACHE = OrderedDict()   # key -> (timestamp, payload_dict)
 FACETS_CACHE_MAX = cfg_int("main.facets_cache_max", 128)
 FACETS_CACHE_TTL_SEC = cfg_int("main.facets_cache_ttl_sec", 180)  # 3 minutes
-FACETS_CACHE_SCHEMA_VER = cfg_int("main.facets_cache_schema_ver", 4)
+FACETS_CACHE_SCHEMA_VER = cfg_int("main.facets_cache_schema_ver", 5)
 
 def _facets_cache_key(filters: Dict[str, Any]) -> str:
     normalized = {"__v": FACETS_CACHE_SCHEMA_VER}

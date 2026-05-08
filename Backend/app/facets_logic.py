@@ -75,6 +75,10 @@ def handle_facets(
     user_filters = pre_ai_user_filters
     filters = {**parsed, **user_filters}
     sql_filters = map_filters_to_sql(filters)
+    strict_recessed_downlight_names = (
+        str(filters.get("product_family") or "").strip().lower() == "downlight"
+        and str(filters.get("etim_search_key") or "").strip().lower() == "recessed"
+    )
 
     cache_key = facets_cache_key(sql_filters)
     if not getattr(req, "debug", False):
@@ -164,13 +168,14 @@ def handle_facets(
     lumen_calc = (eff * pwr).dropna()
     phot_lumen_minmax = {"min": float(lumen_calc.min()) if not lumen_calc.empty else None, "max": float(lumen_calc.max()) if not lumen_calc.empty else None}
 
-    product_name_short_values = (
-        product_name_short_prefill
-        or top_product_name_short_values(strict_df, limit=name_facet_value_limit)
-        or top_product_name_short_values(broad_df, limit=name_facet_value_limit)
-        or top_product_name_short_values(all_df, limit=name_facet_value_limit)
-        or product_name_short_from_db_fallback(limit=name_facet_value_limit)
-    )
+    product_name_short_values = product_name_short_prefill or top_product_name_short_values(strict_df, limit=name_facet_value_limit)
+    if not strict_recessed_downlight_names:
+        product_name_short_values = (
+            product_name_short_values
+            or top_product_name_short_values(broad_df, limit=name_facet_value_limit)
+            or top_product_name_short_values(all_df, limit=name_facet_value_limit)
+            or product_name_short_from_db_fallback(limit=name_facet_value_limit)
+        )
 
     resp = FacetsResponse(
         families=facet_values_broad_first("product_family", limit=facet_value_limit, fallback_col="product_family") or families_from_db_fallback(limit=facet_value_limit),
