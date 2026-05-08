@@ -491,7 +491,15 @@ class SearchScoringFiltersTests(unittest.TestCase):
 
         fake_rows_df = pd.DataFrame(
             [
-                {"product_code": "E1", "product_name": "Exact Product", "manufacturer": "DISANO"},
+                {
+                    "product_code": "E1",
+                    "product_name": "Exact Product",
+                    "manufacturer": "DISANO",
+                    "diameter": "165 mm",
+                    "luminaire_length": "200 mm",
+                    "luminaire_width": "120 mm",
+                    "luminaire_height": "80 mm",
+                },
                 {"product_code": "C1", "product_name": "Close Product", "manufacturer": "DISANO"},
                 {"product_code": "B1", "product_name": "Broader Product", "manufacturer": "DISANO"},
             ]
@@ -547,6 +555,10 @@ class SearchScoringFiltersTests(unittest.TestCase):
             resp = main_mod.search(req)
 
         self.assertEqual((resp.interpreted or {}).get("result_tiers"), {"exact": 1, "close": 1, "broader": 1})
+        self.assertEqual((resp.exact[0].preview or {}).get("diameter"), "165 mm")
+        self.assertEqual((resp.exact[0].preview or {}).get("luminaire_length"), "200 mm")
+        self.assertEqual((resp.exact[0].preview or {}).get("luminaire_width"), "120 mm")
+        self.assertEqual((resp.exact[0].preview or {}).get("luminaire_height"), "80 mm")
 
     def test_search_reports_user_friendly_recovery_actions(self):
         from app import main as main_mod

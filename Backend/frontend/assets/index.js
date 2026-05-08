@@ -1,5 +1,5 @@
 ﻿// ---------------- State ----------------
-  const UI_BUILD = "2026-05-08-techno-accessory-facets-1";
+  const UI_BUILD = "2026-05-08-result-dimensions-1";
   const selectedFilters = {}; // { key: Set(values as strings) }
   let hasRunSearchOnce = false;
   const $ = (id) => document.getElementById(id);
@@ -2801,12 +2801,16 @@ function resetRange(key, minId, maxId){
     add("CTRL", p.control_protocol);
     add("EM", p.emergency_present);
     add("Beam", p.beam_angle_deg);
+    add("Dia", p.diameter);
+    add("L", p.luminaire_length);
+    add("Wdt", p.luminaire_width);
+    add("H", p.luminaire_height);
     add("Color", p.housing_color);
     add("Shape", p.shape);
     add("Warranty", p.warranty_years);
     add("Life(h)", p.led_rated_life_h ?? p.lifetime_hours);
     add("L maint %", p.lumen_maintenance_pct);
-    return pills.slice(0,12).join("");
+    return pills.slice(0,16).join("");
   }
 
   const RESULT_SPEC_FIELDS = [
@@ -2824,6 +2828,10 @@ function resetRange(key, minId, maxId){
     ["interface", "Interface"],
     ["emergency_present", "Emergency"],
     ["shape", "Shape"],
+    ["diameter", "Diameter"],
+    ["luminaire_length", "Length"],
+    ["luminaire_width", "Width"],
+    ["luminaire_height", "Height"],
     ["housing_color", "Color"],
     ["warranty_years", "Warranty"],
     ["lifetime_hours", "Lifetime h"],
