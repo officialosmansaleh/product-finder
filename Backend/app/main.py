@@ -1660,8 +1660,13 @@ def _top_values(df: pd.DataFrame, col: str, limit: int = 30) -> List[FacetValue]
 def _top_product_name_short_values(df: pd.DataFrame, limit: int = 30) -> List[FacetValue]:
     if df is None or df.empty or "product_name" not in df.columns:
         return []
+    src = df
+    if "product_family" in src.columns:
+        src = src[src["product_family"].astype(str).str.strip().str.lower() != "accessories"]
+    if src.empty:
+        return []
     s = (
-        df["product_name"]
+        src["product_name"]
         .dropna()
         .astype(str)
         .str.strip()
@@ -1690,6 +1695,7 @@ def _product_name_short_from_db_fallback(limit: int = 30) -> List[FacetValue]:
                        COUNT(*) AS cnt
                 FROM products
                 WHERE product_name IS NOT NULL AND TRIM(product_name) <> ''
+                  AND LOWER(TRIM(COALESCE(product_family, ''))) <> 'accessories'
                 GROUP BY pref
                 ORDER BY cnt DESC
                 LIMIT ?
@@ -1700,6 +1706,7 @@ def _product_name_short_from_db_fallback(limit: int = 30) -> List[FacetValue]:
                        COUNT(*) AS cnt
                 FROM products
                 WHERE product_name IS NOT NULL AND TRIM(product_name) <> ''
+                  AND LOWER(TRIM(COALESCE(product_family, ''))) <> 'accessories'
                 GROUP BY pref
                 ORDER BY cnt DESC
                 LIMIT ?
@@ -1747,6 +1754,8 @@ def _product_name_short_from_rows(rows: List[Dict[str, Any]], limit: int = 30) -
         return []
     pref = []
     for r in rows:
+        if str(r.get("product_family") or "").strip().lower() == "accessories":
+            continue
         name = str(r.get("product_name") or "").strip().lower()
         if not name:
             continue

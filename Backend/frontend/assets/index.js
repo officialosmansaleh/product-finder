@@ -2714,6 +2714,8 @@ function resetRange(key, minId, maxId){
     const counts = new Map();
     const arr = Array.isArray(hits) ? hits : [];
     for (const h of arr){
+      const family = String(h?.preview?.product_family || h?.raw?.product_family || "").trim().toLowerCase();
+      if (family === "accessories") continue;
       const name = String(h?.product_name || "").trim().toLowerCase();
       if (!name) continue;
       const first = name.split(/\s+/)[0];

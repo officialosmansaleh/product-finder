@@ -87,6 +87,18 @@ class PublicCatalogAccessTests(unittest.TestCase):
         self.assertGreater(len(data["families"]), 0)
         self.assertIn("product_name_short", data)
 
+    def test_product_name_facets_exclude_accessories(self):
+        main = importlib.import_module("app.main")
+        values = main._product_name_short_from_rows(
+            [
+                {"product_name": "Fixture Alpha", "product_family": "downlight"},
+                {"product_name": "Random Ring", "product_family": "Accessories"},
+                {"product_name": "Random Bracket", "product_family": "Accessories"},
+            ],
+            limit=10,
+        )
+        self.assertEqual([row["value"] for row in values], ["fixture"])
+
     def test_admin_routes_still_require_authentication(self):
         response = self.client.get("/admin/users/pending")
         self.assertEqual(response.status_code, 401, response.text)
