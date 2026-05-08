@@ -878,12 +878,13 @@ def _text_relevance(row: Dict[str, Any], text: str) -> float:
     elif q_compact and (q_compact in code_compact or q_compact in short_compact):
         score += 0.75
 
-    tokens = [x for x in re.split(r"\s+", q) if x]
+    variants = _text_search_variants(q)
+    tokens = [x for variant in variants for x in re.split(r"\s+", variant) if x]
     if tokens:
         token_hits = sum(1 for tok in tokens if tok in hay)
         score += min(0.6, 0.2 * token_hits)
 
-    if q in name:
+    if any(variant in name for variant in variants):
         score += cfg_float("main.similar_text_boost", 0.35)
     elif len(tokens) == 1:
         name_tokens = _name_tokens_for_text_relevance(name)
@@ -1057,6 +1058,26 @@ def _name_tokens_for_text_relevance(name: Any) -> List[str]:
     return [tok for tok in re.split(r"[^0-9a-z]+", str(name or "").lower()) if len(tok) >= 3]
 
 
+def _text_search_variants(text: Any) -> List[str]:
+    q = str(text or "").strip().lower()
+    if not q:
+        return []
+    variants = [q]
+    tokens = [tok for tok in re.split(r"\s+", q) if tok]
+    if len(tokens) == 1:
+        tok = tokens[0]
+        singular = ""
+        if len(tok) > 4 and tok.endswith("ies"):
+            singular = tok[:-3] + "y"
+        elif len(tok) > 4 and tok.endswith("es"):
+            singular = tok[:-2]
+        elif len(tok) > 3 and tok.endswith("s"):
+            singular = tok[:-1]
+        if singular and singular != tok:
+            variants.append(singular)
+    return list(dict.fromkeys(variants))
+
+
 def _find_product_by_code_any(code: str) -> Optional[Dict[str, Any]]:
     c = str(code or "").strip()
     if not c:
@@ -1113,8 +1134,17 @@ def _search_rows_by_text_db(text: str, limit: int = 3000) -> List[Dict[str, Any]
     q_compact = _compact_for_match(q)
     if not q_compact:
         return []
+    name_variants = _text_search_variants(q_l)
+    name_clauses = []
+    name_params: List[str] = []
+    for variant in name_variants:
+        name_clauses.append("LOWER(COALESCE(product_name,'')) LIKE ?")
+        name_params.append(f"%{variant}%")
+        name_clauses.append("LOWER(COALESCE(etim_search_key,'')) LIKE ?")
+        name_params.append(f"%{variant}%")
+    name_where = " OR ".join(name_clauses) or "0=1"
 
-    sql = """
+    sql = f"""
         SELECT *
         FROM products
         WHERE
@@ -1122,7 +1152,7 @@ def _search_rows_by_text_db(text: str, limit: int = 3000) -> List[Dict[str, Any]
             OR LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(short_product_code,'')),'-',''),' ',''),'.','')) = ?
             OR LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_code,'')),'-',''),' ',''),'.','')) LIKE ?
             OR LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(short_product_code,'')),'-',''),' ',''),'.','')) LIKE ?
-            OR LOWER(COALESCE(product_name,'')) LIKE ?
+            OR {name_where}
         ORDER BY
             CASE
                 WHEN LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_code,'')),'-',''),' ',''),'.','')) = ? THEN 0
@@ -1139,7 +1169,7 @@ def _search_rows_by_text_db(text: str, limit: int = 3000) -> List[Dict[str, Any]
         q_compact,
         f"%{q_compact}%",
         f"%{q_compact}%",
-        f"%{q_l}%",
+        *name_params,
         q_compact,
         q_compact,
         q_l,
