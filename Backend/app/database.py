@@ -700,7 +700,9 @@ class ProductDatabase:
             return {"matched": 0, "unchanged": 0, "total_rows": 0, "family_keys": 0}
 
         self._add_missing_columns(["product_family"])
-        rows = self.conn.execute("SELECT product_code, short_product_code, product_name FROM products").fetchall()
+        columns = set(self._table_columns("products"))
+        etim_select = ", etim_search_key" if "etim_search_key" in columns else ""
+        rows = self.conn.execute(f"SELECT product_code, short_product_code, product_name{etim_select} FROM products").fetchall()
         matched = 0
         unchanged = 0
         ph = self._placeholder()
@@ -711,6 +713,9 @@ class ProductDatabase:
             name_key = str(data.get("product_name") or "").strip().split()[0].lower() if str(data.get("product_name") or "").strip() else ""
             composite_key = _family_composite_key(short_key, name_key)
             family = family_map.get(composite_key) or family_map.get(short_key) or family_map.get(name_key)
+            etim_key = str(data.get("etim_search_key") or "").strip().lower()
+            if re.search(r"\bdownlights?\b", etim_key):
+                family = "downlight"
             if not product_code:
                 continue
             if family:

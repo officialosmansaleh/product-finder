@@ -175,6 +175,42 @@ class DbRuntimeTests(unittest.TestCase):
             finally:
                 db.close()
 
+    def test_family_map_import_keeps_etim_downlights_as_downlight(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = os.path.join(td, "products.db")
+            db = ProductDatabase(db_path=db_path, database_url="")
+            try:
+                release = pd.DataFrame([
+                    {
+                        "product_code": "22168010-00",
+                        "short_product_code": "",
+                        "product_name": "New iSpot Comfort 1 - CCT DIP SWITCH",
+                        "product_family": "Accessories",
+                        "etim_search_key": "Recessed downlights",
+                    },
+                    {
+                        "product_code": "A1",
+                        "short_product_code": "1252",
+                        "product_name": "Alpha 100",
+                        "product_family": "old",
+                        "etim_search_key": "",
+                    },
+                ])
+                with mock.patch("app.pim_loader.load_products", return_value=release):
+                    self.assertEqual(db.init_db("etim-downlight.xlsx"), 2)
+
+                result = db.update_families_from_map({"1252": "Street lighting"})
+                self.assertEqual(result["matched"], 2)
+
+                rows = {
+                    row["product_code"]: row["product_family"]
+                    for row in db.search_products({}, limit=10)
+                }
+                self.assertEqual(rows["22168010-00"], "downlight")
+                self.assertEqual(rows["A1"], "Street lighting")
+            finally:
+                db.close()
+
 
 if __name__ == "__main__":
     unittest.main()
