@@ -27,6 +27,15 @@ def _family_from_taxonomy(value) -> str:
     return ""
 
 
+def _family_from_product_name(value) -> str:
+    text = str(value or "").strip().lower()
+    if not text or text in {"nan", "none"}:
+        return ""
+    if re.match(r"^panel\s*tech\b|^paneltech\b", text):
+        return "Panel"
+    return ""
+
+
 def _extract_first_number(x):
     if x is None:
         return None
@@ -698,6 +707,14 @@ def load_products(
             out.loc[hierarchy_mask, "product_family"] = hierarchy_family.loc[hierarchy_mask]
             if verbose:
                 print(f"Assigned {reassigned_hierarchy} hierarchy taxonomy rows to fixture families")
+
+    name_family = out["product_name"].apply(_family_from_product_name) if "product_name" in out.columns else pd.Series("", index=out.index)
+    name_family_mask = name_family.astype(str).str.strip().ne("")
+    reassigned_name_family = int((name_family_mask & (out["product_family"] != name_family)).sum())
+    if reassigned_name_family:
+        out.loc[name_family_mask, "product_family"] = name_family.loc[name_family_mask]
+        if verbose:
+            print(f"Assigned {reassigned_name_family} product-name taxonomy rows to fixture families")
 
     # ---- Exclude non-luminaire lines (accessories, drivers, control gear, etc.) ----
     def _norm_text(x) -> str:

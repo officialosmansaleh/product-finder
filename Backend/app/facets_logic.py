@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
+import re
 
 from app.schema import FacetsResponse, FacetValue, SearchRequest
 
@@ -126,10 +127,20 @@ def handle_facets(
             return df
         return df[df["product_family"].astype(str).str.strip().str.lower() != "accessories"].copy()
 
+    def without_panel_names_for_recessed_downlights(df: pd.DataFrame) -> pd.DataFrame:
+        if not strict_recessed_downlight_names or df is None or df.empty or "product_name" not in df.columns:
+            return df
+        panel_name = df["product_name"].astype(str).str.lower().str.match(r"\s*panel\s*tech\b|\s*paneltech\b", na=False)
+        return df[~panel_name].copy()
+
     broad_df = without_accessories(broad_df)
     broad_family_df = without_accessories(broad_family_df)
     strict_df = without_accessories(strict_df)
     all_df = without_accessories(all_df)
+    broad_df = without_panel_names_for_recessed_downlights(broad_df)
+    broad_family_df = without_panel_names_for_recessed_downlights(broad_family_df)
+    strict_df = without_panel_names_for_recessed_downlights(strict_df)
+    all_df = without_panel_names_for_recessed_downlights(all_df)
 
     def facet_values(col: str, limit: int, fallback_col: Optional[str] = None) -> List[FacetValue]:
         vals = top_values(strict_df, col, limit=limit) or top_values(broad_df, col, limit=limit) or top_values(all_df, col, limit=limit)

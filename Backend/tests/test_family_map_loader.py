@@ -183,6 +183,35 @@ class FamilyMapLoaderTests(unittest.TestCase):
         self.assertEqual(by_code["22163013-00"], "downlight")
         self.assertEqual(by_code["22093030-00"], "Accessories")
 
+    def test_paneltech_name_overrides_recessed_downlight_etim(self):
+        with tempfile.TemporaryDirectory() as td:
+            pim_path = os.path.join(td, "pim.xlsx")
+            family_path = os.path.join(td, "family_map.xlsx")
+            pd.DataFrame(
+                [
+                    {
+                        "Order code": "22184802-00",
+                        "Short product code": "",
+                        "Product name": "PanelTech UGR<lt/>19 - A - DIP SWITCH",
+                        "Etim Search Key": "Recessed downlights",
+                        "Manufacturer": "Fosnova",
+                    },
+                ]
+            ).to_excel(pim_path, index=False)
+            pd.DataFrame(
+                [
+                    {
+                        "Product name": "PanelTech",
+                        "Product family": "Panel",
+                        "Short product code": "",
+                    }
+                ]
+            ).to_excel(family_path, index=False)
+
+            loaded = load_products(pim_path, family_map_path=family_path, verbose=False)
+
+        self.assertEqual(loaded.loc[0, "product_family"], "Panel")
+
     def test_pim_taxonomy_assigns_fixture_families_before_accessory_rules(self):
         with tempfile.TemporaryDirectory() as td:
             pim_path = os.path.join(td, "pim.xlsx")

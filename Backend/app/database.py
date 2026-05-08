@@ -12,7 +12,7 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor, execute_batch
 
 from app.db_runtime import normalize_postgres_url
-from app.pim_loader import _family_composite_key, _family_from_taxonomy
+from app.pim_loader import _family_composite_key, _family_from_product_name, _family_from_taxonomy
 from app.runtime_config import cfg_float, cfg_list
 
 
@@ -720,6 +720,9 @@ class ProductDatabase:
             taxonomy_family = _family_from_taxonomy(data.get("etim_search_key")) or _family_from_taxonomy(data.get("hierarchy"))
             if taxonomy_family:
                 family = taxonomy_family
+            name_family = _family_from_product_name(data.get("product_name"))
+            if name_family:
+                family = name_family
             if not product_code:
                 continue
             if family:

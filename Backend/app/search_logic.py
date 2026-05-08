@@ -84,6 +84,10 @@ def _is_accessories_family(value: Any) -> bool:
     return str(value or "").strip().lower() == "accessories"
 
 
+def _is_panel_product_name(value: Any) -> bool:
+    return bool(re.match(r"^\s*panel\s*tech\b|^\s*paneltech\b", str(value or "").strip().lower()))
+
+
 def _filters_request_accessories(filters: Dict[str, Any]) -> bool:
     value = (filters or {}).get("product_family")
     if isinstance(value, list):
@@ -509,6 +513,14 @@ def handle_search(
         rows = [
             r for r in rows
             if not _is_accessories_family((r or {}).get("product_family"))
+        ]
+    if (
+        str(filters.get("product_family") or "").strip().lower() == "downlight"
+        and str(filters.get("etim_search_key") or "").strip().lower() == "recessed"
+    ):
+        rows = [
+            r for r in rows
+            if not _is_panel_product_name((r or {}).get("product_name"))
         ]
 
     exact_pool: List[Dict[str, Any]] = []
