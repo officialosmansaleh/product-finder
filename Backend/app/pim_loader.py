@@ -9,6 +9,22 @@ import os
 
 ACCESSORIES_FAMILY = "Accessories"
 DOWNLIGHT_FAMILY = "downlight"
+TAXONOMY_FAMILY_RULES = (
+    (r"\bdownlights?\b", DOWNLIGHT_FAMILY),
+    (r"\bwaterproof\b", "Waterproof"),
+    (r"\barchitectural systems?\b", "Linear"),
+    (r"\bcommercial and industrial suspensions?\b", "Highbay"),
+)
+
+
+def _family_from_taxonomy(value) -> str:
+    text = str(value or "").strip().lower()
+    if not text or text in {"nan", "none"}:
+        return ""
+    for pattern, family in TAXONOMY_FAMILY_RULES:
+        if re.search(pattern, text):
+            return family
+    return ""
 
 
 def _extract_first_number(x):
@@ -211,6 +227,7 @@ CANON_SPECS: List[CanonicalSpec] = [
         "product_name",
         ["<Name>", "Product name", "name", "description", "descrizione"],
     ),
+    CanonicalSpec("hierarchy", ["Hierarchy", "Product hierarchy", "Primary Product Hierarchy"]),
     CanonicalSpec("manufacturer", ["Manufacturer", "Brand", "Produttore"]),
     CanonicalSpec("product_family", ["Product family", "Product line", "Family code"]),
     # Family
@@ -661,17 +678,26 @@ def load_products(
             print(f"Assigned {reassigned_unmapped} unmapped rows to {ACCESSORIES_FAMILY}")
     out['product_family'] = out['product_family'].apply(_normalize_family_name)
 
-    # The family map can be too broad for some Fosnova rows whose PIM taxonomy
+    # The family map can be too broad or missing for some rows whose PIM taxonomy
     # is more precise. Example: Techno B is mapped as Linear by prefix, while
     # ETIM marks the actual fixtures as recessed downlights.
     if "etim_search_key" in out.columns:
-        etim_txt = out["etim_search_key"].fillna("").astype(str).str.lower()
-        downlight_mask = etim_txt.str.contains(r"\bdownlights?\b", regex=True, na=False)
-        reassigned_downlights = int((downlight_mask & (out["product_family"] != DOWNLIGHT_FAMILY)).sum())
-        if reassigned_downlights:
-            out.loc[downlight_mask, "product_family"] = DOWNLIGHT_FAMILY
+        etim_family = out["etim_search_key"].apply(_family_from_taxonomy)
+        etim_mask = etim_family.astype(str).str.strip().ne("")
+        reassigned_etim = int((etim_mask & (out["product_family"] != etim_family)).sum())
+        if reassigned_etim:
+            out.loc[etim_mask, "product_family"] = etim_family.loc[etim_mask]
             if verbose:
-                print(f"Assigned {reassigned_downlights} ETIM downlight rows to {DOWNLIGHT_FAMILY}")
+                print(f"Assigned {reassigned_etim} ETIM taxonomy rows to fixture families")
+
+    if "hierarchy" in out.columns:
+        hierarchy_family = out["hierarchy"].apply(_family_from_taxonomy)
+        hierarchy_mask = hierarchy_family.astype(str).str.strip().ne("")
+        reassigned_hierarchy = int((hierarchy_mask & (out["product_family"] != hierarchy_family)).sum())
+        if reassigned_hierarchy:
+            out.loc[hierarchy_mask, "product_family"] = hierarchy_family.loc[hierarchy_mask]
+            if verbose:
+                print(f"Assigned {reassigned_hierarchy} hierarchy taxonomy rows to fixture families")
 
     # ---- Exclude non-luminaire lines (accessories, drivers, control gear, etc.) ----
     def _norm_text(x) -> str:
@@ -699,6 +725,12 @@ def load_products(
     name_txt = (out["product_name"].apply(_norm_text) if "product_name" in out.columns else pd.Series("", index=out.index)).astype(str)
     etim_txt = (out["etim_search_key"].apply(_norm_text) if "etim_search_key" in out.columns else pd.Series("", index=out.index)).astype(str)
 
+    fixture_taxonomy_mask = pd.Series(False, index=out.index)
+    if "etim_search_key" in out.columns:
+        fixture_taxonomy_mask = fixture_taxonomy_mask | out["etim_search_key"].apply(_family_from_taxonomy).astype(str).str.strip().ne("")
+    if "hierarchy" in out.columns:
+        fixture_taxonomy_mask = fixture_taxonomy_mask | out["hierarchy"].apply(_family_from_taxonomy).astype(str).str.strip().ne("")
+
     excl_mask = pd.Series(False, index=out.index)
     for kw in exclude_keywords:
         excl_mask = (
@@ -707,6 +739,7 @@ def load_products(
             | name_txt.str.contains(re.escape(kw), na=False)
             | etim_txt.str.contains(re.escape(kw), na=False)
         )
+    excl_mask = excl_mask & ~fixture_taxonomy_mask
 
     reassigned_count = int(excl_mask.sum())
     if reassigned_count:

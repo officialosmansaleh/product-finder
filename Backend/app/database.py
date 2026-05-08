@@ -12,7 +12,7 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor, execute_batch
 
 from app.db_runtime import normalize_postgres_url
-from app.pim_loader import _family_composite_key
+from app.pim_loader import _family_composite_key, _family_from_taxonomy
 from app.runtime_config import cfg_float, cfg_list
 
 
@@ -701,8 +701,12 @@ class ProductDatabase:
 
         self._add_missing_columns(["product_family"])
         columns = set(self._table_columns("products"))
-        etim_select = ", etim_search_key" if "etim_search_key" in columns else ""
-        rows = self.conn.execute(f"SELECT product_code, short_product_code, product_name{etim_select} FROM products").fetchall()
+        extra_select = ""
+        if "etim_search_key" in columns:
+            extra_select += ", etim_search_key"
+        if "hierarchy" in columns:
+            extra_select += ", hierarchy"
+        rows = self.conn.execute(f"SELECT product_code, short_product_code, product_name{extra_select} FROM products").fetchall()
         matched = 0
         unchanged = 0
         ph = self._placeholder()
@@ -713,9 +717,9 @@ class ProductDatabase:
             name_key = str(data.get("product_name") or "").strip().split()[0].lower() if str(data.get("product_name") or "").strip() else ""
             composite_key = _family_composite_key(short_key, name_key)
             family = family_map.get(composite_key) or family_map.get(short_key) or family_map.get(name_key)
-            etim_key = str(data.get("etim_search_key") or "").strip().lower()
-            if re.search(r"\bdownlights?\b", etim_key):
-                family = "downlight"
+            taxonomy_family = _family_from_taxonomy(data.get("etim_search_key")) or _family_from_taxonomy(data.get("hierarchy"))
+            if taxonomy_family:
+                family = taxonomy_family
             if not product_code:
                 continue
             if family:

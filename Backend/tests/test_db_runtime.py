@@ -211,6 +211,62 @@ class DbRuntimeTests(unittest.TestCase):
             finally:
                 db.close()
 
+    def test_family_map_import_applies_broader_fixture_taxonomy(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = os.path.join(td, "products.db")
+            db = ProductDatabase(db_path=db_path, database_url="")
+            try:
+                release = pd.DataFrame([
+                    {
+                        "product_code": "H1",
+                        "short_product_code": "",
+                        "product_name": "Hydro LED - HP - AC/DC driver",
+                        "product_family": "Accessories",
+                        "etim_search_key": "Waterproof",
+                        "hierarchy": "",
+                    },
+                    {
+                        "product_code": "M1",
+                        "short_product_code": "",
+                        "product_name": "Mini Pastilla",
+                        "product_family": "Accessories",
+                        "etim_search_key": "Civil and Commercial Interiors",
+                        "hierarchy": "Primary Product Hierarchy/Prodotti/APPARECCHI PER ILLUMINAZIONE/Downlight/Mini Pastilla",
+                    },
+                    {
+                        "product_code": "A1",
+                        "short_product_code": "",
+                        "product_name": "3500 Argon 3.6",
+                        "product_family": "Accessories",
+                        "etim_search_key": "Commercial and industrial suspensions",
+                        "hierarchy": "",
+                    },
+                    {
+                        "product_code": "L1",
+                        "short_product_code": "",
+                        "product_name": "Micro Liset",
+                        "product_family": "Accessories",
+                        "etim_search_key": "Architectural systems",
+                        "hierarchy": "",
+                    },
+                ])
+                with mock.patch("app.pim_loader.load_products", return_value=release):
+                    self.assertEqual(db.init_db("fixture-taxonomy.xlsx"), 4)
+
+                result = db.update_families_from_map({"9999": "Street lighting"})
+                self.assertEqual(result["matched"], 4)
+
+                rows = {
+                    row["product_code"]: row["product_family"]
+                    for row in db.search_products({}, limit=10)
+                }
+                self.assertEqual(rows["H1"], "Waterproof")
+                self.assertEqual(rows["M1"], "downlight")
+                self.assertEqual(rows["A1"], "Highbay")
+                self.assertEqual(rows["L1"], "Linear")
+            finally:
+                db.close()
+
 
 if __name__ == "__main__":
     unittest.main()
