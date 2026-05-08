@@ -17,6 +17,14 @@ class LocalParserMultilangFamilyTests(unittest.TestCase):
         parsed = local_text_to_filters("rubin")
         self.assertNotIn("product_family", parsed, msg=f"Unexpected family inferred: {parsed}")
 
+    def test_techno_product_name_does_not_match_ceiling_alias_typo(self):
+        for query in ("techno B", "techno b 114"):
+            parsed = local_text_to_filters(query)
+            self.assertNotIn("product_family", parsed, msg=f"Unexpected family inferred for {query!r}: {parsed}")
+
+        parsed = local_text_to_filters("techo")
+        self.assertEqual(parsed.get("product_family"), "ceiling/wall")
+
     def test_single_token_family_typos_are_tolerated(self):
         cases = {
             "bollrad": "bollard",

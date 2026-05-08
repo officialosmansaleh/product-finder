@@ -252,6 +252,12 @@ _SINGLE_TOKEN_FUZZY_FAMILY_ALIASES = {
     "emergency": {"emergency"},
 }
 
+_EXACT_ONLY_FAMILY_ALIAS_TOKENS = {
+    # Spanish/Portuguese "techo" means ceiling, but product names such as
+    # "Techno B" are one edit away. Keep "techo" as an exact alias only.
+    "techo",
+}
+
 _FAMILY_RULE_PATTERNS: list[tuple[str, tuple[str, ...]]] = [
     (
         "panels",
@@ -593,6 +599,7 @@ def _infer_family(text: str) -> Optional[str]:
             if allow_fuzzy_family:
                 fuzzy = [
                     st for st in syn_tokens
+                    if st not in _EXACT_ONLY_FAMILY_ALIAS_TOKENS
                     if any(_is_close_token(qt, st) for qt in q_tokens)
                 ]
                 if fuzzy:
