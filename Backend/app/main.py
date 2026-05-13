@@ -3101,6 +3101,7 @@ def export_compare_pdf(req: CompareExportPdfRequest, request: FastAPIRequest = N
         os_module=os,
         re_module=re,
         streaming_response_cls=StreamingResponse,
+        current_user=current_user,
     )
     _record_analytics_event(
         request,

@@ -355,6 +355,7 @@ def handle_export_compare_pdf(
     os_module: Any,
     re_module: Any,
     streaming_response_cls: Any,
+    current_user: Any = None,
 ) -> Any:
     codes_in = [str(c or "").strip() for c in (req.codes or []) if str(c or "").strip()]
     ideal_spec_raw = req.ideal_spec or {}
@@ -387,6 +388,80 @@ def handle_export_compare_pdf(
             detail="PDF export dependency missing. Install reportlab on backend.",
         )
 
+    def user_country(value: Any) -> str:
+        if isinstance(value, dict):
+            return str(value.get("country") or "").strip()
+        return str(getattr(value, "country", "") or "").strip()
+
+    def use_us_units() -> bool:
+        country = user_country(current_user).lower()
+        return country in {"united states", "united states of america", "usa", "u.s.a.", "us", "u.s."}
+
+    us_units = use_us_units()
+    dimension_fields = {"diameter", "luminaire_length", "luminaire_width", "luminaire_height"}
+    temp_fields = {"ambient_temp_min_c", "ambient_temp_max_c"}
+    lumen_fields = {"lumen_output", "lumen_output_value"}
+
+    def parse_number_token(token: Any) -> Optional[float]:
+        s = str(token or "").strip()
+        if not s:
+            return None
+        s = re_module.sub(r"[^\d,.\-]", "", s)
+        if re_module.fullmatch(r"-?\d{1,3}(?:[.,]\d{3})+", s or ""):
+            s = re_module.sub(r"[.,]", "", s)
+        last_comma = s.rfind(",")
+        last_dot = s.rfind(".")
+        if last_comma >= 0 and last_dot >= 0:
+            s = s.replace(".", "").replace(",", ".") if last_comma > last_dot else s.replace(",", "")
+        elif last_comma >= 0:
+            s = s.replace(",", ".")
+        try:
+            n = float(s)
+            return n if n == n and n not in {float("inf"), float("-inf")} else None
+        except Exception:
+            return None
+
+    def format_number(n: float, max_decimals: int) -> str:
+        if abs(n - round(n)) < 0.0000001:
+            return f"{int(round(n)):,}"
+        return f"{n:,.{max_decimals}f}".rstrip("0").rstrip(".")
+
+    def replace_numbers(value: Any, converter: Callable[[float], float], max_decimals: int) -> str:
+        source = str(value or "").strip()
+
+        def repl(match: Any) -> str:
+            n = parse_number_token(match.group(0))
+            if n is None:
+                return match.group(0)
+            return format_number(converter(n), max_decimals)
+
+        return re_module.sub(r"-?\d+(?:[.,]\d+)?", repl, source)
+
+    def strip_unit(value: Any, pattern: str) -> str:
+        return re_module.sub(r"\s+", " ", re_module.sub(pattern, "", str(value or ""), flags=re_module.I)).strip()
+
+    def format_us_value(field: str, value: Any) -> str:
+        raw = fmt_val(value)
+        if not raw:
+            return ""
+        if field in dimension_fields:
+            has_metric_unit = bool(re_module.search(r"\b(?:mm|cm|m)\b", raw, flags=re_module.I))
+            unit = "m" if re_module.search(r"\bm\b", raw, flags=re_module.I) and not re_module.search(r"\b(?:mm|cm)\b", raw, flags=re_module.I) else ("cm" if re_module.search(r"\bcm\b", raw, flags=re_module.I) else "mm")
+            multiplier = 1000.0 if unit == "m" else (10.0 if unit == "cm" else 1.0)
+            source = strip_unit(raw, r"\s*(?:mm|cm|m)\b") if has_metric_unit else raw
+            first_match = re_module.search(r"-?\d+(?:[.,]\d+)?", source)
+            first = parse_number_token(first_match.group(0)) if first_match else None
+            if first is not None and first * multiplier >= 304.8 and not re_module.search(r"[<>]=?|=", source):
+                return f"{replace_numbers(source, lambda n: (n * multiplier) / 304.8, 2)} ft"
+            return f"{replace_numbers(source, lambda n: (n * multiplier) / 25.4, 2)} in"
+        if field in temp_fields:
+            source = strip_unit(raw, r"\s*(?:°?\s*C|celsius)\b")
+            return f"{replace_numbers(source, lambda n: (n * 9.0) / 5.0 + 32.0, 1)} °F"
+        if field in lumen_fields:
+            source = strip_unit(raw, r"\s*(?:lm|lumen|lumens)\b")
+            return f"{replace_numbers(source, lambda n: n, 0)} lumens"
+        return raw
+
     field_labels = {
         "product_name": "Product name",
         "manufacturer": "Manufacturer",
@@ -416,9 +491,21 @@ def handle_export_compare_pdf(
         "ambient_temp_min_c": "Min temp (C)",
         "ambient_temp_max_c": "Max temp (C)",
     }
+    if us_units:
+        field_labels.update(
+            {
+                "lumen_output": "Lumens",
+                "lumen_output_value": "Lumens",
+                "ambient_temp_min_c": "Min temp (°F)",
+                "ambient_temp_max_c": "Max temp (°F)",
+            }
+        )
 
     def fmt_val(value: Any) -> str:
         return "" if value is None else str(value).strip()
+
+    def fmt_field_value(field: str, value: Any) -> str:
+        return format_us_value(field, value) if us_units else fmt_val(value)
 
     found_meta = list(compare_payload.get("found") or [])
     items = list(compare_payload.get("items") or [])
@@ -653,7 +740,7 @@ def handle_export_compare_pdf(
         label = field_labels.get(field, humanize_compare_field(field))
         row_cells = [Paragraph(html_module.escape(label), body_style)]
         for value in vals:
-            row_cells.append(Paragraph(html_module.escape(fmt_val(value)), body_style))
+            row_cells.append(Paragraph(html_module.escape(fmt_field_value(field, value)), body_style))
         table_rows.append(row_cells)
         row_is_diff.append(field in diff_fields)
 
