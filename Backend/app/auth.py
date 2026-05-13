@@ -1955,18 +1955,20 @@ class AuthService:
             row = self._fetchone(conn, "SELECT * FROM users WHERE id = ?", (int(user_id),))
             if not row:
                 raise HTTPException(status_code=404, detail="User not found")
-            if int(row["id"]) == int(acting_admin_id):
-                raise HTTPException(status_code=400, detail="Admin cannot edit own account from the admin table")
+            is_self = int(row["id"]) == int(acting_admin_id)
             current_role = str(row.get("role") or ROLE_USER).strip().lower() or ROLE_USER
-            role = str(payload.role or row.get("role") or ROLE_USER).strip().lower() or ROLE_USER
+            role = current_role if is_self else str(payload.role or row.get("role") or ROLE_USER).strip().lower() or ROLE_USER
             if role not in ROLE_ORDER:
                 raise HTTPException(status_code=400, detail="Invalid role")
-            self._assert_can_manage_target_role(
-                actor_role=actor_role,
-                target_current_role=current_role,
-                next_role=role,
+            if not is_self:
+                self._assert_can_manage_target_role(
+                    actor_role=actor_role,
+                    target_current_role=current_role,
+                    next_role=role,
+                )
+            assigned_countries = self._serialize_assigned_countries(
+                self._parse_assigned_countries(row.get("assigned_countries")) if is_self else payload.assigned_countries
             )
-            assigned_countries = self._serialize_assigned_countries(payload.assigned_countries)
             if role != ROLE_MANAGER:
                 assigned_countries = ""
             self._execute(

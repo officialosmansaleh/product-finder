@@ -1561,6 +1561,16 @@
       return true;
     }
 
+    function canEditUser(user){
+      if (!isLeadershipViewer()) return false;
+      if (canManageUser(user)) return true;
+      return Number(user?.id || 0) === Number(currentViewer?.id || 0);
+    }
+
+    function isSelfUser(user){
+      return Number(user?.id || 0) === Number(currentViewer?.id || 0);
+    }
+
     async function postJSON(url, payload){
       const res = await fetch(url, {
         method: "POST",
@@ -1736,15 +1746,15 @@
                 <td>${statusPill(user.status)}</td>
                 <td>
                   <div class="actionsCol">
-                    ${canManageUser(user) && String(user.status || "").toLowerCase() === "approved"
-                      ? `<button class="btn ghost small" data-edit-user="${esc(user.id)}" type="button">${editingUserId === user.id ? "Close edit" : "Edit"}</button><button class="btn secondary small" data-block-user="${esc(user.id)}" type="button">Block</button>`
+                    ${canEditUser(user) && String(user.status || "").toLowerCase() === "approved"
+                      ? `<button class="btn ghost small" data-edit-user="${esc(user.id)}" type="button">${editingUserId === user.id ? "Close edit" : "Edit"}</button>${canManageUser(user) ? `<button class="btn secondary small" data-block-user="${esc(user.id)}" type="button">Block</button>` : ""}`
                     : canManageUser(user) && String(user.status || "").toLowerCase() === "rejected"
                         ? `<button class="btn small" data-approve-user="${esc(user.id)}" type="button">Re-approve</button><button class="btn secondary small" data-delete-user="${esc(user.id)}" type="button">Delete</button>`
                         : `<span class="muted">${isLeadershipViewer() ? "Use pending queue" : "Read only"}</span>`}
                   </div>
                 </td>
               </tr>
-              ${canManageUser(user) && editingUserId === user.id && String(user.status || "").toLowerCase() === "approved" ? `
+              ${canEditUser(user) && editingUserId === user.id && String(user.status || "").toLowerCase() === "approved" ? `
                 <tr>
                   <td colspan="4">
                     <div class="editCard">
@@ -1766,16 +1776,17 @@
                         </div>
                         <div class="editField">
                           <label for="editRole_${esc(user.id)}">Role</label>
-                          <select id="editRole_${esc(user.id)}" class="statusSelect" data-edit-role="${esc(user.id)}">
+                          <select id="editRole_${esc(user.id)}" class="statusSelect" data-edit-role="${esc(user.id)}"${isSelfUser(user) ? ' disabled="disabled"' : ""}>
                             ${roleOptionsHtml(user.role)}
                           </select>
+                          ${isSelfUser(user) ? `<div class="muted">You can edit your profile country here, but not your own role.</div>` : ""}
                         </div>
                         <div class="editField" style="grid-column:1 / -1">
                           <label for="editAssignedCountries_${esc(user.id)}">Assigned countries</label>
-                          <select id="editAssignedCountries_${esc(user.id)}" class="countryMultiSelect" data-edit-assigned-countries="${esc(user.id)}" multiple="multiple" size="6">
+                          <select id="editAssignedCountries_${esc(user.id)}" class="countryMultiSelect" data-edit-assigned-countries="${esc(user.id)}" multiple="multiple" size="6"${isSelfUser(user) ? ' disabled="disabled"' : ""}>
                             ${countryOptionsHtml(user.assigned_countries || [])}
                           </select>
-                          <input class="searchInput" data-edit-assigned-countries-extra="${esc(user.id)}" type="text" placeholder="Custom countries, comma separated" value="${esc((user.assigned_countries || []).filter((value) => !getKnownCountries().some((country) => country.toLowerCase() === String(value || "").toLowerCase())).join(", "))}" />
+                          <input class="searchInput" data-edit-assigned-countries-extra="${esc(user.id)}" type="text" placeholder="Custom countries, comma separated" value="${esc((user.assigned_countries || []).filter((value) => !getKnownCountries().some((country) => country.toLowerCase() === String(value || "").toLowerCase())).join(", "))}"${isSelfUser(user) ? ' disabled="disabled"' : ""} />
                           <div class="muted" data-edit-countries-hint="${esc(user.id)}">Assigned countries are used only for managers.</div>
                         </div>
                       </div>
@@ -1853,6 +1864,7 @@
       wrap.querySelectorAll("[data-save-user]").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const userId = btn.getAttribute("data-save-user");
+          const user = items.find((entry) => String(entry?.id) === String(userId));
           const fullName = wrap.querySelector(`[data-edit-full-name="${CSS.escape(String(userId || ""))}"]`);
           const companyName = wrap.querySelector(`[data-edit-company-name="${CSS.escape(String(userId || ""))}"]`);
           const country = wrap.querySelector(`[data-edit-country="${CSS.escape(String(userId || ""))}"]`);
@@ -1863,15 +1875,20 @@
           const countryValue = String(country?.value || "").trim() === String(countryApi().otherValue || "__OTHER__")
             ? String(countryOther?.value || "").trim()
             : String(country?.value || "").trim();
-          await putJSON(`/admin/users/${userId}`, {
-            full_name: String(fullName?.value || "").trim(),
-            company_name: String(companyName?.value || "").trim(),
-            country: countryValue,
-            role: String(role?.value || "user").trim().toLowerCase(),
-            assigned_countries: mergeAssignedCountries(assignedCountries, assignedCountriesExtra),
-          });
-          editingUserId = null;
-          await loadAdminData();
+          try{
+            await putJSON(`/admin/users/${userId}`, {
+              full_name: String(fullName?.value || "").trim(),
+              company_name: String(companyName?.value || "").trim(),
+              country: countryValue,
+              role: String(role?.value || user?.role || "user").trim().toLowerCase(),
+              assigned_countries: isSelfUser(user) ? (user?.assigned_countries || []) : mergeAssignedCountries(assignedCountries, assignedCountriesExtra),
+            });
+            editingUserId = null;
+            setNotice("User saved.", false);
+            await loadAdminData();
+          }catch(e){
+            setNotice(`Could not save user: ${String(e.message || e)}`, true);
+          }
         });
       });
     }
