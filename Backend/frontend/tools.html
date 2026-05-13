@@ -300,6 +300,7 @@
   <script src="/frontend/assets/auth.js?v=2026-04-24-it-role-lockdown-1"></script>
   <script src="/frontend/assets/consent.js?v=2026-03-31-consent-analytics-1"></script>
   <script src="/frontend/assets/quote-utils.js?v=2026-03-25-quote-modal-labels-1"></script>
+  <script src="/frontend/assets/measurements.js?v=2026-05-13-us-units-1"></script>
   <script>
     const $ = (id)=>document.getElementById(id);
     function readCurrentAuthUser(){
@@ -393,7 +394,7 @@
       return `<a href="${esc(toolsWebsiteUrl(code))}" target="_blank" rel="noopener" title="${esc(label)} item search"><img src="${esc(src)}" alt="${esc(label)}" style="height:16px;width:auto;display:block" /></a>`;
     }
     function prettyLabel(key){
-      return ({
+      const base = ({
         housing_color: "Color",
         beam_angle_deg: "Beam",
         shape: "Shape",
@@ -405,33 +406,36 @@
         ambient_temp_min_c: "Min temp (Â°C)",
         ambient_temp_max_c: "Max temp (Â°C)",
       })[key] || key;
+      return window.ProductFinderMeasurements?.labelForKey?.(key, base) || base;
     }
-    function fmtVal(v){
+    function fmtSpecVal(key, v){
       if (v === null || v === undefined) return "\u2014";
       const s = String(v).trim();
-      return s ? s : "\u2014";
+      if (!s) return "\u2014";
+      return window.ProductFinderMeasurements?.formatSpecValue?.(key, s) || s;
     }
+    function fmtVal(v){ return fmtSpecVal("", v); }
     function _cmpNorm(v){
       return String(v ?? "").trim().toLowerCase();
     }
     function compareMetaBlock(p, other){
       const rows = [
-        ["Color", p?.housing_color, other?.housing_color],
-        ["Beam", p?.beam_angle_deg, other?.beam_angle_deg],
-        ["Warranty", p?.warranty_years, other?.warranty_years],
-        ["Lifetime", p?.lifetime_hours, other?.lifetime_hours],
-        ["LED rated life", p?.led_rated_life_h, other?.led_rated_life_h],
-        ["Lumen maint. %", p?.lumen_maintenance_pct, other?.lumen_maintenance_pct],
-        ["Failure rate %", p?.failure_rate_pct, other?.failure_rate_pct],
-        ["Min temp (Â°C)", p?.ambient_temp_min_c, other?.ambient_temp_min_c],
-        ["Max temp (Â°C)", p?.ambient_temp_max_c, other?.ambient_temp_max_c],
+        ["housing_color", p?.housing_color, other?.housing_color],
+        ["beam_angle_deg", p?.beam_angle_deg, other?.beam_angle_deg],
+        ["warranty_years", p?.warranty_years, other?.warranty_years],
+        ["lifetime_hours", p?.lifetime_hours, other?.lifetime_hours],
+        ["led_rated_life_h", p?.led_rated_life_h, other?.led_rated_life_h],
+        ["lumen_maintenance_pct", p?.lumen_maintenance_pct, other?.lumen_maintenance_pct],
+        ["failure_rate_pct", p?.failure_rate_pct, other?.failure_rate_pct],
+        ["ambient_temp_min_c", p?.ambient_temp_min_c, other?.ambient_temp_min_c],
+        ["ambient_temp_max_c", p?.ambient_temp_max_c, other?.ambient_temp_max_c],
       ].filter(([, v, ov]) => _cmpNorm(v) !== _cmpNorm(ov));
       if (!rows.length) return "";
       return `
         <div class="small" style="margin-top:8px"><b>${esc(tt("comparison_specs"))}</b></div>
         <table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:12px">
           <tbody>
-            ${rows.map(([k,v]) => `<tr><td style="padding:4px 6px 4px 0;border-bottom:1px solid #eef2f7;color:#6b7280">${esc(k)}</td><td style="padding:4px 0;border-bottom:1px solid #eef2f7">${esc(fmtVal(v))}</td></tr>`).join("")}
+            ${rows.map(([k,v]) => `<tr><td style="padding:4px 6px 4px 0;border-bottom:1px solid #eef2f7;color:#6b7280">${esc(prettyLabel(k))}</td><td style="padding:4px 0;border-bottom:1px solid #eef2f7">${esc(fmtSpecVal(k, v))}</td></tr>`).join("")}
           </tbody>
         </table>`;
     }
@@ -912,7 +916,7 @@
         const raw = src[key];
         const value = Array.isArray(raw) ? raw.map(v => String(v ?? "").trim()).filter(Boolean).join(", ") : String(raw ?? "").trim();
         if (!value) continue;
-        rows.push(`<div class="small"><b>${esc(prettyLabel(key))}:</b> ${esc(value)}</div>`);
+        rows.push(`<div class="small"><b>${esc(prettyLabel(key))}:</b> ${esc(fmtSpecVal(key, value))}</div>`);
       }
       if (!rows.length) return `<div class="small">${esc(tt("no_requirement_fields"))}</div>`;
       return `<div class="cmpSpecSummary" style="margin-top:8px;display:grid;gap:4px">${rows.join("")}</div>`;
@@ -996,7 +1000,7 @@
         <div class="solutionsTableWrap">
         <table class="solutionsTable compareDiffTable">
           <thead><tr><th>${esc(tt("field"))}</th>${itemSlots.map(({item, slot}) => `<th>${slotTitle(slot)}${item ? "" : ` (${esc(tt("missing"))})`}</th>`).join("")}</tr></thead>
-          <tbody>${visibleDifferences.map(x=>`<tr><td>${esc(prettyLabel(x.field))}</td>${itemSlots.map(({slot}) => `<td>${esc((x.values || [])[slot])}</td>`).join("")}</tr>`).join("")}</tbody>
+          <tbody>${visibleDifferences.map(x=>`<tr><td>${esc(prettyLabel(x.field))}</td>${itemSlots.map(({slot}) => `<td>${esc(fmtSpecVal(x.field, (x.values || [])[slot]))}</td>`).join("")}</tr>`).join("")}</tbody>
         </table>
         </div>`;
       wireCompareQuoteButtons(itemSlots);

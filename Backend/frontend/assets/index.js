@@ -1884,7 +1884,7 @@
   }
   function prettyFilterLabel(key){
     const k = String(key || "").trim();
-    const base = String(filterDisplayLabel(k) || k);
+    const base = String(window.ProductFinderMeasurements?.labelForKey?.(k, filterDisplayLabel(k) || k) || filterDisplayLabel(k) || k);
     if (!base) return k;
     return base.charAt(0).toUpperCase() + base.slice(1);
   }
@@ -1905,7 +1905,9 @@
       const inner = String(m[2] || "").trim();
       const mm = inner.match(/^([a-z0-9_]+)\s+mismatch:\s*wanted='([^']*)'\s+got='([^']*)'$/i);
       if (mm){
-        return `${label}: requested '${mm[2]}', found '${mm[3]}'`;
+        const displayWanted = formatSpecDisplayValue(m[1], mm[2]);
+        const displayGot = formatSpecDisplayValue(m[1], mm[3]);
+        return `${label}: requested '${displayWanted}', found '${displayGot}'`;
       }
       return `${label}: ${inner}`;
     }
@@ -2033,7 +2035,9 @@
         const sig = normChipSig(k, v);
         selectedSig.add(sig);
         if (importedSig.has(sig)) continue; // Show analyze-file filters as AI chips only.
-        chips.push(`<span class="chip" data-k="${escapeHtml(k)}" data-v="${escapeHtml(v)}"><b>${escapeHtml(filterDisplayLabel(k))}</b>: ${escapeHtml(v)} x</span>`);
+        const displayLabel = window.ProductFinderMeasurements?.labelForKey?.(k, filterDisplayLabel(k)) || filterDisplayLabel(k);
+        const displayValue = formatSpecDisplayValue(k, v);
+        chips.push(`<span class="chip" data-k="${escapeHtml(k)}" data-v="${escapeHtml(v)}"><b>${escapeHtml(displayLabel)}</b>: ${escapeHtml(displayValue)} x</span>`);
       }
     }
     const aiItemsRaw = [
@@ -2056,7 +2060,10 @@
           const cnt = Number(aiCounts[idx] || 0);
           const sev = aiSeverityClass(cnt, maxAiCount);
           const title = `${t("parsed_from_query")} | deviations: ${cnt}`;
-          return `<span class="chip ai ${sev}" data-ai-k="${escapeHtml(String(it.key || ""))}" data-ai-v="${escapeHtml(String(it.value || ""))}" data-ai-src="${escapeHtml(String(it.source || "query"))}" title="${escapeHtml(title)}"><b>${escapeHtml(t("ai"))}</b>: ${escapeHtml(String(it.label || it.key || ""))}: ${escapeHtml(String(it.value || ""))} ${cnt > 0 ? `(${cnt})` : ""} x</span>`;
+          const key = String(it.key || "");
+          const displayLabel = window.ProductFinderMeasurements?.labelForKey?.(key, String(it.label || it.key || "")) || String(it.label || it.key || "");
+          const displayValue = formatSpecDisplayValue(key, String(it.value || ""));
+          return `<span class="chip ai ${sev}" data-ai-k="${escapeHtml(key)}" data-ai-v="${escapeHtml(String(it.value || ""))}" data-ai-src="${escapeHtml(String(it.source || "query"))}" title="${escapeHtml(title)}"><b>${escapeHtml(t("ai"))}</b>: ${escapeHtml(displayLabel)}: ${escapeHtml(displayValue)} ${cnt > 0 ? `(${cnt})` : ""} x</span>`;
         }
         )
       : (lastUnderstoodFilterChips || []).map(chipText =>
@@ -2795,9 +2802,12 @@
     // Try from preview, then from raw
     const p = hit.preview || hit.raw || {};
     const pills = [];
-    const add = (label, value) => {
+    const add = (label, value, key = "") => {
       if (value===undefined || value===null || String(value).trim()==="") return;
-      pills.push(`<span class="pill">${escapeHtml(label)}: ${escapeHtml(value)}</span>`);
+      const displayLabel = window.ProductFinderMeasurements?.labelForKey?.(key, label) || label;
+      const displayValue = key ? formatSpecDisplayValue(key, value) : String(value ?? "").trim();
+      if (!displayValue) return;
+      pills.push(`<span class="pill">${escapeHtml(displayLabel)}: ${escapeHtml(displayValue)}</span>`);
     };
     add("IP", p.ip_rating);
     add("IK", p.ik_rating);
@@ -2805,15 +2815,15 @@
     add("CRI", p.cri);
     add("UGR", p.ugr);
     add("W", p.power_max_w ?? p.power_max_value ?? p.power);
-    add("lm", p.lumen_output ?? p.lumen_output_value);
+    add("lm", p.lumen_output ?? p.lumen_output_value, "lumen_output");
     add("lm/W", p.efficacy_lm_w ?? p.efficacy_value);
     add("CTRL", p.control_protocol);
     add("EM", p.emergency_present);
     add("Beam", p.beam_angle_deg);
-    add("Dia", p.diameter);
-    add("L", p.luminaire_length);
-    add("Wdt", p.luminaire_width);
-    add("H", p.luminaire_height);
+    add("Dia", p.diameter, "diameter");
+    add("L", p.luminaire_length, "luminaire_length");
+    add("Wdt", p.luminaire_width, "luminaire_width");
+    add("H", p.luminaire_height, "luminaire_height");
     add("Color", p.housing_color);
     add("Shape", p.shape);
     add("Warranty", p.warranty_years);
@@ -2876,6 +2886,7 @@
         return `${op}${n}`;
       }
     }
+    s = window.ProductFinderMeasurements?.formatSpecValue?.(key, s) || s;
     return s;
   }
 
@@ -2930,9 +2941,10 @@
       const displayValue = formatSpecDisplayValue(key, value);
       if (!displayValue) return "";
       const state = specStateClass(key, matchedKeys, deviatedKeys);
+      const displayLabel = window.ProductFinderMeasurements?.labelForKey?.(key, label) || label;
       return `
         <div class="specRow ${state}">
-          <span class="specKey">${escapeHtml(label)}</span>
+          <span class="specKey">${escapeHtml(displayLabel)}</span>
           <span class="specValue">${escapeHtml(displayValue)}</span>
         </div>
       `;
