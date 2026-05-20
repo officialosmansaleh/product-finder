@@ -513,7 +513,7 @@
       ? (((payload.local && typeof payload.local === "object") ? payload.local : payload.sql) || {})
       : {};
     const chips = Object.entries(guessed || {}).map(([k, v]) =>
-      `<span class="chip"><b>${escapeHtml(filterDisplayLabel(k))}</b>: ${escapeHtml(String(v || ""))}</span>`
+      `<span class="chip" data-vision-k="${escapeHtml(k)}" data-vision-v="${escapeHtml(String(v || ""))}"><b>${escapeHtml(filterDisplayLabel(k))}</b>: ${escapeHtml(String(v || ""))} x</span>`
     ).join(" ");
     if (!chips && !confidence && !notes){
       hideVisionInfo();
@@ -1802,6 +1802,13 @@
     if (selectedFilters[key].size===0) delete selectedFilters[key];
     renderSelected();
   }
+  function removeImportedFilter(key, value){
+    const k = String(key || "").trim();
+    const v = String(value || "").trim();
+    if (!k || !v) return;
+    removeFilter(k, v);
+    lastImportedFilterItems = (lastImportedFilterItems || []).filter(it => !(String(it?.key || "") === k && String(it?.value || "") === v));
+  }
   function setSingleFilter(key, expr){
     // for range inputs: single string expression, overwrite
     selectedFilters[key] = new Set([String(expr)]);
@@ -2040,16 +2047,19 @@
         chips.push(`<span class="chip" data-k="${escapeHtml(k)}" data-v="${escapeHtml(v)}"><b>${escapeHtml(displayLabel)}</b>: ${escapeHtml(displayValue)} x</span>`);
       }
     }
-    const aiItemsRaw = [
-      ...(Array.isArray(lastImportedFilterItems) ? lastImportedFilterItems : []),
-      ...(Array.isArray(lastUnderstoodFilterItems) ? lastUnderstoodFilterItems : []),
-    ];
+    const importedItems = (Array.isArray(lastImportedFilterItems) ? lastImportedFilterItems : []).filter(it => {
+      const key = String(it?.key || "").trim();
+      const val = String(it?.value || "").trim();
+      return key && val && selectedSig.has(normChipSig(key, val));
+    });
+    const aiItemsRaw = importedItems.concat(Array.isArray(lastUnderstoodFilterItems) ? lastUnderstoodFilterItems : []);
     const aiSeen = new Set();
     const aiItems = aiItemsRaw.filter(it => {
       const key = String(it?.key || "").trim();
       const val = String(it?.value || "").trim();
       const sig = normChipSig(key, val);
-      if (!key || !val || aiSeen.has(sig) || selectedSig.has(sig)) return false;
+      const isImport = String(it?.source || "").trim().toLowerCase() === "import";
+      if (!key || !val || aiSeen.has(sig) || (!isImport && selectedSig.has(sig))) return false;
       aiSeen.add(sig);
       return true;
     });
@@ -3270,13 +3280,24 @@ document.addEventListener("click", (ev)=>{
     const src = String(aiChip.dataset.aiSrc || "query").trim().toLowerCase();
     if (!key || !value) return;
     if (src === "import"){
-      removeFilter(key, value);
-      lastImportedFilterItems = (lastImportedFilterItems || []).filter(it => !(String(it?.key || "") === key && String(it?.value || "") === value));
+      removeImportedFilter(key, value);
       runSearch();
       return;
     }
     const exists = ignoredAIFilterPairs.some(x => String(x.k) === key && String(x.v) === value);
     if (!exists) ignoredAIFilterPairs.push({ k: key, v: value });
+    runSearch();
+    return;
+  }
+
+  const visionBox = $("visionInfo");
+  const visionChip = t.closest(".chip[data-vision-k][data-vision-v]");
+  if (visionChip && visionBox?.contains(visionChip)){
+    const key = String(visionChip.dataset.visionK || "").trim();
+    const value = String(visionChip.dataset.visionV || "").trim();
+    if (!key || !value) return;
+    removeImportedFilter(key, value);
+    visionChip.remove();
     runSearch();
     return;
   }
