@@ -1535,6 +1535,10 @@
       return ["admin", "director", "marketing"].includes(viewerRole());
     }
 
+    function canImportCatalogFiles(){
+      return ["admin", "marketing"].includes(viewerRole());
+    }
+
     function assignableRoleEntries(){
       const roles = [
         ["user", "User"],
@@ -2656,8 +2660,8 @@
       applyViewerLayout();
       const status = $("catalogImportStatus");
       const pimInput = $("catalogImportPim");
-      if (!me || !isAdminViewer()){
-        if (status) status.textContent = "Catalog import is available only to admins.";
+      if (!me || !canImportCatalogFiles()){
+        if (status) status.textContent = "Catalog import is available only to admins or marketing users.";
         return;
       }
       const pimFile = pimInput?.files?.[0];
@@ -2684,8 +2688,8 @@
       applyViewerLayout();
       const status = $("familyMapImportStatus");
       const input = $("familyMapImportFile");
-      if (!me || !isAdminViewer()){
-        if (status) status.textContent = "Family map import is available only to admins.";
+      if (!me || !canImportCatalogFiles()){
+        if (status) status.textContent = "Family map import is available only to admins or marketing users.";
         return;
       }
       const file = input?.files?.[0];
@@ -2712,8 +2716,8 @@
       applyViewerLayout();
       const status = $("priceListImportStatus");
       const input = $("priceListImportFile");
-      if (!me || !isAdminViewer()){
-        if (status) status.textContent = "Price list import is available only to admins.";
+      if (!me || !canImportCatalogFiles()){
+        if (status) status.textContent = "Price list import is available only to admins or marketing users.";
         return;
       }
       const file = input?.files?.[0];

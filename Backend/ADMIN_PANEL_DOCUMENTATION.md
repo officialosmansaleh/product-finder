@@ -35,31 +35,34 @@ The panel is available only to approved staff users:
 - `admin`
 - `director`
 - `manager`
+- `marketing`
 
 Regular `user` accounts cannot open the admin workspace.
 
 ### Role Matrix
 
-| Area | Admin | Director | Manager |
-|---|---:|---:|---:|
-| Open Admin Panel | Yes | Yes | Yes |
-| View pending users | Yes | Yes | No |
-| Approve/reject users | Yes | Yes | No |
-| Edit users | Yes | Yes | No |
-| Assign `admin` role | Yes | No | No |
-| View visible users | Yes | Yes | Yes, country-scoped |
-| View visible quotes | Yes | Yes | Yes, country-scoped |
-| View analytics | Yes | Yes | No |
-| View catalog health | Yes | Yes | Yes |
-| Export catalog release diff | Yes | Yes | No |
-| Edit scoring controls | Yes | No | No |
-| Edit settings | Yes | No | No |
+| Area | Admin | Director | Manager | Marketing |
+|---|---:|---:|---:|---:|
+| Open Admin Panel | Yes | Yes | Yes | Yes |
+| View pending users | Yes | Yes | No | No |
+| Approve/reject users | Yes | Yes | No | No |
+| Edit users | Yes | Yes | No | No |
+| Assign `admin` role | Yes | No | No | No |
+| View visible users | Yes | Yes | Yes, country-scoped | No |
+| View visible quotes | Yes | Yes | Yes, country-scoped | No |
+| View analytics | Yes | Yes | No | No |
+| View catalog health | Yes | Yes | Yes | Yes |
+| Import catalog files | Yes | No | No | Yes |
+| Export catalog release diff | Yes | Yes | No | Yes |
+| Edit scoring controls | Yes | No | No | No |
+| Edit website settings | Yes | No | No | Yes |
 
 ### Scope Rules
 
 - `admin` sees the full workspace.
 - `director` sees the full workspace, but cannot access admin-only settings/scoring.
 - `manager` is limited to users and quotes in `assigned_countries`.
+- `marketing` is limited to catalog health, catalog imports, release changes, website settings, and password management.
 - If a manager has no assigned countries, their visible user/quote scope is empty.
 
 ## Authentication And Approval Flow
@@ -245,6 +248,9 @@ This section gives a quality snapshot of the currently loaded catalog dataset.
 Backend endpoint:
 
 - `GET /admin/catalog-health`
+- `POST /admin/catalog-import`
+- `POST /admin/family-map-import`
+- `POST /admin/price-list-import`
 
 Current checks include:
 
@@ -264,9 +270,11 @@ Current checks include:
 
 This is intended as an operational quality gate before search or quoting issues appear.
 
+Catalog file imports are available to `admin` and `marketing` users.
+
 ### 7. Catalog Release Changes
 
-This section is leadership-only and shows the latest release delta exported from the product database.
+This section is available to `admin`, `director`, and `marketing` users and shows the latest release delta exported from the product database.
 
 Backend endpoints:
 

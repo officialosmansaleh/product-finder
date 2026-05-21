@@ -405,6 +405,30 @@ class AuthFlowTests(unittest.TestCase):
         finally:
             self.main.PRODUCT_DB = original_product_db
 
+    def test_catalog_import_permission_allows_marketing_and_admin_only(self):
+        from fastapi import HTTPException
+        from app.auth import UserPublic
+
+        def user_with_role(role):
+            return UserPublic(
+                id=1,
+                email=f"{role}@test.local",
+                full_name="Role User",
+                role=role,
+                status="approved",
+                created_at="2026-05-21T00:00:00+00:00",
+            )
+
+        self.assertEqual(self.main.require_catalog_import_dep(user_with_role("admin")).role, "admin")
+        self.assertEqual(self.main.require_catalog_import_dep(user_with_role("marketing")).role, "marketing")
+
+        for role in ["user", "manager", "director", "it"]:
+            with self.subTest(role=role):
+                with self.assertRaises(HTTPException) as ctx:
+                    self.main.require_catalog_import_dep(user_with_role(role))
+                self.assertEqual(ctx.exception.status_code, 403)
+                self.assertEqual(ctx.exception.detail, "Catalog import privileges required")
+
     def test_signup_and_approval_emails_go_to_expected_recipients(self):
         sent_messages = []
 

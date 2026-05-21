@@ -149,6 +149,12 @@ def require_release_changes_panel_dep(user: UserPublic = Depends(_get_current_us
     return user
 
 
+def require_catalog_import_dep(user: UserPublic = Depends(_get_current_user_dep)) -> UserPublic:
+    if str(user.role or "").strip().lower() not in {"admin", "marketing"}:
+        raise HTTPException(status_code=403, detail="Catalog import privileges required")
+    return user
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     auth_service.init_db()
@@ -199,9 +205,12 @@ ACCESS_MATRIX = [
     {"path": "/quote/datasheets-zip", "method": "POST", "access": "authenticated", "purpose": "Datasheet ZIP export"},
     {"path": "/parse-pdf", "method": "POST", "access": "authenticated", "purpose": "Tender parsing"},
     {"path": "/parse-image", "method": "POST", "access": "authenticated", "purpose": "Image parsing"},
-    {"path": "/admin/*", "method": "GET/POST/PUT/DELETE", "access": "manager/director/admin", "purpose": "Workspace and admin operations"},
-    {"path": "/admin/catalog-release-diff", "method": "GET", "access": "director/admin", "purpose": "Latest catalog release diff summary"},
-    {"path": "/admin/catalog-release-diff/export", "method": "GET", "access": "director/admin", "purpose": "Latest catalog release diff CSV export"},
+    {"path": "/admin/*", "method": "GET/POST/PUT/DELETE", "access": "role-specific admin workspace", "purpose": "Workspace and admin operations"},
+    {"path": "/admin/catalog-release-diff", "method": "GET", "access": "marketing/director/admin", "purpose": "Latest catalog release diff summary"},
+    {"path": "/admin/catalog-release-diff/export", "method": "GET", "access": "marketing/director/admin", "purpose": "Latest catalog release diff CSV export"},
+    {"path": "/admin/catalog-import", "method": "POST", "access": "marketing/admin", "purpose": "PIM catalog import"},
+    {"path": "/admin/family-map-import", "method": "POST", "access": "marketing/admin", "purpose": "Family map import"},
+    {"path": "/admin/price-list-import", "method": "POST", "access": "marketing/admin", "purpose": "Price list import"},
     {"path": "/debug/*", "method": "GET/POST", "access": "admin/local-debug", "purpose": "Debug-only operations"},
     {"path": "/database/recreate", "method": "POST", "access": "admin/local-debug", "purpose": "Database rebuild"},
     {"path": "/database/refresh", "method": "POST", "access": "admin/local-debug", "purpose": "Database refresh"},
@@ -3386,7 +3395,7 @@ def _require_xlsx_upload(upload: UploadFile, label: str) -> str:
 async def admin_catalog_import(
     pim_file: UploadFile = File(...),
     family_map_file: UploadFile | None = File(None),
-    _admin_user: UserPublic = Depends(require_admin_dep),
+    _catalog_import_user: UserPublic = Depends(require_catalog_import_dep),
 ):
     global DB, PRODUCT_DB, ALLOWED_FAMILIES, ALLOWED_FAMILIES_NORM
 
@@ -3477,7 +3486,7 @@ async def admin_catalog_import(
 @app.post("/admin/price-list-import")
 async def admin_price_list_import(
     price_file: UploadFile = File(...),
-    _admin_user: UserPublic = Depends(require_admin_dep),
+    _catalog_import_user: UserPublic = Depends(require_catalog_import_dep),
 ):
     global DB
     if not PRODUCT_DB:
@@ -3525,7 +3534,7 @@ async def admin_price_list_import(
 @app.post("/admin/family-map-import")
 async def admin_family_map_import(
     family_map_file: UploadFile = File(...),
-    _admin_user: UserPublic = Depends(require_admin_dep),
+    _catalog_import_user: UserPublic = Depends(require_catalog_import_dep),
 ):
     global DB, ALLOWED_FAMILIES, ALLOWED_FAMILIES_NORM
     if not PRODUCT_DB:
