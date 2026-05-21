@@ -1407,6 +1407,15 @@
     return Array.from(set)[0];
   }
 
+  function isFilterValueSelected(key, value){
+    const wantedKey = String(key || "").trim();
+    const wantedValue = String(value || "").trim();
+    if (!wantedKey || !wantedValue) return false;
+    const set = selectedFilters[wantedKey];
+    if (!set || !set.size) return false;
+    return Array.from(set).some(v => String(v || "").trim() === wantedValue);
+  }
+
   function getAiFilterValue(key){
     const wanted = String(key || "").trim();
     if (!wanted) return null;
@@ -1711,6 +1720,22 @@
     }
     lastImportedFilterItems = items;
   }
+
+  function removeVisionFilterChip(key, value){
+    const box = $("visionInfo");
+    if (!box) return;
+    const k = String(key || "").trim();
+    const v = String(value || "").trim();
+    Array.from(box.querySelectorAll(".chip[data-vision-k][data-vision-v]")).forEach(chip => {
+      if (String(chip.dataset.visionK || "").trim() === k && String(chip.dataset.visionV || "").trim() === v){
+        chip.remove();
+      }
+    });
+    if (!box.querySelector(".chip[data-vision-k][data-vision-v]") && !box.querySelector(".meta span") && !box.querySelector(".small")){
+      hideVisionInfo();
+    }
+  }
+
   async function importFiltersFromPdf(fileObj, options = {}){
     if (!fileObj) return;
     const applyNow = options.applyNow !== false;
@@ -1736,6 +1761,7 @@
       };
       if (applyNow){
         applyParsedFiltersObject(parsed, { clearFirst: true });
+        setImportedAiItemsFromParsedFilters(parsed);
         if (out.compareReferenceImage){
           try { sessionStorage.setItem(COMPARE_REF_IMAGE_KEY, out.compareReferenceImage); } catch(_e){}
           setCompareReferenceImageInToolsState(out.compareReferenceImage);
@@ -1777,6 +1803,7 @@
       const out = { parsed, raw: d, compareReferenceImage: dataUrl };
       if (applyNow){
         applyParsedFiltersObject(parsed, { clearFirst: true });
+        setImportedAiItemsFromParsedFilters(parsed);
         if (dataUrl){
           try { sessionStorage.setItem(COMPARE_REF_IMAGE_KEY, dataUrl); } catch(_e){}
           setCompareReferenceImageInToolsState(dataUrl);
@@ -1808,6 +1835,7 @@
     if (!k || !v) return;
     removeFilter(k, v);
     lastImportedFilterItems = (lastImportedFilterItems || []).filter(it => !(String(it?.key || "") === k && String(it?.value || "") === v));
+    removeVisionFilterChip(k, v);
   }
   function setSingleFilter(key, expr){
     // for range inputs: single string expression, overwrite
@@ -3055,6 +3083,7 @@ function buildSearchCompareSpec(rawFilters, queryText){
     const key = String(item?.key || "").trim();
     const value = String(item?.value || "").trim();
     if (!key || !value) continue;
+    if (String(item?.source || "").trim().toLowerCase() === "import" && !isFilterValueSelected(key, value)) continue;
     if (!(key in spec)) spec[key] = value;
   }
   const text = String(queryText || "").trim();
