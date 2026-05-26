@@ -2586,6 +2586,72 @@
     return res.json();
   }
 
+  function topResultCodesForFeedback(){
+    const exact = Array.isArray(allExactResults) ? allExactResults : [];
+    const similar = Array.isArray(allSimilarResults) ? allSimilarResults : [];
+    const source = exact.length ? exact : similar;
+    const seen = new Set();
+    const codes = [];
+    for (const hit of source){
+      const code = String(hit?.product_code || "").trim();
+      if (!code || seen.has(code.toLowerCase())) continue;
+      seen.add(code.toLowerCase());
+      codes.push(code);
+      if (codes.length >= 10) break;
+    }
+    return codes;
+  }
+
+  async function saveSearchLearning(){
+    const queryText = getCurrentQueryText();
+    const correctedFilters = buildFiltersPayload();
+    const preferredCodes = topResultCodesForFeedback();
+    if (!queryText && !Object.keys(correctedFilters).length && !preferredCodes.length){
+      toast("Run a search or set filters before saving learning");
+      return;
+    }
+    const btn = $("btnSaveLearning");
+    const oldText = btn ? btn.textContent : "";
+    if (btn){
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+    }
+    try{
+      await postJSON("/feedback/search", {
+        query_text: queryText,
+        corrected_filters: correctedFilters,
+        ignored_ai_filters: ignoredAIFilterPairs.map(x => ({ k: String(x.k || ""), v: String(x.v || "") })),
+        interpreted: lastInterpretedSearch || {},
+        preferred_product_codes: preferredCodes,
+        source: "finder-ui"
+      });
+      toast("Learning saved");
+      if (typeof trackUsage === "function"){
+        trackUsage("search_feedback_saved_client", {
+          page: "finder",
+          query_text: queryText,
+          filters: correctedFilters,
+          metadata: { preferred_count: preferredCodes.length }
+        });
+      }
+    }catch(e){
+      const msg = String(e?.message || e || "");
+      if (msg.startsWith("401")){
+        toast("Log in to save learning");
+        try{ window.ProductFinderAuth?.open?.("login"); }catch(_e){}
+      } else if (msg.startsWith("403")){
+        toast("Learning is not enabled for your user");
+      } else {
+        toast("Could not save learning");
+      }
+    }finally{
+      if (btn){
+        btn.disabled = false;
+        btn.textContent = oldText || "Save learning";
+      }
+    }
+  }
+
   function hasAuthenticatedSession(){
     try{
       return !!window.ProductFinderAuth?.hasSession?.();
@@ -2599,6 +2665,15 @@
       return String(window.ProductFinderAuth?.getUser?.()?.role || "").trim().toLowerCase();
     }catch(_e){
       return "";
+    }
+  }
+
+  function canContributeLearning(){
+    try{
+      const user = window.ProductFinderAuth?.getUser?.();
+      return !!user?.can_contribute_learning;
+    }catch(_e){
+      return false;
     }
   }
 
@@ -2687,6 +2762,7 @@
 
     setVisible($("btnTools"), compareAndQuoteEnabled, "");
     setVisible($("btnQuote"), compareAndQuoteEnabled, "");
+    setVisible($("btnSaveLearning"), canContributeLearning(), "");
     setVisible($("toolsComparePreview"), compareAndQuoteEnabled, "");
     setVisible($("finderImportRow"), compareAndQuoteEnabled, "");
     setVisible($("visionInfo"), !publicMode, "");
@@ -3751,6 +3827,9 @@ document.addEventListener("keydown", (ev)=>{
     $("btnClearAll").addEventListener("click", ()=>{
       clearAll();
       if (isMobileViewport()) closeFiltersPanel();
+    });
+    $("btnSaveLearning")?.addEventListener("click", ()=>{
+      saveSearchLearning();
     });
     $("sortSel").addEventListener("change", ()=>{
       finderSortModes[activeResultsTab] = normalizeSortModeForAccess($("sortSel")?.value || finderSortModes[activeResultsTab] || "score_desc");

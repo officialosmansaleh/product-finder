@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Laiting Workspace</title>
-  <link rel="stylesheet" href="/frontend/assets/index.css?v=2026-04-29-result-cards-1" />
+  <link rel="stylesheet" href="/frontend/assets/index.css?v=2026-05-26-search-learning-1" />
 </head>
 <body data-page="finder">
   <div id="welcomeGate" class="welcomeGate" aria-hidden="false">
@@ -65,7 +65,10 @@
 
       <div class="h">Selected filters</div>
       <div id="selected" class="row wrap"></div>
-      <div class="small" style="margin-top:8px">Use Lock to make a parsed filter mandatory, or x to deactivate a filter. Search auto-runs.</div>
+      <div class="row" style="margin-top:8px;justify-content:space-between;align-items:center">
+        <div class="small">Use Lock to make a parsed filter mandatory, or x to deactivate a filter. Search auto-runs.</div>
+        <button id="btnSaveLearning" class="btn secondary compact" type="button" title="Save this corrected search as training data">Save learning</button>
+      </div>
 
       <div class="hr"></div>
       <div class="groupNav" id="groupNav">
@@ -445,6 +448,6 @@
 
   <script src="/frontend/assets/auth.js?v=2026-04-24-it-role-lockdown-1"></script>
   <script src="/frontend/assets/measurements.js?v=2026-05-13-us-units-1"></script>
-  <script src="/frontend/assets/index.js?v=2026-05-26-filter-chip-controls-1"></script>
+  <script src="/frontend/assets/index.js?v=2026-05-26-search-learning-1"></script>
 </body>
 </html>

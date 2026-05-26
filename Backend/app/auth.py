@@ -101,6 +101,7 @@ class UserPublic(BaseModel):
     assigned_countries: list[str] = Field(default_factory=list)
     role: str
     status: str
+    can_contribute_learning: bool = False
     created_at: str
     approved_at: Optional[str] = None
     last_login_at: Optional[str] = None
@@ -121,6 +122,7 @@ class UserStatusUpdateResponse(BaseModel):
 class UserApprovalRequest(BaseModel):
     role: str = Field(default=ROLE_USER, pattern="^(admin|it|director|manager|marketing|user)$")
     assigned_countries: list[str] = Field(default_factory=list)
+    can_contribute_learning: bool = False
 
     @field_validator("role")
     @classmethod
@@ -156,6 +158,7 @@ class AdminUserUpdateRequest(BaseModel):
     country: str = Field(default="", max_length=120)
     role: str = Field(default=ROLE_USER, pattern="^(admin|it|director|manager|marketing|user)$")
     assigned_countries: list[str] = Field(default_factory=list)
+    can_contribute_learning: bool = False
 
     @field_validator("full_name", "company_name", "country")
     @classmethod
@@ -444,6 +447,7 @@ class AuthService:
                         assigned_countries TEXT NOT NULL DEFAULT '',
                         role TEXT NOT NULL DEFAULT 'user',
                         status TEXT NOT NULL DEFAULT 'pending',
+                        can_contribute_learning BOOLEAN NOT NULL DEFAULT FALSE,
                         created_at TEXT NOT NULL,
                         approved_at TEXT,
                         approved_by BIGINT,
@@ -465,6 +469,7 @@ class AuthService:
                         assigned_countries TEXT NOT NULL DEFAULT '',
                         role TEXT NOT NULL DEFAULT 'user',
                         status TEXT NOT NULL DEFAULT 'pending',
+                        can_contribute_learning INTEGER NOT NULL DEFAULT 0,
                         created_at TEXT NOT NULL,
                         approved_at TEXT,
                         approved_by INTEGER,
@@ -478,6 +483,7 @@ class AuthService:
                 self._execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS company_name TEXT NOT NULL DEFAULT ''")
                 self._execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS country TEXT NOT NULL DEFAULT ''")
                 self._execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS assigned_countries TEXT NOT NULL DEFAULT ''")
+                self._execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS can_contribute_learning BOOLEAN NOT NULL DEFAULT FALSE")
             else:
                 try:
                     self._execute(conn, "ALTER TABLE users ADD COLUMN company_name TEXT NOT NULL DEFAULT ''")
@@ -489,6 +495,10 @@ class AuthService:
                     pass
                 try:
                     self._execute(conn, "ALTER TABLE users ADD COLUMN assigned_countries TEXT NOT NULL DEFAULT ''")
+                except Exception:
+                    pass
+                try:
+                    self._execute(conn, "ALTER TABLE users ADD COLUMN can_contribute_learning INTEGER NOT NULL DEFAULT 0")
                 except Exception:
                     pass
             if self.backend == "postgres":
@@ -1747,6 +1757,7 @@ class AuthService:
             assigned_countries=self._parse_assigned_countries(row.get("assigned_countries")),
             role=str(row.get("role") or "user"),
             status=str(row.get("status") or "pending"),
+            can_contribute_learning=bool(row.get("can_contribute_learning")),
             created_at=str(row.get("created_at") or ""),
             approved_at=row.get("approved_at"),
             last_login_at=row.get("last_login_at"),
@@ -1893,6 +1904,7 @@ class AuthService:
         acting_admin_id: int,
         role: str | None = None,
         assigned_countries: list[str] | None = None,
+        can_contribute_learning: bool | None = None,
     ) -> UserPublic:
         actor_role = self._get_actor_role(int(acting_admin_id))
         with self.connect() as conn:
@@ -1916,10 +1928,13 @@ class AuthService:
             )
             if next_role != ROLE_MANAGER:
                 next_assigned_countries = ""
+            next_can_contribute_learning = bool(
+                row.get("can_contribute_learning") if can_contribute_learning is None else can_contribute_learning
+            )
             self._execute(
                 conn,
-                "UPDATE users SET status = ?, role = ?, assigned_countries = ?, approved_at = ?, approved_by = ? WHERE id = ?",
-                (status, next_role, next_assigned_countries, approved_at, int(acting_admin_id), int(user_id)),
+                "UPDATE users SET status = ?, role = ?, assigned_countries = ?, can_contribute_learning = ?, approved_at = ?, approved_by = ? WHERE id = ?",
+                (status, next_role, next_assigned_countries, next_can_contribute_learning, approved_at, int(acting_admin_id), int(user_id)),
             )
             fresh = self._fetchone(conn, "SELECT * FROM users WHERE id = ?", (int(user_id),))
         if not fresh:
@@ -1933,6 +1948,7 @@ class AuthService:
         *,
         role: str = "user",
         assigned_countries: list[str] | None = None,
+        can_contribute_learning: bool = False,
     ) -> UserPublic:
         user = self._change_status(
             user_id,
@@ -1940,6 +1956,7 @@ class AuthService:
             acting_admin_id=acting_admin_id,
             role=role,
             assigned_countries=assigned_countries,
+            can_contribute_learning=can_contribute_learning,
         )
         self._send_approval_email(to_email=user.email, full_name=user.full_name)
         return user
@@ -1975,7 +1992,7 @@ class AuthService:
                 conn,
                 """
                 UPDATE users
-                SET full_name = ?, company_name = ?, country = ?, role = ?, assigned_countries = ?
+                SET full_name = ?, company_name = ?, country = ?, role = ?, assigned_countries = ?, can_contribute_learning = ?
                 WHERE id = ?
                 """,
                 (
@@ -1984,6 +2001,7 @@ class AuthService:
                     str(payload.country or "").strip(),
                     role,
                     assigned_countries,
+                    bool(row.get("can_contribute_learning")) if is_self else bool(payload.can_contribute_learning),
                     int(user_id),
                 ),
             )

@@ -150,6 +150,8 @@
     .pill{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid transparent}
     .pill.pending{background:#fffbeb;color:#92400e;border-color:#fde68a}
     .pill.approved{background:#ecfdf5;color:#166534;border-color:#bbf7d0}
+    .pill.active{background:#ecfdf5;color:#166534;border-color:#bbf7d0}
+    .pill.inactive{background:#f8fafc;color:#475569;border-color:#cbd5e1}
     .pill.rejected{background:#fff1f2;color:#9f1239;border-color:#fecdd3}
     .panelTitle{font-size:15px;font-weight:800;margin:0 0 10px}
     .panelSub{font-size:12px;color:var(--muted);margin:0 0 12px}
@@ -302,6 +304,7 @@
           <a class="adminMenuLink" href="#usersSection" data-admin-nav="usersSection"><span>Users</span><span class="adminMenuMeta">Approvals</span></a>
           <a class="adminMenuLink" href="#quotesSection" data-admin-nav="quotesSection"><span>Quotes</span><span class="adminMenuMeta">Projects</span></a>
           <a class="adminMenuLink" href="#analyticsSection" data-admin-nav="analyticsSection"><span>Analytics</span><span class="adminMenuMeta">Usage</span></a>
+          <a class="adminMenuLink" href="#learningSection" data-admin-nav="learningSection"><span>Learning</span><span class="adminMenuMeta">Approval</span></a>
           <a class="adminMenuLink" href="#catalogHealthSection" data-admin-nav="catalogHealthSection"><span>Catalog health</span><span class="adminMenuMeta">Quality</span></a>
           <a class="adminMenuLink" href="#releaseChangesSection" data-admin-nav="releaseChangesSection"><span>Release changes</span><span class="adminMenuMeta">Diff</span></a>
           <a class="adminMenuLink" href="#administrationSection" data-admin-nav="administrationSection"><span>Administration</span><span class="adminMenuMeta">Bootstrap</span></a>
@@ -524,6 +527,41 @@
       </div>
     </section>
 
+    <section id="learningSection" class="card analyticsSection adminAnchorSection adminWorkspaceSection">
+      <div class="sectionHeader">
+        <div>
+          <h2 class="panelTitle">Learning index</h2>
+          <p class="panelSub">Saved search examples are inactive until reviewed. Approval can activate an example for future learning workflows.</p>
+        </div>
+        <button id="btnRefreshLearning" class="btn ghost small" type="button">Refresh learning</button>
+      </div>
+      <div id="learningNotice" class="notice">Loading learning index...</div>
+      <div class="analyticsGrid">
+        <div class="analyticsStat"><div class="k">Saved examples</div><div id="statLearningTotal" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Learning contributors</div><div id="statLearningContributors" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Authorized examples</div><div id="statLearningAuthorized" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Active for learning</div><div id="statLearningActive" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Corrected examples</div><div id="statLearningCorrected" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Confirmed examples</div><div id="statLearningConfirmed" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Searches 30d</div><div id="statLearningSearches" class="v">-</div></div>
+        <div class="analyticsStat"><div class="k">Learning coverage</div><div id="statLearningCoverage" class="v">-</div></div>
+      </div>
+      <div class="analyticsLists">
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Top corrected filters</h3>
+          <div id="learningTopCorrectedFields" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard">
+          <h3 class="panelTitle">Top deactivated AI filters</h3>
+          <div id="learningTopIgnoredFields" class="analyticsList"></div>
+        </div>
+        <div class="analyticsListCard" style="grid-column:1 / -1">
+          <h3 class="panelTitle">Recent learning examples</h3>
+          <div id="learningRecent" class="analyticsList"></div>
+        </div>
+      </div>
+    </section>
+
     <section id="catalogHealthSection" class="card catalogHealthSection adminAnchorSection adminWorkspaceSection">
       <div class="sectionHeader">
         <div>
@@ -730,6 +768,7 @@
     let allVisibleQuotes = [];
     let allSettings = [];
     let latestAnalyticsSummary = {};
+    let latestLearningIndex = {};
     let selectedSettingsCategory = "All";
     let settingsSearchTerm = "";
     let scoringSearchTerm = "";
@@ -996,6 +1035,13 @@
       box.className = `notice${isError ? " error" : ""}`;
     }
 
+    function setLearningNotice(message, isError){
+      const box = $("learningNotice");
+      if (!box) return;
+      box.textContent = message;
+      box.className = `notice${isError ? " error" : ""}`;
+    }
+
     function setCatalogHealthNotice(message, isError){
       const box = $("catalogHealthNotice");
       if (!box) return;
@@ -1051,10 +1097,11 @@
       const allowed = [];
       if (!currentViewer) return ["overviewSection"];
       if (viewerRole() === "user") return ["passwordSection"];
-      if (isMarketingViewer()) return ["catalogHealthSection", "releaseChangesSection", "settingsSection", "passwordSection"];
+      if (isMarketingViewer()) return ["learningSection", "catalogHealthSection", "releaseChangesSection", "settingsSection", "passwordSection"];
       if (isItViewer()) return ["settingsSection", "passwordSection"];
       if (currentViewer && isStaffViewer()){
         allowed.push("overviewSection", "usersSection", "quotesSection", "analyticsSection", "catalogHealthSection", "passwordSection");
+        if (canReviewLearning()) allowed.push("learningSection");
         if (isLeadershipViewer()) allowed.push("releaseChangesSection");
         if (isAdminViewer()) allowed.push("administrationSection", "scoringSection", "settingsSection");
       }
@@ -1114,6 +1161,70 @@
         return;
       }
       mount.innerHTML = rows.map((row) => formatter(row)).join("");
+    }
+
+    function renderLearningIndex(data){
+      latestLearningIndex = data || {};
+      const summary = latestLearningIndex.summary || {};
+      $("statLearningTotal").textContent = summary.total_examples ?? 0;
+      $("statLearningContributors").textContent = summary.contributors ?? 0;
+      $("statLearningAuthorized").textContent = summary.active_learning_examples ?? 0;
+      $("statLearningActive").textContent = summary.active_learning_examples ?? 0;
+      $("statLearningCorrected").textContent = summary.corrected_examples ?? 0;
+      $("statLearningConfirmed").textContent = summary.confirmed_examples ?? 0;
+      $("statLearningSearches").textContent = summary.searches_30d ?? 0;
+      $("statLearningCoverage").textContent = `${summary.learning_coverage_pct ?? 0}%`;
+      renderAnalyticsList("learningTopCorrectedFields", latestLearningIndex.top_corrected_fields || [], (row) => `
+        <div class="analyticsRow">
+          <div class="analyticsLabel">${esc(row.field || "")}</div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+      renderAnalyticsList("learningTopIgnoredFields", latestLearningIndex.top_ignored_fields || [], (row) => `
+        <div class="analyticsRow">
+          <div class="analyticsLabel">${esc(row.field || "")}</div>
+          <div class="analyticsCount">${esc(row.count || 0)}</div>
+        </div>
+      `);
+      renderLearningRecent(latestLearningIndex.recent || []);
+    }
+
+    function filterSummaryText(filters){
+      const entries = Object.entries(filters || {}).slice(0, 5);
+      if (!entries.length) return "No mandatory filters saved";
+      return entries.map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`).join(" | ");
+    }
+
+    function ignoredSummaryText(items){
+      const arr = Array.isArray(items) ? items : [];
+      if (!arr.length) return "No AI filters deactivated";
+      return arr.slice(0, 5).map((item) => `${item.k || item.key}: ${item.v || item.value}`).join(" | ");
+    }
+
+    function renderLearningRecent(rows){
+      const mount = $("learningRecent");
+      if (!mount) return;
+      if (!Array.isArray(rows) || !rows.length){
+        mount.innerHTML = `<div class="empty">No learning examples saved yet.</div>`;
+        return;
+      }
+      mount.innerHTML = rows.map((row) => {
+        const status = row.use_for_learning ? "active" : "inactive";
+        return `
+          <div class="analyticsRow" data-learning-id="${esc(row.id || "")}">
+            <div>
+              <div class="analyticsLabel">${esc(row.query_text || "(empty query)")}</div>
+              <div class="analyticsMeta">Corrected: ${esc(filterSummaryText(row.corrected_filters || {}))}</div>
+              <div class="analyticsMeta">Deactivated: ${esc(ignoredSummaryText(row.ignored_ai_filters || []))}</div>
+              <div class="analyticsMeta">Preferred products: ${esc((row.preferred_product_codes || []).join(", ") || "None saved")}</div>
+              <div class="analyticsMeta">${esc(row.user_email || "Unknown user")} | ${esc(formatDate(row.created_at || ""))}</div>
+            </div>
+            <div class="actionsCol">
+              <span class="pill ${esc(status)}">${esc(status)}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
     }
 
     function renderAnalytics(summary){
@@ -1515,6 +1626,10 @@
       return ["admin", "director"].includes(viewerRole());
     }
 
+    function canReviewLearning(){
+      return ["admin", "director", "marketing"].includes(viewerRole());
+    }
+
     function isManagerViewer(){
       return viewerRole() === "manager";
     }
@@ -1678,6 +1793,10 @@
                         <input class="searchInput" data-approve-countries-extra="${esc(user.id)}" type="text" placeholder="Custom countries, comma separated" />
                         <span class="muted" data-approve-countries-hint="${esc(user.id)}">Assigned countries are used only for managers.</span>
                       </div>
+                      <label class="muted row" style="gap:6px">
+                        <input type="checkbox" data-approve-learning="${esc(user.id)}" />
+                        Can save learning examples
+                      </label>
                       <button class="btn small" data-approve="${esc(user.id)}" type="button">Approve</button>
                       <button class="btn secondary small" data-reject="${esc(user.id)}" type="button">Reject</button>
                     ` : '<span class="muted">Directors or admins only</span>'}
@@ -1694,9 +1813,14 @@
           const roleInput = wrap.querySelector(`[data-approve-role="${CSS.escape(String(userId || ""))}"]`);
           const countriesInput = wrap.querySelector(`[data-approve-countries="${CSS.escape(String(userId || ""))}"]`);
           const countriesExtra = wrap.querySelector(`[data-approve-countries-extra="${CSS.escape(String(userId || ""))}"]`);
+          const learningInput = wrap.querySelector(`[data-approve-learning="${CSS.escape(String(userId || ""))}"]`);
           const role = String(roleInput?.value || "user").trim().toLowerCase();
           const assignedCountries = mergeAssignedCountries(countriesInput, countriesExtra);
-          await postJSON(`/admin/users/${userId}/approve`, { role, assigned_countries: assignedCountries });
+          await postJSON(`/admin/users/${userId}/approve`, {
+            role,
+            assigned_countries: assignedCountries,
+            can_contribute_learning: learningInput instanceof HTMLInputElement ? learningInput.checked : false,
+          });
           await loadAdminData();
         });
       });
@@ -1747,7 +1871,10 @@
                   </div>
                 </td>
                 <td>${roleCellContent(user)}</td>
-                <td>${statusPill(user.status)}</td>
+                <td>
+                  ${statusPill(user.status)}
+                  ${user.can_contribute_learning ? `<div style="margin-top:6px"><span class="pill active">learning</span></div>` : ""}
+                </td>
                 <td>
                   <div class="actionsCol">
                     ${canEditUser(user) && String(user.status || "").toLowerCase() === "approved"
@@ -1792,6 +1919,13 @@
                           </select>
                           <input class="searchInput" data-edit-assigned-countries-extra="${esc(user.id)}" type="text" placeholder="Custom countries, comma separated" value="${esc((user.assigned_countries || []).filter((value) => !getKnownCountries().some((country) => country.toLowerCase() === String(value || "").toLowerCase())).join(", "))}"${isSelfUser(user) ? ' disabled="disabled"' : ""} />
                           <div class="muted" data-edit-countries-hint="${esc(user.id)}">Assigned countries are used only for managers.</div>
+                        </div>
+                        <div class="editField" style="grid-column:1 / -1">
+                          <label class="row" style="gap:8px">
+                            <input data-edit-learning="${esc(user.id)}" type="checkbox" ${user.can_contribute_learning ? 'checked="checked"' : ""}${isSelfUser(user) ? ' disabled="disabled"' : ""} />
+                            <span>Can save learning examples</span>
+                          </label>
+                          <div class="muted">This allows the user to add confirmed or corrected searches to the learning index.</div>
                         </div>
                       </div>
                       <div class="actionsCol">
@@ -1876,6 +2010,7 @@
           const role = wrap.querySelector(`[data-edit-role="${CSS.escape(String(userId || ""))}"]`);
           const assignedCountries = wrap.querySelector(`[data-edit-assigned-countries="${CSS.escape(String(userId || ""))}"]`);
           const assignedCountriesExtra = wrap.querySelector(`[data-edit-assigned-countries-extra="${CSS.escape(String(userId || ""))}"]`);
+          const learningInput = wrap.querySelector(`[data-edit-learning="${CSS.escape(String(userId || ""))}"]`);
           const countryValue = String(country?.value || "").trim() === String(countryApi().otherValue || "__OTHER__")
             ? String(countryOther?.value || "").trim()
             : String(country?.value || "").trim();
@@ -1886,6 +2021,7 @@
               country: countryValue,
               role: String(role?.value || user?.role || "user").trim().toLowerCase(),
               assigned_countries: isSelfUser(user) ? (user?.assigned_countries || []) : mergeAssignedCountries(assignedCountries, assignedCountriesExtra),
+              can_contribute_learning: isSelfUser(user) ? !!user?.can_contribute_learning : (learningInput instanceof HTMLInputElement ? learningInput.checked : false),
             });
             editingUserId = null;
             setNotice("User saved.", false);
@@ -2606,6 +2742,30 @@
       }
     }
 
+    async function loadLearningIndex(){
+      try{
+        const me = window.ProductFinderAuth?.getUser?.();
+        currentViewer = me || null;
+        applyViewerLayout();
+        if (!me || !canReviewLearning()){
+          setLearningNotice("Learning review is available only to approved admin, director, or marketing users.", true);
+          renderLearningIndex({});
+          return;
+        }
+        setLearningNotice("Loading learning index...", false);
+        const data = await getJSON("/admin/learning-index");
+        renderLearningIndex(data || {});
+        const summary = data?.summary || {};
+        setLearningNotice(
+          `${summary.active_learning_examples || 0} examples are active for learning. Only users with learning permission can create these examples.`,
+          false,
+        );
+      }catch(error){
+        setLearningNotice(String(error.message || error), true);
+        renderLearningIndex({});
+      }
+    }
+
     async function loadVisibleQuotes(){
       try{
         const me = window.ProductFinderAuth?.getUser?.();
@@ -2793,6 +2953,7 @@
       }
       if (isMarketingViewer()){
         await loadSettings();
+        await loadLearningIndex();
         await loadReleaseDiff();
         await loadCatalogHealth();
         setPasswordNotice("Change your own password here.", false);
@@ -2806,6 +2967,7 @@
       await loadVisibleQuotes();
       await loadSettings();
       await loadAnalytics();
+      await loadLearningIndex();
       await loadReleaseDiff();
       await loadCatalogHealth();
       if (currentViewer) setPasswordNotice("Change your own password here.", false);
@@ -2845,6 +3007,9 @@
     $("btnRefreshAnalytics").addEventListener("click", async () => {
       await loadAnalytics();
     });
+    $("btnRefreshLearning").addEventListener("click", async () => {
+      await loadLearningIndex();
+    });
     $("btnExportAnalyticsCsv").addEventListener("click", () => {
       exportAnalyticsCsv();
     });
@@ -2879,7 +3044,6 @@
     $("quoteSearch").addEventListener("input", applyVisibleQuoteFilters);
     $("quoteCountryFilter").addEventListener("change", applyVisibleQuoteFilters);
     $("quoteStatusFilter").addEventListener("change", applyVisibleQuoteFilters);
-
     document.addEventListener("productfinder:auth-changed", async () => {
       await loadAdminPageData();
     });

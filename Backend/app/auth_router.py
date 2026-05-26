@@ -294,6 +294,7 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
             acting_admin_id=lead_user.id,
             role=payload.role,
             assigned_countries=payload.assigned_countries,
+            can_contribute_learning=payload.can_contribute_learning,
         )
         return {"success": True, "user": user.model_dump()}
 

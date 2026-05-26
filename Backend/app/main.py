@@ -21,6 +21,7 @@ import time
 import tempfile
 import zipfile
 import threading
+import hashlib
 from collections import OrderedDict, Counter
 from urllib.parse import quote_plus, quote
 from urllib.request import Request as UrlRequest, urlopen
@@ -33,6 +34,7 @@ from app.schema import (
     SearchRequest, ProductHit, SearchResponse,
     FacetsResponse, FacetValue,
     ALLOWED_FILTER_KEYS, HARD_FILTER_KEYS,
+    SearchFeedbackRequest,
     CompareCodesRequest, CompareProductsRequest,
     IdealSpecAlternativesRequest, CompareSpecProductsRequest,
     CompareExportPdfRequest, AlternativesRequest,
@@ -155,6 +157,12 @@ def require_catalog_import_dep(user: UserPublic = Depends(_get_current_user_dep)
     return user
 
 
+def require_learning_review_dep(user: UserPublic = Depends(_get_current_user_dep)) -> UserPublic:
+    if str(user.role or "").strip().lower() not in {"admin", "director", "marketing"}:
+        raise HTTPException(status_code=403, detail="Learning review privileges required")
+    return user
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     auth_service.init_db()
@@ -195,6 +203,7 @@ ACCESS_MATRIX = [
     {"path": "/codes/suggest", "method": "GET", "access": "public", "purpose": "Code suggestions"},
     {"path": "/preview-image", "method": "GET", "access": "public", "purpose": "Catalog previews with rate limiting"},
     {"path": "/full-image", "method": "GET", "access": "public", "purpose": "Full product images with rate limiting"},
+    {"path": "/feedback/search", "method": "POST", "access": "authenticated", "purpose": "Save corrected search examples for training data"},
     {"path": "/auth/*", "method": "POST/GET", "access": "public", "purpose": "Authentication and consent flows"},
     {"path": "/compare-products", "method": "POST", "access": "authenticated", "purpose": "Product comparison"},
     {"path": "/compare-spec-products", "method": "POST", "access": "authenticated", "purpose": "Specification comparison"},
@@ -208,6 +217,7 @@ ACCESS_MATRIX = [
     {"path": "/admin/*", "method": "GET/POST/PUT/DELETE", "access": "role-specific admin workspace", "purpose": "Workspace and admin operations"},
     {"path": "/admin/catalog-release-diff", "method": "GET", "access": "marketing/director/admin", "purpose": "Latest catalog release diff summary"},
     {"path": "/admin/catalog-release-diff/export", "method": "GET", "access": "marketing/director/admin", "purpose": "Latest catalog release diff CSV export"},
+    {"path": "/admin/learning-index", "method": "GET", "access": "marketing/director/admin", "purpose": "Review saved search learning index"},
     {"path": "/admin/catalog-import", "method": "POST", "access": "marketing/admin", "purpose": "PIM catalog import"},
     {"path": "/admin/family-map-import", "method": "POST", "access": "marketing/admin", "purpose": "Family map import"},
     {"path": "/admin/price-list-import", "method": "POST", "access": "marketing/admin", "purpose": "Price list import"},
@@ -387,6 +397,12 @@ async def add_frontend_asset_cache_headers(request: FastAPIRequest, call_next):
     return response
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+SEARCH_FEEDBACK_PATH = os.getenv(
+    "SEARCH_FEEDBACK_PATH",
+    os.path.join(DATA_DIR, "search_feedback.jsonl"),
+)
+SEARCH_FEEDBACK_LOCK = threading.Lock()
 # Enable directory index resolution so /frontend/ serves frontend/index.html.
 app.mount("/frontend", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
@@ -2472,6 +2488,265 @@ def debug_pim_source_impl():
         "pim_candidates": pim_candidates,
     }
 
+
+def _compact_feedback_filters(filters: Dict[str, Any]) -> Dict[str, Any]:
+    clean = _sanitize_filters(filters or {})
+    out: Dict[str, Any] = {}
+    for key, value in clean.items():
+        if isinstance(value, list):
+            vals = [str(x).strip()[:160] for x in value if str(x).strip()]
+            if vals:
+                out[key] = vals[:20]
+            continue
+        text = str(value).strip()
+        if text:
+            out[key] = text[:160]
+    return out
+
+
+def _compact_feedback_filter_pairs(items: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    out: List[Dict[str, str]] = []
+    seen = set()
+    for item in items or []:
+        key = str((item or {}).get("k") or (item or {}).get("key") or "").strip()
+        value = str((item or {}).get("v") or (item or {}).get("value") or "").strip()
+        if not key or not value:
+            continue
+        key = PRODUCT_NAME_FILTER_KEY if key == LEGACY_PRODUCT_NAME_FILTER_KEY else key
+        if key not in ALLOWED_FILTER_KEYS:
+            continue
+        sig = (key.lower(), value.lower())
+        if sig in seen:
+            continue
+        seen.add(sig)
+        out.append({"k": key, "v": value[:160]})
+        if len(out) >= 50:
+            break
+    return out
+
+
+def _compact_feedback_codes(codes: List[str]) -> List[str]:
+    out: List[str] = []
+    seen = set()
+    for code in codes or []:
+        clean = re.sub(r"[^0-9A-Za-z._/-]+", "", str(code or "").strip())[:80]
+        if not clean:
+            continue
+        sig = clean.lower()
+        if sig in seen:
+            continue
+        seen.add(sig)
+        out.append(clean)
+        if len(out) >= 20:
+            break
+    return out
+
+
+def _feedback_record_id(record: Dict[str, Any]) -> str:
+    source = json.dumps(
+        {
+            "created_at": record.get("created_at"),
+            "query_text": record.get("query_text"),
+            "corrected_filters": record.get("corrected_filters"),
+            "preferred_product_codes": record.get("preferred_product_codes"),
+            "user_id": record.get("user_id"),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    return hashlib.sha1(source.encode("utf-8", errors="replace")).hexdigest()[:16]
+
+
+def _normalize_feedback_record(record: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(record or {})
+    if not str(out.get("id") or "").strip():
+        out["id"] = _feedback_record_id(out)
+    status = str(out.get("status") or "pending").strip().lower()
+    if status not in {"active", "pending", "approved", "rejected"}:
+        status = "active" if bool(out.get("use_for_learning")) else "pending"
+    out["status"] = status
+    out["use_for_learning"] = bool(out.get("use_for_learning")) and status in {"active", "approved"}
+    out["reviewed_at"] = str(out.get("reviewed_at") or "")
+    out["reviewed_by"] = out.get("reviewed_by")
+    return out
+
+
+def _load_search_feedback_records() -> List[Dict[str, Any]]:
+    if not os.path.exists(SEARCH_FEEDBACK_PATH):
+        return []
+    records: List[Dict[str, Any]] = []
+    with SEARCH_FEEDBACK_LOCK:
+        with open(SEARCH_FEEDBACK_PATH, "r", encoding="utf-8") as fh:
+            for line in fh:
+                text = line.strip()
+                if not text:
+                    continue
+                try:
+                    parsed = json.loads(text)
+                except Exception:
+                    continue
+                if isinstance(parsed, dict):
+                    records.append(_normalize_feedback_record(parsed))
+    return records
+
+
+def _write_search_feedback_records(records: List[Dict[str, Any]]) -> None:
+    os.makedirs(os.path.dirname(SEARCH_FEEDBACK_PATH), exist_ok=True)
+    with SEARCH_FEEDBACK_LOCK:
+        with open(SEARCH_FEEDBACK_PATH, "w", encoding="utf-8") as fh:
+            for record in records:
+                fh.write(json.dumps(_normalize_feedback_record(record), ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def learning_index_impl() -> Dict[str, Any]:
+    records = _load_search_feedback_records()
+    total = len(records)
+    by_status = Counter(str(r.get("status") or "pending") for r in records)
+    active = sum(1 for r in records if bool(r.get("use_for_learning")) and str(r.get("status")) in {"active", "approved"})
+    corrected = 0
+    confirmed = 0
+    corrected_fields: Counter[str] = Counter()
+    ignored_fields: Counter[str] = Counter()
+    terms: Counter[str] = Counter()
+    contributors = set()
+    for record in records:
+        if record.get("user_id"):
+            contributors.add(str(record.get("user_id")))
+        corrected_filters = record.get("corrected_filters") if isinstance(record.get("corrected_filters"), dict) else {}
+        ignored = record.get("ignored_ai_filters") if isinstance(record.get("ignored_ai_filters"), list) else []
+        if ignored:
+            corrected += 1
+        else:
+            confirmed += 1
+        corrected_fields.update(str(k) for k in corrected_filters.keys() if str(k).strip())
+        ignored_fields.update(
+            str(item.get("k") or item.get("key") or "").strip()
+            for item in ignored
+            if isinstance(item, dict) and str(item.get("k") or item.get("key") or "").strip()
+        )
+        query = str(record.get("query_text") or "").lower()
+        for token in re.findall(r"[a-z0-9][a-z0-9_-]{2,}", query):
+            if token in {"with", "per", "for", "and", "the", "una", "uno", "con", "esterno", "interno"}:
+                continue
+            terms[token] += 1
+
+    search_count = 0
+    try:
+        analytics = auth_service.get_analytics_summary(None, days=30, top_n=1)
+        search_count = int(((analytics or {}).get("summary") or {}).get("searches") or 0)
+    except Exception:
+        search_count = 0
+    coverage = round((total / max(search_count, 1)) * 100.0, 1) if search_count else 0.0
+    recent = sorted(records, key=lambda r: str(r.get("created_at") or ""), reverse=True)[:25]
+    compact_recent = [
+        {
+            "id": r.get("id"),
+            "created_at": r.get("created_at"),
+            "status": r.get("status"),
+            "use_for_learning": bool(r.get("use_for_learning")),
+            "query_text": r.get("query_text"),
+            "corrected_filters": r.get("corrected_filters") or {},
+            "ignored_ai_filters": r.get("ignored_ai_filters") or [],
+            "preferred_product_codes": r.get("preferred_product_codes") or [],
+            "user_email": r.get("user_email") or "",
+            "reviewed_at": r.get("reviewed_at") or "",
+            "reviewed_by": r.get("reviewed_by"),
+        }
+        for r in recent
+    ]
+    return {
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "summary": {
+            "total_examples": total,
+            "pending_examples": int(by_status.get("pending", 0)),
+            "approved_examples": int(by_status.get("approved", 0)),
+            "rejected_examples": int(by_status.get("rejected", 0)),
+            "active_learning_examples": active,
+            "contributors": len(contributors),
+            "confirmed_examples": confirmed,
+            "corrected_examples": corrected,
+            "searches_30d": search_count,
+            "learning_coverage_pct": coverage,
+        },
+        "top_corrected_fields": [{"field": k, "count": v} for k, v in corrected_fields.most_common(10)],
+        "top_ignored_fields": [{"field": k, "count": v} for k, v in ignored_fields.most_common(10)],
+        "top_terms": [{"term": k, "count": v} for k, v in terms.most_common(10)],
+        "recent": compact_recent,
+    }
+
+
+def save_search_feedback_impl(req: SearchFeedbackRequest, request: FastAPIRequest) -> Dict[str, Any]:
+    current_user = _get_optional_current_user(request)
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    can_contribute = (
+        bool(current_user.get("can_contribute_learning")) if isinstance(current_user, dict)
+        else bool(getattr(current_user, "can_contribute_learning", False))
+    )
+    if not can_contribute:
+        raise HTTPException(status_code=403, detail="Learning contribution is not enabled for this user")
+    query_text = str(req.query_text or "").strip()
+    corrected_filters = _compact_feedback_filters(req.corrected_filters or {})
+    ignored_ai_filters = _compact_feedback_filter_pairs(req.ignored_ai_filters or [])
+    preferred_codes = _compact_feedback_codes(req.preferred_product_codes or [])
+    rejected_codes = _compact_feedback_codes(req.rejected_product_codes or [])
+    note = str(req.note or "").strip()[:500]
+
+    if not query_text and not corrected_filters and not preferred_codes and not rejected_codes:
+        raise HTTPException(status_code=400, detail="Feedback must include a query, filters, or product codes")
+
+    interpreted = req.interpreted if isinstance(req.interpreted, dict) else {}
+    interpreted_items = interpreted.get("understood_filter_items") if isinstance(interpreted, dict) else []
+    interpreted_compact = {
+        "confidence": str(interpreted.get("confidence") or "")[:40],
+        "size_label": str(interpreted.get("size_label") or "")[:80],
+        "understood_filter_items": _compact_feedback_filter_pairs(interpreted_items if isinstance(interpreted_items, list) else []),
+    }
+    record = {
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "source": str(req.source or "finder").strip()[:80],
+        "user_id": current_user.get("id") if isinstance(current_user, dict) else getattr(current_user, "id", None),
+        "user_email": current_user.get("email") if isinstance(current_user, dict) else getattr(current_user, "email", None),
+        "query_text": query_text[:1000],
+        "corrected_filters": corrected_filters,
+        "ignored_ai_filters": ignored_ai_filters,
+        "interpreted": interpreted_compact,
+        "preferred_product_codes": preferred_codes,
+        "rejected_product_codes": rejected_codes,
+        "note": note,
+        "status": "active",
+        "use_for_learning": True,
+    }
+    record["id"] = _feedback_record_id(record)
+    os.makedirs(os.path.dirname(SEARCH_FEEDBACK_PATH), exist_ok=True)
+    with SEARCH_FEEDBACK_LOCK:
+        with open(SEARCH_FEEDBACK_PATH, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    _record_analytics_event(
+        request,
+        event_type="search_feedback_saved",
+        user=current_user,
+        page="finder",
+        path="/feedback/search",
+        query_text=query_text,
+        filters=corrected_filters,
+        metadata={
+            "ignored_ai_filter_count": len(ignored_ai_filters),
+            "preferred_count": len(preferred_codes),
+            "rejected_count": len(rejected_codes),
+        },
+    )
+    return {
+        "ok": True,
+        "feedback_path": os.path.basename(SEARCH_FEEDBACK_PATH),
+        "saved": {
+            "corrected_filter_count": len(corrected_filters),
+            "ignored_ai_filter_count": len(ignored_ai_filters),
+            "preferred_count": len(preferred_codes),
+            "rejected_count": len(rejected_codes),
+        },
+    }
+
 # ------------------------------------------------------------
 # Endpoints
 # ------------------------------------------------------------
@@ -3295,6 +3570,16 @@ def search(req: SearchRequest, request: FastAPIRequest = None):
         },
     )
     return resp
+
+
+@app.post("/feedback/search")
+def save_search_feedback(req: SearchFeedbackRequest, request: FastAPIRequest):
+    return save_search_feedback_impl(req, request)
+
+
+@app.get("/admin/learning-index")
+def admin_learning_index(_learning_user: UserPublic = Depends(require_learning_review_dep)):
+    return learning_index_impl()
 
 
 @app.post("/facets", response_model=FacetsResponse)

@@ -100,6 +100,17 @@ class SearchRequest(BaseModel):
     debug: bool = False
 
 
+class SearchFeedbackRequest(BaseModel):
+    query_text: str = ""
+    corrected_filters: Dict[str, Any] = Field(default_factory=dict)
+    ignored_ai_filters: List[Dict[str, Any]] = Field(default_factory=list)
+    interpreted: Dict[str, Any] = Field(default_factory=dict)
+    preferred_product_codes: List[str] = Field(default_factory=list)
+    rejected_product_codes: List[str] = Field(default_factory=list)
+    note: str = ""
+    source: str = "finder"
+
+
 # -----------------------------
 # Parsed filter structure (AI / local parser)
 # -----------------------------
