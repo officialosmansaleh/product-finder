@@ -34,6 +34,8 @@ _load_env_file()
 _client: Optional[OpenAI] = None
 _client_init_failed = False
 _JSON_RESPONSE_INSTRUCTION = "Return valid JSON only."
+_DEFAULT_TEXT_MODELS = ("gpt-4o-2024-08-06", "gpt-4.1-mini")
+_DEFAULT_IMAGE_MODELS = ("gpt-4.1-mini", "gpt-4o-mini")
 _AI_INTERROGATION_LOGGER_NAME = "product_finder.external_ai_interrogations"
 _DEFAULT_AI_INTERROGATION_LOG_PATH = Path(__file__).resolve().parents[1] / "logs" / "external_ai_interrogations.jsonl"
 _ai_interrogation_logger: Optional[logging.Logger] = None
@@ -144,6 +146,15 @@ def _get_client() -> Optional[OpenAI]:
     return _client
 
 
+def _model_candidates_from_env(env_key: str, defaults: Iterable[str]) -> list[str]:
+    raw = str(os.getenv(env_key, "") or "").strip()
+    if raw:
+        models = [part.strip() for part in raw.split(",") if part.strip()]
+        if models:
+            return models
+    return [str(model).strip() for model in defaults if str(model).strip()]
+
+
 def _ai_disabled_result(message: str) -> Dict[str, Any]:
     return {
         "status": "disabled",
@@ -241,6 +252,7 @@ def _request_json_completion(
                         model=model,
                         messages=messages,
                         response_format=response_model,
+                        temperature=0,
                     )
                     parsed = completion.choices[0].message.parsed
                     obj = parsed if isinstance(parsed, response_model) else response_model.model_validate(parsed)
@@ -249,6 +261,7 @@ def _request_json_completion(
                         model=model,
                         messages=messages,
                         response_format={"type": "json_object"},
+                        temperature=0,
                     )
                     content = completion.choices[0].message.content or "{}"
                     obj = response_model.model_validate(json.loads(content))
@@ -302,7 +315,7 @@ def infer_text_filters(
             {"role": "user", "content": text or ""},
         ],
         response_model=response_model,
-        model_candidates=("gpt-4o-2024-08-06", "gpt-4.1-mini"),
+        model_candidates=_model_candidates_from_env("OPENAI_TEXT_MODELS", _DEFAULT_TEXT_MODELS),
         log_context=log_context,
     )
     return result
@@ -343,6 +356,6 @@ def infer_image_filters(
             },
         ],
         response_model=response_model,
-        model_candidates=("gpt-4.1-mini", "gpt-4o-mini"),
+        model_candidates=_model_candidates_from_env("OPENAI_IMAGE_MODELS", _DEFAULT_IMAGE_MODELS),
         log_context=log_context,
     )

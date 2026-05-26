@@ -87,7 +87,7 @@ FAMILY_SYNONYMS = {
     ],
     "floodlight": [
         "floodlight", "floodlights", "flood light", "flood",
-        "projector", "projector light", "proiettore", "proiettori", "faro", "fari",
+        "projector", "projector light", "proiettore", "proiettori",
         "projecteur", "proyectores", "proyector", "projetor", "прожектор", "كشاف", "naświetlacz",
         "reflektor",
         # Facade / architectural application
@@ -228,10 +228,15 @@ _GENERIC_PRODUCT_QUERY_TOKENS = {
     "ceiling", "wall", "proof", "tight", "vapour", "vapor",
     "recessed", "recess",
     "ip", "ik", "cri", "ugr", "dali", "zhaga", "emergency", "battery", "backup",
-    "power", "w", "kw", "lm", "lmw", "lm/w", "cct", "k", "mm", "cm", "m",
+    "power", "w", "kw", "lm", "lumen", "lumens", "lmw", "lm/w", "cct", "k", "mm", "cm", "m",
     "min", "max", "minimum", "maximum", "temp", "temperature", "ambient", "operating", "working",
+    "outdoor", "esterno", "external", "exterior", "exterieur", "externo", "zewnetrzny", "venkovni", "vanjski", "zunanji",
     "beam", "angle", "degree", "degrees", "asymmetric", "asymmetry", "shape", "color", "colour",
+    "round", "circular", "circle", "square", "rectangular", "rectangle",
     "interface", "control", "driver", "life", "lifetime", "hours", "hour", "hr", "hrs",
+    "with", "without", "warranty", "year", "years", "yr", "yrs",
+    "yes", "no", "true", "false", "si", "sì", "oui", "ja",
+    "housing", "body", "finish", "black", "white", "grey", "gray", "anthracite",
     "diameter", "diametro", "diametre", "diam", "dia",
     "length", "lunghezza", "longueur", "longitud", "width", "larghezza", "largeur", "height", "altezza", "hauteur",
     "диаметр", "قطر", "średnica", "srednica", "длина", "طول", "ширина", "عرض", "высота", "ارتفاع",
@@ -1019,6 +1024,18 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
             hours = _parse_loose_int_token(m.group(1))
             if hours:
                 filters["lifetime_hours"] = f">={hours}"
+
+    m = re.search(
+        r"\b(?:warranty|garanzia|garantie|garantia)\s*(?:of|di|de|da)?\s*(\d{1,2})\s*(?:y|yr|yrs|year|years|anni|ans|anos)\b",
+        t,
+    )
+    if not m:
+        m = re.search(
+            r"\b(\d{1,2})\s*(?:y|yr|yrs|year|years|anni|ans|anos)\s*(?:warranty|garanzia|garantie|garantia)\b",
+            t,
+        )
+    if m:
+        filters["warranty_years"] = f">={int(m.group(1))}"
 
     shp = _parse_shape(text)
     if shp:

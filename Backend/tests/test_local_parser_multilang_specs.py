@@ -34,6 +34,8 @@ class LocalParserMultilangSpecsTests(unittest.TestCase):
             ("54,000 lm", {"lumen_output": ">=54000"}),
             ("54k lm", {"lumen_output": ">=54000"}),
             ("dali", {"interface": "dali"}),
+            ("warranty 5 years", {"warranty_years": ">=5"}),
+            ("5 years warranty", {"warranty_years": ">=5"}),
             ("emergency", {"emergency_present": "yes"}),
             ("emergenza", {"emergency_present": "yes"}),
             ("urgence", {"emergency_present": "yes"}),
@@ -81,6 +83,22 @@ class LocalParserMultilangSpecsTests(unittest.TestCase):
             for q, k, exp, got, parsed in failures:
                 lines.append(f"- {q!r} key={k!r}: expected {exp!r}, got {got!r}, parsed={parsed}")
             self.fail("\n".join(lines))
+
+    def test_technical_warranty_words_are_not_product_name_filters(self):
+        parsed = local_text_to_filters("road lighting with warranty 5 years lifetime 50000 h round shape")
+        self.assertEqual(parsed.get("warranty_years"), ">=5")
+        self.assertEqual(parsed.get("lifetime_hours"), ">=50000")
+        self.assertNotIn("product_name_contains", parsed)
+        self.assertNotIn("product_name_short", parsed)
+
+    def test_outdoor_lumen_query_does_not_create_product_name_filter(self):
+        parsed = local_text_to_filters("faro esterno IP66 DALI 4000K 54000 lumen")
+        self.assertNotIn("product_family", parsed)
+        self.assertEqual(parsed.get("ip_rating"), ">=IP66")
+        self.assertEqual(parsed.get("interface"), "dali")
+        self.assertEqual(parsed.get("cct_k"), "4000")
+        self.assertEqual(parsed.get("lumen_output"), ">=54000")
+        self.assertEqual(parsed.get("product_name_contains"), "faro")
 
 
 if __name__ == "__main__":

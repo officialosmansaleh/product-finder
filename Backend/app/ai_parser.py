@@ -18,7 +18,7 @@ FAMILY_SYNONYMS: Dict[str, list[str]] = {
         "weather proof", "water resistant", "stagna", "stagno",
         "vapor tight", "vapour tight", "bulkhead",
     ],
-    "floodlight": ["floodlight", "floodlights", "flood light", "flood", "projector", "projector light", "proiettore", "proiettori", "faro", "fari"],
+    "floodlight": ["floodlight", "floodlights", "flood light", "flood", "projector", "projector light", "proiettore", "proiettori"],
     "post top": ["post top", "post-top", "pole top", "lantern", "lanterna", "testa palo"],
     "bollard": ["bollard", "paletto", "paletto led", "garden bollard", "pathway bollard"],
     "highbay": ["highbay", "high-bay", "high bay", "ufo", "warehouse", "industrial", "capannone", "campana"],
