@@ -943,6 +943,62 @@ class SearchScoringFiltersTests(unittest.TestCase):
 
         self.assertEqual([hit.product_code for hit in resp.exact], ["HIGH1"])
 
+    def test_soft_product_name_query_seeds_database_candidates(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        faro = {
+            "product_code": "FARO1",
+            "product_name": "Faro 4 LED - tall",
+            "manufacturer": "DISANO",
+            "ip_rating": "IP66",
+            "lumen_output": "30000 lm",
+            "lumen_output_value": "30000",
+        }
+        lumen_match = {
+            "product_code": "LUMEN1",
+            "product_name": "Other High Output",
+            "manufacturer": "DISANO",
+            "ip_rating": "IP66",
+            "lumen_output": "54000 lm",
+            "lumen_output_value": "54000",
+        }
+
+        class FakeProductDb:
+            backend = "sqlite"
+
+            def search_products(self, filters, limit=100):
+                if filters and filters.get("product_name_contains") == "faro":
+                    return [faro]
+                if filters and filters.get("lumen_output") == ">=54000":
+                    return [lumen_match]
+                return []
+
+        req = SearchRequest(
+            text="faro esterno IP66 54000 lumen",
+            filters={},
+            limit=5,
+            include_similar=True,
+            allow_ai=False,
+            debug=True,
+        )
+
+        parsed = {
+            "product_name_contains": "faro",
+            "ip_rating": ">=IP66",
+            "lumen_output": ">=54000",
+        }
+        with patch.object(main_mod, "local_text_to_filters", return_value=parsed), patch.object(
+            main_mod, "PRODUCT_DB", FakeProductDb()
+        ), patch.object(main_mod, "DB", pd.DataFrame()), patch.object(
+            main_mod, "_search_rows_by_text_db", return_value=[]
+        ):
+            resp = main_mod.search(req)
+
+        similar_codes = [hit.product_code for hit in resp.similar]
+        self.assertIn("FARO1", similar_codes)
+        self.assertLess(similar_codes.index("FARO1"), similar_codes.index("LUMEN1"))
+
 
 if __name__ == "__main__":
     unittest.main()

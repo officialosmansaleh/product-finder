@@ -482,8 +482,8 @@ def handle_search(
             }
             name_seed_filters: Dict[str, Any] = {}
             for key in ("product_name_contains", "product_name_short", "name_prefix"):
-                if key in hard_filters:
-                    name_seed_filters[key] = hard_filters[key]
+                if key in filters:
+                    name_seed_filters[key] = filters[key]
             name_seed_sql = map_filters_to_sql(name_seed_filters) if name_seed_filters else {}
             name_seed = product_db.search_products(name_seed_sql, limit=candidate_limit) if name_seed_sql else []
 
@@ -494,7 +494,13 @@ def handle_search(
             family_seed_sql = map_filters_to_sql(family_seed_filters) if family_seed_filters else {}
             family_seed = product_db.search_products(family_seed_sql, limit=candidate_limit) if family_seed_sql else []
 
-            spec_seed = product_db.search_products(sql_filters, limit=candidate_limit) if sql_filters else []
+            spec_seed_filters = {
+                key: value
+                for key, value in filters.items()
+                if key not in {"product_name_contains", "product_name_short", "name_prefix"}
+            }
+            spec_seed_sql = map_filters_to_sql(spec_seed_filters) if spec_seed_filters else {}
+            spec_seed = product_db.search_products(spec_seed_sql, limit=candidate_limit) if spec_seed_sql else []
             text_seed = search_rows_by_text_db(req.text or "", limit=candidate_limit)
             broad_rows = product_db.search_products({}, limit=candidate_limit)
             rows = dedupe_rows_by_product_code(exact_seed + spec_seed + family_seed + name_seed + text_seed + broad_rows)[:candidate_limit]
