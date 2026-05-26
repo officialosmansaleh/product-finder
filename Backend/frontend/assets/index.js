@@ -105,7 +105,7 @@
     catalog_hint:"Search by product name, product code, or family. Use the filters below to narrow the catalog.",
     enter_search:"Use Enter to run search.",
     selected_filters:"Selected filters",
-    chip_remove_hint:"Click a chip to remove it. Search auto-runs.",
+    chip_remove_hint:"Use Lock to make a parsed filter mandatory, or x to deactivate a filter. Search auto-runs.",
     product_families:"Product families",
     protection:"Protection",
     photometric:"Photometric",
@@ -251,7 +251,7 @@
     catalog_hint:"Cerca per nome prodotto, codice o famiglia. Usa i filtri sotto per restringere il catalogo.",
     enter_search:"Premi Invio per cercare.",
     selected_filters:"Filtri selezionati",
-    chip_remove_hint:"Clicca un chip per rimuoverlo. La ricerca si aggiorna automaticamente.",
+    chip_remove_hint:"Usa Lock per rendere obbligatorio un filtro interpretato, oppure x per disattivarlo. La ricerca si aggiorna automaticamente.",
     product_families:"Famiglie prodotto",
     protection:"Protezione",
     photometric:"Fotometria",
@@ -699,7 +699,7 @@
       "Search by product name, product code, or family. Use the filters below to narrow the catalog.":"catalog_hint",
       "Use Enter to run search.":"enter_search",
       "Selected filters":"selected_filters",
-      "Click a chip to remove it. Search auto-runs.":"chip_remove_hint",
+      "Use Lock to make a parsed filter mandatory, or x to deactivate a filter. Search auto-runs.":"chip_remove_hint",
       "Product families":"product_families",
       "Protection":"protection",
       "Photometric":"photometric",
@@ -2072,7 +2072,13 @@
         if (importedSig.has(sig)) continue; // Show analyze-file filters as AI chips only.
         const displayLabel = window.ProductFinderMeasurements?.labelForKey?.(k, filterDisplayLabel(k)) || filterDisplayLabel(k);
         const displayValue = formatSpecDisplayValue(k, v);
-        chips.push(`<span class="chip" data-k="${escapeHtml(k)}" data-v="${escapeHtml(v)}"><b>${escapeHtml(displayLabel)}</b>: ${escapeHtml(displayValue)} x</span>`);
+        chips.push(
+          `<span class="chip mandatory" data-k="${escapeHtml(k)}" data-v="${escapeHtml(v)}" title="Mandatory filter">
+            <span class="chipText"><b>${escapeHtml(displayLabel)}</b>: ${escapeHtml(displayValue)}</span>
+            <span class="chipState">Mandatory</span>
+            <button class="chipBtn" type="button" data-chip-action="remove" aria-label="Deactivate filter">x</button>
+          </span>`
+        );
       }
     }
     const importedItems = (Array.isArray(lastImportedFilterItems) ? lastImportedFilterItems : []).filter(it => {
@@ -2101,7 +2107,11 @@
           const key = String(it.key || "");
           const displayLabel = window.ProductFinderMeasurements?.labelForKey?.(key, String(it.label || it.key || "")) || String(it.label || it.key || "");
           const displayValue = formatSpecDisplayValue(key, String(it.value || ""));
-          return `<span class="chip ai ${sev}" data-ai-k="${escapeHtml(key)}" data-ai-v="${escapeHtml(String(it.value || ""))}" data-ai-src="${escapeHtml(String(it.source || "query"))}" title="${escapeHtml(title)}"><b>${escapeHtml(t("ai"))}</b>: ${escapeHtml(displayLabel)}: ${escapeHtml(displayValue)} ${cnt > 0 ? `(${cnt})` : ""} x</span>`;
+          return `<span class="chip ai ${sev}" data-ai-k="${escapeHtml(key)}" data-ai-v="${escapeHtml(String(it.value || ""))}" data-ai-src="${escapeHtml(String(it.source || "query"))}" title="${escapeHtml(title)}">
+            <span class="chipText"><b>${escapeHtml(t("ai"))}</b>: ${escapeHtml(displayLabel)}: ${escapeHtml(displayValue)} ${cnt > 0 ? `(${cnt})` : ""}</span>
+            <button class="chipBtn lock" type="button" data-chip-action="mandatory" aria-label="Make filter mandatory">Lock</button>
+            <button class="chipBtn" type="button" data-chip-action="ignore" aria-label="Deactivate filter">x</button>
+          </span>`;
         }
         )
       : (lastUnderstoodFilterChips || []).map(chipText =>
@@ -3297,6 +3307,8 @@ document.addEventListener("click", (ev)=>{
   const selectedBox = $("selected");
   const selectedChip = t.closest(".chip[data-k][data-v]");
   if (selectedChip && selectedBox?.contains(selectedChip)){
+    const action = t.closest("[data-chip-action]")?.getAttribute("data-chip-action") || "remove";
+    if (action !== "remove") return;
     removeFilter(selectedChip.dataset.k, selectedChip.dataset.v);
     runSearch();
     return;
@@ -3307,7 +3319,23 @@ document.addEventListener("click", (ev)=>{
     const key = String(aiChip.dataset.aiK || "").trim();
     const value = String(aiChip.dataset.aiV || "").trim();
     const src = String(aiChip.dataset.aiSrc || "query").trim().toLowerCase();
+    const action = t.closest("[data-chip-action]")?.getAttribute("data-chip-action") || "ignore";
     if (!key || !value) return;
+    if (action === "mandatory"){
+      addFilter(key, value);
+      if (src !== "import"){
+        const existsIgnored = ignoredAIFilterPairs.some(x => String(x.k) === key && String(x.v) === value);
+        if (!existsIgnored) ignoredAIFilterPairs.push({ k: key, v: value });
+      }
+      if (src === "import"){
+        const existsImport = (lastImportedFilterItems || []).some(it => String(it?.key || "") === key && String(it?.value || "") === value);
+        if (!existsImport){
+          lastImportedFilterItems.push({ key, value, label: filterDisplayLabel(key), source: "import" });
+        }
+      }
+      runSearch();
+      return;
+    }
     if (src === "import"){
       removeImportedFilter(key, value);
       runSearch();
