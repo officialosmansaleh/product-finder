@@ -5,6 +5,30 @@ from typing import Any, Callable
 
 EXACT_MIN_SCORE = 1.0
 
+NAME_KEYS = {"product_name_contains", "product_name_short", "name_prefix"}
+FAMILY_KEYS = {"product_family"}
+PHOTOMETRIC_KEYS = {
+    "lumen_output",
+    "cct_k",
+    "efficacy_lm_w",
+    "beam_angle_deg",
+    "beam_type",
+    "cri",
+    "ugr",
+    "asymmetry",
+}
+PROTECTION_KEYS = {"ip_rating", "ip_visible", "ip_non_visible", "ik_rating"}
+MECHANICAL_KEYS = {
+    "diameter",
+    "luminaire_length",
+    "luminaire_width",
+    "luminaire_height",
+    "shape",
+    "housing_color",
+    "housing_material",
+    "mounting_type",
+}
+
 
 def _product_line_key(item: dict[str, Any]) -> str:
     row = item.get("row") or {}
@@ -143,6 +167,31 @@ def _has_numeric_proximity_filter(filters: dict[str, Any] | None) -> bool:
     return False
 
 
+def _matched_count(item: dict[str, Any], filters: dict[str, Any] | None, keys: set[str]) -> int:
+    matched = item.get("matched") or {}
+    return sum(1 for key in keys if key in (filters or {}) and key in matched)
+
+
+def _requested_count(filters: dict[str, Any] | None, keys: set[str]) -> int:
+    return sum(1 for key in keys if key in (filters or {}))
+
+
+def _priority_tuple(item: dict[str, Any], filters: dict[str, Any] | None) -> tuple[int, int, int, int, int]:
+    """Business relevance order: name, family, photometrics, protection, mechanical."""
+    return (
+        _matched_count(item, filters, NAME_KEYS),
+        _matched_count(item, filters, FAMILY_KEYS),
+        _matched_count(item, filters, PHOTOMETRIC_KEYS),
+        _matched_count(item, filters, PROTECTION_KEYS),
+        _matched_count(item, filters, MECHANICAL_KEYS),
+    )
+
+
+def _has_priority_filters(filters: dict[str, Any] | None) -> bool:
+    ordered_groups = NAME_KEYS | FAMILY_KEYS | PHOTOMETRIC_KEYS | PROTECTION_KEYS | MECHANICAL_KEYS
+    return _requested_count(filters, ordered_groups) > 0
+
+
 def _sort_for_mode(items: list[dict[str, Any]], sort_mode: str, relevance_filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     mode = str(sort_mode or "score_desc")
     if mode == "score_asc":
@@ -151,12 +200,18 @@ def _sort_for_mode(items: list[dict[str, Any]], sort_mode: str, relevance_filter
         if not _has_numeric_proximity_filter(relevance_filters):
             return sorted(
                 items,
-                key=lambda x: (float(x.get("score") or 0.0), float(x.get("text_relevance") or 0.0), str((x.get("row") or {}).get("product_code") or "")),
+                key=lambda x: (
+                    _priority_tuple(x, relevance_filters) if _has_priority_filters(relevance_filters) else (0, 0, 0, 0, 0),
+                    float(x.get("score") or 0.0),
+                    float(x.get("text_relevance") or 0.0),
+                    str((x.get("row") or {}).get("product_code") or ""),
+                ),
                 reverse=True,
             )
         return sorted(
             items,
             key=lambda x: (
+                tuple(-v for v in (_priority_tuple(x, relevance_filters) if _has_priority_filters(relevance_filters) else (0, 0, 0, 0, 0))),
                 -float(x.get("score") or 0.0),
                 _numeric_proximity_distance(x, relevance_filters),
                 -float(x.get("text_relevance") or 0.0),

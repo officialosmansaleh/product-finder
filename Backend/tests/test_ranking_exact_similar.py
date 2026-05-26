@@ -247,6 +247,32 @@ class RankingSelectionTests(unittest.TestCase):
         )
         self.assertEqual([x["row"]["product_code"] for x in exact], ["B", "C", "A"])
 
+    def test_name_match_outranks_photometric_only_match_in_similar(self):
+        similar_pool = [
+            {
+                **_mk_scored("LUMEN", 0.95, 0.0, name="Other High Output"),
+                "matched": {"lumen_output": "54000 lm", "ip_rating": "IP66"},
+                "row": {"product_code": "LUMEN", "product_name": "Other High Output", "lumen_output": "54000 lm", "ip_rating": "IP66"},
+            },
+            {
+                **_mk_scored("FARO", 0.62, 0.1, name="Faro 200"),
+                "matched": {"product_name_contains": "Faro 200", "ip_rating": "IP66"},
+                "row": {"product_code": "FARO", "product_name": "Faro 200", "lumen_output": "30000 lm", "ip_rating": "IP66"},
+            },
+        ]
+        _exact, similar = select_exact_and_similar(
+            exact_pool=[],
+            similar_pool=similar_pool,
+            rows=[],
+            text_query="faro esterno IP66 54000 lumen",
+            hard_filters={},
+            soft_filters={"product_name_contains": "faro", "ip_rating": ">=IP66", "lumen_output": ">=54000"},
+            limit=20,
+            include_similar=True,
+            text_relevance_fn=lambda _row, _q: 0.0,
+        )
+        self.assertEqual([x["row"]["product_code"] for x in similar], ["FARO", "LUMEN"])
+
     def test_default_ranking_prefers_efficacy_closest_to_requested_minimum(self):
         exact_pool = [
             {**_mk_scored("A", 1.0, 0.0), "row": {"product_code": "A", "product_name": "Rodio", "efficacy_lm_w": "180 lm/W"}},
