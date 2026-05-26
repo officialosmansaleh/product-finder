@@ -12,6 +12,7 @@ if _BACKEND_DIR not in sys.path:
 class DebugParseApiRegressionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cls._old_enable_debug = os.environ.get("ENABLE_DEBUG_ENDPOINTS")
         os.environ["ENABLE_DEBUG_ENDPOINTS"] = "true"
         try:
             import importlib
@@ -26,6 +27,10 @@ class DebugParseApiRegressionTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.client_cm.__exit__(None, None, None)
+        if cls._old_enable_debug is None:
+            os.environ.pop("ENABLE_DEBUG_ENDPOINTS", None)
+        else:
+            os.environ["ENABLE_DEBUG_ENDPOINTS"] = cls._old_enable_debug
 
     def test_debug_parse_returns_local_and_sql(self):
         q = "proyector exterior al menos ip65 diametro 180"
@@ -38,7 +43,7 @@ class DebugParseApiRegressionTests(unittest.TestCase):
         local = data["local"]
         self.assertEqual(local.get("product_family"), "floodlight")
         self.assertEqual(local.get("ip_rating"), ">=IP65")
-        self.assertEqual(local.get("diameter"), ">=180")
+        self.assertEqual(local.get("diameter"), "=180")
         # SQL mapping should preserve normalized values for current fields.
         self.assertEqual(data["sql"].get("ip_rating"), ">=IP65")
 

@@ -81,6 +81,27 @@ class LLMIntentNormalizationTests(unittest.TestCase):
         self.assertNotIn("product_family", filters)
         self.assertEqual(filters["ip_rating"], ">=IP44")
 
+    def test_faro_is_not_promoted_to_floodlight_by_llm(self):
+        import app.llm_intent as llm_intent
+
+        fake_result = {
+            "status": "ok",
+            "provider": "openai",
+            "model": "test-model",
+            "used_retry": False,
+            "message": "",
+            "content": {"product_family": "floodlight", "ip_rating": "IP66"},
+        }
+
+        with patch.object(llm_intent, "infer_text_filters", return_value=fake_result):
+            filters = llm_intent.llm_intent_to_filters(
+                "faro esterno IP66 DALI 4000K 54000 lumen",
+                allowed_families=["Street lighting", "floodlight"],
+            )
+
+        self.assertNotIn("product_family", filters)
+        self.assertEqual(filters["ip_rating"], ">=IP66")
+
     def test_model_candidates_can_be_configured_from_environment(self):
         import app.ai_service as ai_service
 

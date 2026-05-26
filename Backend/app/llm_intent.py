@@ -247,6 +247,24 @@ def _normalize_llm_filters(filters: Dict[str, Any], allowed_families: Optional[l
     return _drop_empty_and_unknown(out)
 
 
+def _drop_unsafe_llm_family_inference(filters: Dict[str, Any], text: str) -> Dict[str, Any]:
+    out = dict(filters or {})
+    family = str(out.get("product_family") or "").strip().lower()
+    if family != "floodlight":
+        return out
+    query = str(text or "").strip().lower()
+    if not re.search(r"\b(?:faro|fari)\b", query):
+        return out
+    explicit_floodlight_cue = re.search(
+        r"\b(?:floodlight|floodlights|flood\s+light|projector|projectors|proiettore|proiettori|"
+        r"projecteur|projecteurs|proyector|proyectores|projetor|projetores|facade|facciata|facciate|fachada|fasada)\b",
+        query,
+    )
+    if not explicit_floodlight_cue:
+        out.pop("product_family", None)
+    return out
+
+
 def llm_intent_to_filters_with_meta(
     text: str,
     allowed_families: Optional[list[str]] = None,
@@ -263,6 +281,7 @@ def llm_intent_to_filters_with_meta(
     content.pop("confidence", None)
     content.pop("notes", None)
     content = _normalize_llm_filters(content, allowed_families)
+    content = _drop_unsafe_llm_family_inference(content, text)
     return {
         "filters": content,
         "status": str(result.get("status") or "ok"),
