@@ -4,7 +4,10 @@ import shutil
 import sys
 import tempfile
 import unittest
+import urllib.parse
 from unittest.mock import patch
+
+import jwt
 
 
 _HERE = os.path.dirname(__file__)
@@ -25,6 +28,11 @@ class AuthFlowTests(unittest.TestCase):
             "ADMIN_BOOTSTRAP_NAME",
             "PF_SKIP_RUNTIME_INIT",
             "SMTP_FROM_EMAIL",
+            "EMAIL_DELIVERY_PROVIDER",
+            "MS_GRAPH_TENANT_ID",
+            "MS_GRAPH_CLIENT_ID",
+            "MS_GRAPH_CLIENT_SECRET",
+            "MS_GRAPH_FROM_EMAIL",
         ]}
         cls._tmpdir = tempfile.TemporaryDirectory()
         os.environ["AUTH_DB_PATH"] = os.path.join(cls._tmpdir.name, "auth.db")
@@ -35,6 +43,11 @@ class AuthFlowTests(unittest.TestCase):
         os.environ["ADMIN_BOOTSTRAP_NAME"] = "Test Admin"
         os.environ["PF_SKIP_RUNTIME_INIT"] = "1"
         os.environ["SMTP_FROM_EMAIL"] = "info@sofoenix.com"
+        os.environ.pop("EMAIL_DELIVERY_PROVIDER", None)
+        os.environ.pop("MS_GRAPH_TENANT_ID", None)
+        os.environ.pop("MS_GRAPH_CLIENT_ID", None)
+        os.environ.pop("MS_GRAPH_CLIENT_SECRET", None)
+        os.environ.pop("MS_GRAPH_FROM_EMAIL", None)
 
         try:
             from fastapi.testclient import TestClient
@@ -405,6 +418,88 @@ class AuthFlowTests(unittest.TestCase):
         finally:
             self.main.PRODUCT_DB = original_product_db
 
+    def test_it_can_configure_oauth2_settings_but_marketing_cannot(self):
+        signup_payload = {
+            "email": "it.oauth@test.local",
+            "password": "StrongPass123",
+            "full_name": "IT OAuth",
+            "company_name": "IT",
+            "country": "Italy",
+        }
+        signup = self.client.post("/auth/signup", json=signup_payload)
+        self.assertEqual(signup.status_code, 200, signup.text)
+
+        admin_login = self.client.post(
+            "/auth/login",
+            json={"email": "admin@test.local", "password": "AdminPass1234"},
+        )
+        self.assertEqual(admin_login.status_code, 200, admin_login.text)
+        admin_headers = {"Authorization": f"Bearer {admin_login.json()['access_token']}"}
+
+        pending = self.client.get("/admin/users/pending", headers=admin_headers)
+        user_id = next(item["id"] for item in pending.json()["items"] if item["email"] == signup_payload["email"])
+        approved = self.client.post(
+            f"/admin/users/{user_id}/approve",
+            json={"role": "it"},
+            headers=admin_headers,
+        )
+        self.assertEqual(approved.status_code, 200, approved.text)
+
+        it_login = self.client.post(
+            "/auth/login",
+            json={"email": signup_payload["email"], "password": signup_payload["password"]},
+        )
+        self.assertEqual(it_login.status_code, 200, it_login.text)
+        it_headers = {"Authorization": f"Bearer {it_login.json()['access_token']}"}
+
+        settings = self.client.get("/admin/settings", headers=it_headers)
+        self.assertEqual(settings.status_code, 200, settings.text)
+        items = settings.json()["items"]
+        categories = {item["category"] for item in items}
+        self.assertIn("Security", categories)
+        self.assertNotIn("Scoring", categories)
+        self.assertIn("oauth2_client_id", {item["key"] for item in items})
+
+        updated = self.client.put(
+            "/admin/settings/oauth2_client_id",
+            json={"value": "it-configured-client-id"},
+            headers=it_headers,
+        )
+        self.assertEqual(updated.status_code, 200, updated.text)
+        self.assertEqual(updated.json()["setting"]["value"], "it-configured-client-id")
+        self.assertEqual(self.main.auth_service.oauth2_client_id, "it-configured-client-id")
+
+        marketing_signup = {
+            "email": "marketing.oauth@test.local",
+            "password": "StrongPass123",
+            "full_name": "Marketing OAuth",
+            "company_name": "Marketing",
+            "country": "Italy",
+        }
+        created = self.client.post("/auth/signup", json=marketing_signup)
+        self.assertEqual(created.status_code, 200, created.text)
+        pending = self.client.get("/admin/users/pending", headers=admin_headers)
+        marketing_id = next(item["id"] for item in pending.json()["items"] if item["email"] == marketing_signup["email"])
+        approved_marketing = self.client.post(
+            f"/admin/users/{marketing_id}/approve",
+            json={"role": "marketing"},
+            headers=admin_headers,
+        )
+        self.assertEqual(approved_marketing.status_code, 200, approved_marketing.text)
+        marketing_login = self.client.post(
+            "/auth/login",
+            json={"email": marketing_signup["email"], "password": marketing_signup["password"]},
+        )
+        self.assertEqual(marketing_login.status_code, 200, marketing_login.text)
+        marketing_headers = {"Authorization": f"Bearer {marketing_login.json()['access_token']}"}
+
+        denied = self.client.put(
+            "/admin/settings/oauth2_client_id",
+            json={"value": "marketing-should-not-change-this"},
+            headers=marketing_headers,
+        )
+        self.assertEqual(denied.status_code, 403, denied.text)
+
     def test_catalog_import_permission_allows_marketing_and_admin_only(self):
         from fastapi import HTTPException
         from app.auth import UserPublic
@@ -484,6 +579,143 @@ class AuthFlowTests(unittest.TestCase):
         self.assertEqual(by_key["auth_token_expire_minutes"]["value"], "90")
         self.assertTrue(by_key["smtp_password"]["configured"])
         self.assertEqual(by_key["smtp_password"]["value"], "")
+
+    def test_graph_email_uses_client_credentials_and_send_mail(self):
+        class FakeResponse:
+            def __init__(self, payload=None):
+                self._payload = payload or {}
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return self._payload
+
+        calls = []
+
+        def fake_post(url, **kwargs):
+            calls.append({"url": url, **kwargs})
+            if url.endswith("/oauth2/v2.0/token"):
+                return FakeResponse({"access_token": "graph-token"})
+            return FakeResponse()
+
+        old_env = {key: os.environ.get(key) for key in [
+            "EMAIL_DELIVERY_PROVIDER",
+            "MS_GRAPH_TENANT_ID",
+            "MS_GRAPH_CLIENT_ID",
+            "MS_GRAPH_CLIENT_SECRET",
+            "MS_GRAPH_FROM_EMAIL",
+        ]}
+        try:
+            os.environ["EMAIL_DELIVERY_PROVIDER"] = "graph"
+            os.environ["MS_GRAPH_TENANT_ID"] = "tenant-123"
+            os.environ["MS_GRAPH_CLIENT_ID"] = "client-123"
+            os.environ["MS_GRAPH_CLIENT_SECRET"] = "secret-123"
+            os.environ["MS_GRAPH_FROM_EMAIL"] = "laiting@disano.it"
+
+            with patch("app.auth.httpx.post", new=fake_post):
+                self.main.auth_service._send_email(
+                    to_email="recipient@example.com",
+                    subject="Graph subject",
+                    body="Graph body",
+                )
+        finally:
+            for key, value in old_env.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0]["data"]["grant_type"], "client_credentials")
+        self.assertEqual(calls[0]["data"]["scope"], "https://graph.microsoft.com/.default")
+        self.assertEqual(calls[1]["url"], "https://graph.microsoft.com/v1.0/users/laiting%40disano.it/sendMail")
+        self.assertEqual(calls[1]["headers"]["Authorization"], "Bearer graph-token")
+        self.assertEqual(calls[1]["json"]["message"]["toRecipients"][0]["emailAddress"]["address"], "recipient@example.com")
+        self.assertFalse(calls[1]["json"]["saveToSentItems"])
+
+    def test_oauth2_login_callback_creates_session(self):
+        service = self.main.auth_service
+        old_attrs = {
+            name: getattr(service, name)
+            for name in [
+                "oauth2_enabled",
+                "oauth2_provider_name",
+                "oauth2_client_id",
+                "oauth2_client_secret",
+                "oauth2_tenant_id",
+                "oauth2_redirect_uri",
+                "oauth2_allowed_domains",
+                "oauth2_auto_approve",
+                "oauth2_default_role",
+                "oauth2_skip_id_token_verify",
+                "local_login_enabled",
+                "local_signup_enabled",
+            ]
+        }
+
+        class FakeResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                token = jwt.encode(
+                    {
+                        "aud": "oauth-client-id",
+                        "iss": "https://login.microsoftonline.com/tenant-123/v2.0",
+                        "email": "oauth.user@disano.it",
+                        "name": "OAuth User",
+                    },
+                    key="",
+                    algorithm="none",
+                )
+                return {"id_token": token, "access_token": "provider-access-token"}
+
+        try:
+            service.oauth2_enabled = True
+            service.oauth2_provider_name = "Microsoft Entra ID"
+            service.oauth2_client_id = "oauth-client-id"
+            service.oauth2_client_secret = "oauth-client-secret"
+            service.oauth2_tenant_id = "tenant-123"
+            service.oauth2_redirect_uri = "http://testserver/auth/oauth/callback"
+            service.oauth2_allowed_domains = {"disano.it"}
+            service.oauth2_auto_approve = True
+            service.oauth2_default_role = "user"
+            service.oauth2_skip_id_token_verify = True
+            service.local_login_enabled = False
+            service.local_signup_enabled = False
+
+            cfg = self.client.get("/auth/config")
+            self.assertEqual(cfg.status_code, 200, cfg.text)
+            self.assertTrue(cfg.json()["oauth2_enabled"])
+            self.assertFalse(cfg.json()["local_login_enabled"])
+
+            login = self.client.get("/auth/oauth/login", follow_redirects=False)
+            self.assertEqual(login.status_code, 302, login.text)
+            self.assertIn("pf_oauth_state", self.client.cookies)
+            authorize_url = urllib.parse.urlparse(login.headers["location"])
+            params = urllib.parse.parse_qs(authorize_url.query)
+            state = params["state"][0]
+            self.assertEqual(params["client_id"][0], "oauth-client-id")
+            self.assertEqual(params["redirect_uri"][0], "http://testserver/auth/oauth/callback")
+
+            with patch("app.auth.httpx.post", return_value=FakeResponse()):
+                callback = self.client.get(
+                    f"/auth/oauth/callback?code=test-code&state={urllib.parse.quote(state)}",
+                    follow_redirects=False,
+                )
+            self.assertEqual(callback.status_code, 302, callback.text)
+            self.assertIn("pf_access_token", self.client.cookies)
+            self.assertIn("pf_refresh_token", self.client.cookies)
+
+            me = self.client.get("/auth/me")
+            self.assertEqual(me.status_code, 200, me.text)
+            self.assertEqual(me.json()["email"], "oauth.user@disano.it")
+            self.assertEqual(me.json()["full_name"], "OAuth User")
+            self.assertEqual(me.json()["role"], "user")
+        finally:
+            for name, value in old_attrs.items():
+                setattr(service, name, value)
 
     def test_director_can_access_analytics_and_manage_roles_but_not_settings(self):
         director_signup = {

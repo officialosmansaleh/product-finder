@@ -779,6 +779,7 @@
     const SETTINGS_CATEGORY_META = {
       All: "All maintenance settings in one place.",
       Website: "Website, catalog content, deployment, and access settings.",
+      Security: "Authentication, SSO, and access-control settings.",
       Email: "Delivery settings for password reset emails and outbound app mail.",
       Administration: "Bootstrap admin and maintenance access defaults.",
       Operations: "Debugging and runtime operational behavior.",
@@ -1135,10 +1136,14 @@
       const mount = $("runtimeStatusPills");
       if (!mount) return;
       const byKey = Object.fromEntries((items || []).map((item) => [String(item.key || ""), item]));
+      const provider = String(byKey["email_delivery_provider"]?.value || "smtp").toLowerCase();
       const smtpKey = byKey["smtp_host"];
+      const graphReady = ["ms_graph_tenant_id", "ms_graph_client_id", "ms_graph_client_secret", "ms_graph_from_email"].every((key) => byKey[key]?.configured);
       const pills = [];
-      if (smtpKey){
-        pills.push(`<span class="runtimePill ${smtpKey.configured ? "ok" : "warn"}">SMTP ${smtpKey.configured ? "configured" : "pending IT"}</span>`);
+      if (provider === "graph"){
+        pills.push(`<span class="runtimePill ${graphReady ? "ok" : "warn"}">Graph email ${graphReady ? "configured" : "pending IT"}</span>`);
+      } else if (smtpKey){
+        pills.push(`<span class="runtimePill ${smtpKey.configured ? "ok" : "warn"}">SMTP email ${smtpKey.configured ? "configured" : "pending IT"}</span>`);
       }
       mount.innerHTML = pills.join("");
     }

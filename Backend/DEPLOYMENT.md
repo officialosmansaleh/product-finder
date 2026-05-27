@@ -6,9 +6,12 @@
 2. Set at least:
    - `OPENAI_API_KEY`
    - `AUTH_JWT_SECRET`
-   - `ADMIN_BOOTSTRAP_EMAIL`
-   - `ADMIN_BOOTSTRAP_PASSWORD`
-   - `ADMIN_BOOTSTRAP_NAME`
+   - `OAUTH2_TENANT_ID`
+   - `OAUTH2_CLIENT_ID`
+   - `OAUTH2_CLIENT_SECRET`
+   - `OAUTH2_REDIRECT_URI`
+   - `OAUTH2_ADMIN_EMAILS`
+   - `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD` only if local fallback remains enabled
    - `POSTGRES_PASSWORD`
 3. Start the stack:
 
@@ -34,6 +37,7 @@ curl http://localhost:8000/health
 - The admin panel now includes a DB-backed Settings area for maintainable runtime/admin values and masked secret rotation support.
 - Deployment/infrastructure-sensitive values such as `APP_DOMAIN`, `POSTGRES_PASSWORD`, and some security settings may still require restart or redeploy even if updated from the admin UI.
 - Password reset is implemented in the app; real email delivery depends on SMTP configuration, which can now be entered from the admin Settings panel once IT provides the Microsoft 365 mailbox details.
+- Production login should use OAuth2/OIDC SSO. Register `https://laiting.disano.it/auth/oauth/callback` as the redirect URI in Microsoft Entra ID, then set `LOCAL_LOGIN_ENABLED=false` and `LOCAL_SIGNUP_ENABLED=false` after validating the SSO flow.
 - External SMTP coordination is tracked in [ASK_IT_TODO.md](/c:/Users/Osman.saleh/OneDrive/Cartella%20progetto/product-finder%202/Backend/ASK_IT_TODO.md).
 - Inside Docker Compose, the app now forces `PRODUCT_DATABASE_URL` and `AUTH_DATABASE_URL` to use the `postgres` service host. This avoids the common mistake of leaving `localhost` in `.env`.
 - If PostgreSQL runs outside Docker, point `PRODUCT_DATABASE_URL` and `AUTH_DATABASE_URL` to the external host and remove the `postgres` service from the compose file.

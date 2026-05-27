@@ -9,11 +9,13 @@ import re
 import secrets
 import sqlite3
 import smtplib
+import urllib.parse
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from typing import Any, Iterator, Optional
 
+import httpx
 import jwt
 import psycopg2
 from fastapi import Depends, HTTPException, Request, Response
@@ -112,6 +114,13 @@ class AuthTokenResponse(BaseModel):
     token_type: str = "bearer"
     refresh_token: str = ""
     user: UserPublic
+
+
+class AuthConfigResponse(BaseModel):
+    oauth2_enabled: bool = False
+    oauth2_provider: str = ""
+    local_login_enabled: bool = True
+    local_signup_enabled: bool = True
 
 
 class UserStatusUpdateResponse(BaseModel):
@@ -347,6 +356,36 @@ class AuthService:
         self.bootstrap_email = str(os.getenv("ADMIN_BOOTSTRAP_EMAIL", "")).strip().lower()
         self.bootstrap_password = str(os.getenv("ADMIN_BOOTSTRAP_PASSWORD", "")).strip()
         self.bootstrap_name = str(os.getenv("ADMIN_BOOTSTRAP_NAME", "Administrator")).strip() or "Administrator"
+        self.oauth2_enabled = str(os.getenv("OAUTH2_ENABLED", "0")).strip().lower() in {"1", "true", "yes", "on"}
+        self.oauth2_provider_name = str(os.getenv("OAUTH2_PROVIDER_NAME", "Microsoft Entra ID")).strip() or "OAuth2"
+        self.oauth2_client_id = str(os.getenv("OAUTH2_CLIENT_ID", "")).strip()
+        self.oauth2_client_secret = str(os.getenv("OAUTH2_CLIENT_SECRET", "")).strip()
+        self.oauth2_tenant_id = str(os.getenv("OAUTH2_TENANT_ID", "") or os.getenv("MS_GRAPH_TENANT_ID", "")).strip()
+        self.oauth2_redirect_uri = str(os.getenv("OAUTH2_REDIRECT_URI", "")).strip()
+        self.oauth2_scope = str(os.getenv("OAUTH2_SCOPE", "openid profile email")).strip() or "openid profile email"
+        self.oauth2_authorize_url = str(os.getenv("OAUTH2_AUTHORIZE_URL", "")).strip()
+        self.oauth2_token_url = str(os.getenv("OAUTH2_TOKEN_URL", "")).strip()
+        self.oauth2_jwks_url = str(os.getenv("OAUTH2_JWKS_URL", "")).strip()
+        self.oauth2_issuer = str(os.getenv("OAUTH2_ISSUER", "")).strip()
+        self.oauth2_allowed_domains = {
+            item.strip().lower().lstrip("@")
+            for item in str(os.getenv("OAUTH2_ALLOWED_DOMAINS", "")).split(",")
+            if item.strip()
+        }
+        self.oauth2_auto_approve = str(os.getenv("OAUTH2_AUTO_APPROVE", "1")).strip().lower() in {"1", "true", "yes", "on"}
+        self.oauth2_default_role = str(os.getenv("OAUTH2_DEFAULT_ROLE", ROLE_USER)).strip().lower() or ROLE_USER
+        if self.oauth2_default_role not in ROLE_ORDER:
+            self.oauth2_default_role = ROLE_USER
+        self.oauth2_default_country = str(os.getenv("OAUTH2_DEFAULT_COUNTRY", "")).strip()
+        self.oauth2_admin_emails = {
+            item.strip().lower()
+            for item in str(os.getenv("OAUTH2_ADMIN_EMAILS", "")).split(",")
+            if item.strip()
+        }
+        self.oauth2_state_cookie_name = str(os.getenv("OAUTH2_STATE_COOKIE_NAME", "pf_oauth_state")).strip() or "pf_oauth_state"
+        self.oauth2_skip_id_token_verify = str(os.getenv("OAUTH2_SKIP_ID_TOKEN_VERIFY", "0")).strip().lower() in {"1", "true", "yes", "on"}
+        self.local_login_enabled = str(os.getenv("LOCAL_LOGIN_ENABLED", "1")).strip().lower() in {"1", "true", "yes", "on"}
+        self.local_signup_enabled = str(os.getenv("LOCAL_SIGNUP_ENABLED", "1")).strip().lower() in {"1", "true", "yes", "on"}
 
     def _translate_query(self, query: str) -> str:
         if self.backend != "postgres":
@@ -747,6 +786,20 @@ class AuthService:
     def _refresh_cookie_max_age(self) -> int:
         return max(3600, self.refresh_token_expire_days * 24 * 60 * 60)
 
+    def auth_config(self) -> AuthConfigResponse:
+        oauth_ready = bool(
+            self.oauth2_enabled
+            and self.oauth2_client_id
+            and self.oauth2_client_secret
+            and (self.oauth2_tenant_id or (self.oauth2_authorize_url and self.oauth2_token_url))
+        )
+        return AuthConfigResponse(
+            oauth2_enabled=oauth_ready,
+            oauth2_provider=self.oauth2_provider_name,
+            local_login_enabled=bool(self.local_login_enabled),
+            local_signup_enabled=bool(self.local_signup_enabled),
+        )
+
     def _create_access_token(self, row: dict[str, Any]) -> str:
         now = _utc_now()
         return jwt.encode(
@@ -865,6 +918,21 @@ class AuthService:
             expires=self._refresh_cookie_max_age(),
             path="/auth",
         )
+
+    def set_oauth_state_cookie(self, response: Response, state: str) -> None:
+        response.set_cookie(
+            key=self.oauth2_state_cookie_name,
+            value=str(state or ""),
+            httponly=True,
+            secure=self.cookie_secure,
+            samesite=self.cookie_samesite,
+            max_age=10 * 60,
+            expires=10 * 60,
+            path="/auth/oauth",
+        )
+
+    def clear_oauth_state_cookie(self, response: Response) -> None:
+        response.delete_cookie(self.oauth2_state_cookie_name, path="/auth/oauth")
 
     def clear_auth_cookies(self, response: Response) -> None:
         response.delete_cookie(self.access_cookie_name, path="/")
@@ -1445,6 +1513,34 @@ class AuthService:
         self.bootstrap_email = str(os.getenv("ADMIN_BOOTSTRAP_EMAIL", self.bootstrap_email)).strip().lower()
         self.bootstrap_password = str(os.getenv("ADMIN_BOOTSTRAP_PASSWORD", self.bootstrap_password)).strip()
         self.bootstrap_name = str(os.getenv("ADMIN_BOOTSTRAP_NAME", self.bootstrap_name)).strip() or self.bootstrap_name
+        self.oauth2_enabled = str(os.getenv("OAUTH2_ENABLED", "1" if self.oauth2_enabled else "0")).strip().lower() in {"1", "true", "yes", "on"}
+        self.oauth2_provider_name = str(os.getenv("OAUTH2_PROVIDER_NAME", self.oauth2_provider_name)).strip() or self.oauth2_provider_name
+        self.oauth2_client_id = str(os.getenv("OAUTH2_CLIENT_ID", self.oauth2_client_id)).strip()
+        self.oauth2_client_secret = str(os.getenv("OAUTH2_CLIENT_SECRET", self.oauth2_client_secret)).strip()
+        self.oauth2_tenant_id = str(os.getenv("OAUTH2_TENANT_ID", self.oauth2_tenant_id) or os.getenv("MS_GRAPH_TENANT_ID", "")).strip()
+        self.oauth2_redirect_uri = str(os.getenv("OAUTH2_REDIRECT_URI", self.oauth2_redirect_uri)).strip()
+        self.oauth2_scope = str(os.getenv("OAUTH2_SCOPE", self.oauth2_scope)).strip() or self.oauth2_scope
+        self.oauth2_authorize_url = str(os.getenv("OAUTH2_AUTHORIZE_URL", self.oauth2_authorize_url)).strip()
+        self.oauth2_token_url = str(os.getenv("OAUTH2_TOKEN_URL", self.oauth2_token_url)).strip()
+        self.oauth2_jwks_url = str(os.getenv("OAUTH2_JWKS_URL", self.oauth2_jwks_url)).strip()
+        self.oauth2_issuer = str(os.getenv("OAUTH2_ISSUER", self.oauth2_issuer)).strip()
+        self.oauth2_allowed_domains = {
+            item.strip().lower().lstrip("@")
+            for item in str(os.getenv("OAUTH2_ALLOWED_DOMAINS", ",".join(self.oauth2_allowed_domains))).split(",")
+            if item.strip()
+        }
+        self.oauth2_auto_approve = str(os.getenv("OAUTH2_AUTO_APPROVE", "1" if self.oauth2_auto_approve else "0")).strip().lower() in {"1", "true", "yes", "on"}
+        self.oauth2_default_role = str(os.getenv("OAUTH2_DEFAULT_ROLE", self.oauth2_default_role)).strip().lower() or self.oauth2_default_role
+        if self.oauth2_default_role not in ROLE_ORDER:
+            self.oauth2_default_role = ROLE_USER
+        self.oauth2_default_country = str(os.getenv("OAUTH2_DEFAULT_COUNTRY", self.oauth2_default_country)).strip()
+        self.oauth2_admin_emails = {
+            item.strip().lower()
+            for item in str(os.getenv("OAUTH2_ADMIN_EMAILS", ",".join(self.oauth2_admin_emails))).split(",")
+            if item.strip()
+        }
+        self.local_login_enabled = str(os.getenv("LOCAL_LOGIN_ENABLED", "1" if self.local_login_enabled else "0")).strip().lower() in {"1", "true", "yes", "on"}
+        self.local_signup_enabled = str(os.getenv("LOCAL_SIGNUP_ENABLED", "1" if self.local_signup_enabled else "0")).strip().lower() in {"1", "true", "yes", "on"}
         if self.bootstrap_email and self.bootstrap_password:
             self.ensure_bootstrap_admin()
 
@@ -1524,10 +1620,25 @@ class AuthService:
             "from_email": str(os.getenv("SMTP_FROM_EMAIL", "")).strip(),
         }
 
+    def _graph_mail_settings(self) -> dict[str, str]:
+        return {
+            "tenant_id": str(os.getenv("MS_GRAPH_TENANT_ID", "")).strip(),
+            "client_id": str(os.getenv("MS_GRAPH_CLIENT_ID", "")).strip(),
+            "client_secret": str(os.getenv("MS_GRAPH_CLIENT_SECRET", "")).strip(),
+            "from_email": str(os.getenv("MS_GRAPH_FROM_EMAIL", "") or os.getenv("SMTP_FROM_EMAIL", "")).strip(),
+        }
+
     def _notification_owner_email(self) -> str:
-        return str(os.getenv("SMTP_FROM_EMAIL", "") or "").strip().lower()
+        return str(os.getenv("MS_GRAPH_FROM_EMAIL", "") or os.getenv("SMTP_FROM_EMAIL", "") or "").strip().lower()
 
     def _send_email(self, *, to_email: str, subject: str, body: str) -> None:
+        provider = str(os.getenv("EMAIL_DELIVERY_PROVIDER", "smtp")).strip().lower() or "smtp"
+        if provider in {"graph", "ms_graph", "microsoft_graph"}:
+            self._send_email_via_graph(to_email=to_email, subject=subject, body=body)
+            return
+        self._send_email_via_smtp(to_email=to_email, subject=subject, body=body)
+
+    def _send_email_via_smtp(self, *, to_email: str, subject: str, body: str) -> None:
         smtp = self._smtp_settings()
         recipient = str(to_email or "").strip()
         if not recipient:
@@ -1553,6 +1664,45 @@ class AuthService:
                 server.login(smtp["username"], smtp["password"])
             server.send_message(msg)
 
+    def _send_email_via_graph(self, *, to_email: str, subject: str, body: str) -> None:
+        graph = self._graph_mail_settings()
+        recipient = str(to_email or "").strip()
+        if not recipient:
+            return
+        missing = [label for label in ("tenant_id", "client_id", "client_secret", "from_email") if not graph[label]]
+        if missing:
+            raise RuntimeError(f"Microsoft Graph email is missing required settings: {', '.join(missing)}")
+
+        token_response = httpx.post(
+            f"https://login.microsoftonline.com/{urllib.parse.quote(graph['tenant_id'], safe='')}/oauth2/v2.0/token",
+            data={
+                "client_id": graph["client_id"],
+                "client_secret": graph["client_secret"],
+                "grant_type": "client_credentials",
+                "scope": "https://graph.microsoft.com/.default",
+            },
+            timeout=20,
+        )
+        token_response.raise_for_status()
+        access_token = str(token_response.json().get("access_token") or "").strip()
+        if not access_token:
+            raise RuntimeError("Microsoft Graph token response did not include an access token")
+
+        send_response = httpx.post(
+            f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(graph['from_email'], safe='')}/sendMail",
+            headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
+            json={
+                "message": {
+                    "subject": subject,
+                    "body": {"contentType": "Text", "content": body},
+                    "toRecipients": [{"emailAddress": {"address": recipient}}],
+                },
+                "saveToSentItems": False,
+            },
+            timeout=20,
+        )
+        send_response.raise_for_status()
+
     def _build_password_reset_url(self, token: str) -> str:
         domain = str(os.getenv("APP_DOMAIN", "")).strip()
         if domain:
@@ -1571,6 +1721,205 @@ class AuthService:
             "If you did not request this, you can ignore this email."
             ),
         )
+
+    def _oauth2_base_url(self) -> str:
+        if self.oauth2_issuer:
+            return self.oauth2_issuer.rstrip("/")
+        if self.oauth2_tenant_id:
+            return f"https://login.microsoftonline.com/{urllib.parse.quote(self.oauth2_tenant_id, safe='')}/v2.0"
+        return ""
+
+    def _oauth2_authorize_endpoint(self) -> str:
+        if self.oauth2_authorize_url:
+            return self.oauth2_authorize_url
+        if self.oauth2_tenant_id:
+            tenant = urllib.parse.quote(self.oauth2_tenant_id, safe="")
+            return f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"
+        return ""
+
+    def _oauth2_token_endpoint(self) -> str:
+        if self.oauth2_token_url:
+            return self.oauth2_token_url
+        if self.oauth2_tenant_id:
+            tenant = urllib.parse.quote(self.oauth2_tenant_id, safe="")
+            return f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
+        return ""
+
+    def _oauth2_jwks_endpoint(self) -> str:
+        if self.oauth2_jwks_url:
+            return self.oauth2_jwks_url
+        if self.oauth2_tenant_id:
+            tenant = urllib.parse.quote(self.oauth2_tenant_id, safe="")
+            return f"https://login.microsoftonline.com/{tenant}/discovery/v2.0/keys"
+        return ""
+
+    def _public_app_base_url(self, request: Request | None = None) -> str:
+        configured = str(os.getenv("APP_DOMAIN", "")).strip()
+        if configured:
+            return configured if configured.startswith(("http://", "https://")) else f"https://{configured}"
+        if request is not None:
+            return str(request.base_url).rstrip("/")
+        return "http://localhost:8000"
+
+    def oauth2_redirect_uri_for_request(self, request: Request | None = None) -> str:
+        if self.oauth2_redirect_uri:
+            return self.oauth2_redirect_uri
+        return f"{self._public_app_base_url(request).rstrip('/')}/auth/oauth/callback"
+
+    def build_oauth2_authorize_url(self, *, state: str, request: Request | None = None) -> str:
+        if not self.oauth2_enabled or not self.oauth2_client_id:
+            raise HTTPException(status_code=503, detail="OAuth2 login is not configured")
+        authorize_url = self._oauth2_authorize_endpoint()
+        if not authorize_url:
+            raise HTTPException(status_code=503, detail="OAuth2 authorize endpoint is not configured")
+        params = {
+            "client_id": self.oauth2_client_id,
+            "response_type": "code",
+            "redirect_uri": self.oauth2_redirect_uri_for_request(request),
+            "response_mode": "query",
+            "scope": self.oauth2_scope,
+            "state": state,
+            "prompt": "select_account",
+        }
+        return f"{authorize_url}?{urllib.parse.urlencode(params)}"
+
+    def _decode_oauth2_id_token(self, id_token: str) -> dict[str, Any]:
+        token = str(id_token or "").strip()
+        if not token:
+            raise HTTPException(status_code=401, detail="OAuth2 provider did not return an ID token")
+        if self.oauth2_skip_id_token_verify:
+            claims = jwt.decode(token, options={"verify_signature": False, "verify_aud": False})
+            audience = claims.get("aud")
+            if self.oauth2_client_id:
+                audiences = audience if isinstance(audience, list) else [audience]
+                if self.oauth2_client_id not in [str(item) for item in audiences]:
+                    raise HTTPException(status_code=401, detail="OAuth2 ID token audience is invalid")
+            return dict(claims)
+        jwks_url = self._oauth2_jwks_endpoint()
+        if not jwks_url:
+            raise HTTPException(status_code=503, detail="OAuth2 JWKS endpoint is not configured")
+        try:
+            signing_key = jwt.PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
+            decode_kwargs: dict[str, Any] = {
+                "key": signing_key.key,
+                "algorithms": ["RS256"],
+                "audience": self.oauth2_client_id,
+            }
+            issuer = self._oauth2_base_url()
+            if issuer:
+                decode_kwargs["issuer"] = issuer
+            return dict(jwt.decode(token, **decode_kwargs))
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=401, detail=f"OAuth2 ID token validation failed: {exc}")
+
+    def exchange_oauth2_code(self, *, code: str, request: Request | None = None) -> dict[str, Any]:
+        if not self.oauth2_enabled or not self.oauth2_client_id or not self.oauth2_client_secret:
+            raise HTTPException(status_code=503, detail="OAuth2 login is not fully configured")
+        token_url = self._oauth2_token_endpoint()
+        if not token_url:
+            raise HTTPException(status_code=503, detail="OAuth2 token endpoint is not configured")
+        try:
+            token_response = httpx.post(
+                token_url,
+                data={
+                    "client_id": self.oauth2_client_id,
+                    "client_secret": self.oauth2_client_secret,
+                    "grant_type": "authorization_code",
+                    "code": str(code or "").strip(),
+                    "redirect_uri": self.oauth2_redirect_uri_for_request(request),
+                    "scope": self.oauth2_scope,
+                },
+                timeout=20,
+            )
+            token_response.raise_for_status()
+            payload = token_response.json()
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"OAuth2 token exchange failed: {exc}")
+        claims = self._decode_oauth2_id_token(str(payload.get("id_token") or ""))
+        return {**payload, "claims": claims}
+
+    def _email_from_oauth2_claims(self, claims: dict[str, Any]) -> str:
+        candidates = [
+            claims.get("email"),
+            claims.get("preferred_username"),
+            claims.get("upn"),
+            claims.get("unique_name"),
+        ]
+        for value in candidates:
+            email = str(value or "").strip().lower()
+            if re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+                return email
+        raise HTTPException(status_code=401, detail="OAuth2 identity does not include a valid email")
+
+    def _assert_oauth2_email_allowed(self, email: str) -> None:
+        if not self.oauth2_allowed_domains:
+            return
+        domain = str(email or "").rsplit("@", 1)[-1].lower()
+        if domain not in self.oauth2_allowed_domains:
+            raise HTTPException(status_code=403, detail="OAuth2 email domain is not allowed")
+
+    def create_or_update_oauth2_user(self, claims: dict[str, Any]) -> UserPublic:
+        email = self._email_from_oauth2_claims(claims)
+        self._assert_oauth2_email_allowed(email)
+        full_name = str(claims.get("name") or claims.get("given_name") or email.split("@", 1)[0]).strip()
+        is_admin_email = email in self.oauth2_admin_emails or (self.bootstrap_email and email == self.bootstrap_email)
+        default_role = ROLE_ADMIN if is_admin_email else self.oauth2_default_role
+        default_status = "approved" if (self.oauth2_auto_approve or is_admin_email) else "pending"
+        now = _utc_iso()
+        with self.connect() as conn:
+            existing = self._fetchone(conn, "SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,))
+            if existing:
+                self._execute(
+                    conn,
+                    """
+                    UPDATE users
+                    SET full_name = CASE WHEN COALESCE(full_name, '') = '' THEN ? ELSE full_name END,
+                        country = CASE WHEN COALESCE(country, '') = '' THEN ? ELSE country END,
+                        last_login_at = ?
+                    WHERE id = ?
+                    """,
+                    (full_name, self.oauth2_default_country, now, int(existing["id"])),
+                )
+                row = self._fetchone(conn, "SELECT * FROM users WHERE id = ?", (int(existing["id"]),))
+            else:
+                self._execute(
+                    conn,
+                    """
+                    INSERT INTO users (email, password_hash, full_name, company_name, country, assigned_countries, role, status, created_at, approved_at)
+                    VALUES (?, ?, ?, '', ?, '', ?, ?, ?, ?)
+                    """,
+                    (
+                        email,
+                        _password_hash(secrets.token_urlsafe(48)),
+                        full_name,
+                        self.oauth2_default_country,
+                        default_role,
+                        default_status,
+                        now,
+                        now if default_status == "approved" else None,
+                    ),
+                )
+                row = self._fetchone(conn, "SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,))
+        if not row:
+            raise HTTPException(status_code=500, detail="Failed to create OAuth2 user")
+        user = self._row_to_user(row)
+        if user.status != "approved":
+            raise HTTPException(status_code=403, detail=f"Account status is {user.status}")
+        return user
+
+    def create_session_for_user(self, user: UserPublic) -> AuthTokenResponse:
+        row = self._get_user_row_by_id(int(user.id))
+        if not row:
+            raise HTTPException(status_code=401, detail="User not found")
+        if str(row.get("status") or "pending") != "approved":
+            raise HTTPException(status_code=403, detail=f"Account status is {row.get('status') or 'pending'}")
+        token = self._create_access_token(row)
+        refresh_token = self._issue_refresh_token(int(row["id"]))
+        return AuthTokenResponse(access_token=token, refresh_token=refresh_token, user=self._row_to_user(row))
 
     def _send_signup_request_notifications(
         self,

@@ -8,9 +8,11 @@
   let authNotice = "";
   let authNoticeTone = "info";
   let refreshPromise = null;
+  let authConfig = { oauth2_enabled: false, oauth2_provider: "", local_login_enabled: true, local_signup_enabled: true };
   const AUTH_I18N = {
     en: {
       sign_in:"Sign in", request_access:"Request access", open_account_panel:"Open account panel", user:"User",
+      sso_sign_in:"Sign in with SSO",
       admin:"Admin", it:"IT", director:"Director", manager:"Manager", marketing:"Marketing",
       status:"Status", country:"Country", not_set:"Not set", admin_tools:"Admin tools", full_access:"Full access available",
       manager_countries:"Manager countries", none_assigned:"None assigned", manager_tools:"Manager tools", readonly_country:"Read-only country access",
@@ -37,6 +39,7 @@
     },
     it: {
       sign_in:"Accedi", request_access:"Richiedi accesso", open_account_panel:"Apri pannello account", user:"Utente",
+      sso_sign_in:"Accedi con SSO",
       admin:"Admin", it:"IT", director:"Direttore", manager:"Manager", marketing:"Marketing",
       status:"Stato", country:"Paese", not_set:"Non impostato", admin_tools:"Strumenti admin", full_access:"Accesso completo disponibile",
       manager_countries:"Paesi manager", none_assigned:"Nessuno assegnato", manager_tools:"Strumenti manager", readonly_country:"Accesso paese in sola lettura",
@@ -345,12 +348,17 @@
   function renderLoggedOutMount() {
     const mount = document.getElementById("authMount");
     if (!mount) return;
+    const ssoLabel = authConfig.oauth2_provider ? `${ta("sso_sign_in")} ${escapeHtml(authConfig.oauth2_provider)}` : ta("sso_sign_in");
     mount.innerHTML = `
       <div class="authTriggerGroup">
-        <button id="btnAuthOpenLogin" class="btn secondary compact" type="button">${escapeHtml(ta("sign_in"))}</button>
-        <button id="btnAuthOpenSignup" class="btn compact" type="button">${escapeHtml(ta("request_access"))}</button>
+        ${authConfig.oauth2_enabled ? `<button id="btnAuthSso" class="btn compact" type="button">${ssoLabel}</button>` : ""}
+        ${authConfig.local_login_enabled ? `<button id="btnAuthOpenLogin" class="btn secondary compact" type="button">${escapeHtml(ta("sign_in"))}</button>` : ""}
+        ${authConfig.local_signup_enabled ? `<button id="btnAuthOpenSignup" class="btn compact" type="button">${escapeHtml(ta("request_access"))}</button>` : ""}
       </div>
     `;
+    mount.querySelector("#btnAuthSso")?.addEventListener("click", () => {
+      window.location.href = "/auth/oauth/login";
+    });
     mount.querySelector("#btnAuthOpenLogin")?.addEventListener("click", () => openModal("login"));
     mount.querySelector("#btnAuthOpenSignup")?.addEventListener("click", () => openModal("signup"));
   }
@@ -397,6 +405,8 @@
 
   function renderAccessView(view) {
     const loginActive = view !== "signup";
+    const localLoginAvailable = loginActive ? authConfig.local_login_enabled : authConfig.local_signup_enabled;
+    const ssoLabel = authConfig.oauth2_provider ? `${ta("sso_sign_in")} ${authConfig.oauth2_provider}` : ta("sso_sign_in");
     return `
       <div class="authBox authBoxExpanded">
         <div class="authHeader">
@@ -404,12 +414,13 @@
             <div id="authModalTitle" class="authTitle">${escapeHtml(ta("workspace_access"))}</div>
             <div class="authSubtitle">${escapeHtml(ta("subtitle"))}</div>
           </div>
-          <div class="authTabs" role="tablist" aria-label="${escapeHtml(ta("auth_tabs"))}">
+          ${authConfig.local_login_enabled && authConfig.local_signup_enabled ? `<div class="authTabs" role="tablist" aria-label="${escapeHtml(ta("auth_tabs"))}">
             <button id="btnAuthTabLogin" class="authTab ${loginActive ? "active" : ""}" type="button">${escapeHtml(ta("login"))}</button>
             <button id="btnAuthTabSignup" class="authTab ${!loginActive ? "active" : ""}" type="button">${escapeHtml(ta("signup"))}</button>
-          </div>
+          </div>` : ""}
         </div>
-        <div class="authFields">
+        ${authConfig.oauth2_enabled ? `<div class="authActions"><button id="btnAuthSsoModal" class="btn compact" type="button">${escapeHtml(ssoLabel)}</button></div>` : ""}
+        ${localLoginAvailable ? `<div class="authFields">
           <input id="authEmail" type="email" placeholder="${escapeHtml(ta("work_email"))}" autocomplete="email" />
           <div class="authPasswordField">
             <input id="authPassword" type="password" placeholder="${escapeHtml(ta("password"))}" autocomplete="${loginActive ? "current-password" : "new-password"}" />
@@ -426,13 +437,14 @@
             ${countryOptions("")}
           </select>
           <input id="authCountryOther" class="authHidden" type="text" placeholder="${escapeHtml(ta("enter_country"))}" autocomplete="country-name" />
-        </div>
-        ${loginActive ? "" : `<div class="authHelper">${escapeHtml(ta("password_rules"))}</div>`}
+        </div>` : ""}
+        ${loginActive || !localLoginAvailable ? "" : `<div class="authHelper">${escapeHtml(ta("password_rules"))}</div>`}
+        ${localLoginAvailable ? `
         <div class="authActions">
           <button id="btnAuthPrimary" class="btn compact" type="button">${escapeHtml(loginActive ? ta("login") : ta("request_access"))}</button>
           <div class="authHelper">${escapeHtml(loginActive ? ta("login_helper") : ta("signup_helper"))}</div>
         </div>
-        ${loginActive ? `<div class="authActions"><button id="btnAuthForgotPassword" class="btn secondary compact" type="button">${escapeHtml(ta("forgot_password"))}</button><div class="authHelper">${escapeHtml(ta("reset_helper"))}</div></div>` : ""}
+        ${loginActive ? `<div class="authActions"><button id="btnAuthForgotPassword" class="btn secondary compact" type="button">${escapeHtml(ta("forgot_password"))}</button><div class="authHelper">${escapeHtml(ta("reset_helper"))}</div></div>` : ""}` : ""}
         ${renderStatusLine(loginActive ? ta("login_status") : ta("signup_status"), loginActive ? "info" : "warn")}
       </div>
     `;
@@ -495,6 +507,9 @@
 
     body.querySelector("#btnAuthTabLogin")?.addEventListener("click", () => switchView("login"));
     body.querySelector("#btnAuthTabSignup")?.addEventListener("click", () => switchView("signup"));
+    body.querySelector("#btnAuthSsoModal")?.addEventListener("click", () => {
+      window.location.href = "/auth/oauth/login";
+    });
     body.querySelectorAll("[data-auth-toggle-password]").forEach((button) => {
       button.addEventListener("click", () => {
         const targetId = String(button.getAttribute("data-auth-toggle-password") || "").trim();
@@ -681,6 +696,10 @@
 
   async function bootstrapUser() {
     ensureModal();
+    try {
+      const cfg = await fetch("/auth/config", { credentials: "same-origin" });
+      if (cfg.ok) authConfig = { ...authConfig, ...(await cfg.json()) };
+    } catch (_e) {}
     if (isSessionIdleExpired()) {
       expireSessionForInactivity();
       return;

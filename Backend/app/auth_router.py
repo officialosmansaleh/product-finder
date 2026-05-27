@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Optional
 
+import hmac
+import urllib.parse
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response
+from fastapi.responses import RedirectResponse
 
 from app.auth import (
     AnalyticsEventRequest,
@@ -21,6 +25,10 @@ from app.auth import (
     UserPublic,
     build_auth_dependencies,
 )
+
+
+def secrets_compare(left: str, right: str) -> bool:
+    return hmac.compare_digest(str(left or "").encode("utf-8"), str(right or "").encode("utf-8"))
 
 
 def create_auth_router(auth_service: AuthService) -> APIRouter:
@@ -48,6 +56,8 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
 
     @router.post("/auth/signup")
     def signup(payload: SignupRequest):
+        if not auth_service.local_signup_enabled:
+            raise HTTPException(status_code=403, detail="Local signup is disabled")
         user = auth_service.create_signup(payload)
         return {
             "success": True,
@@ -57,6 +67,8 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
 
     @router.post("/auth/login")
     def login(payload: LoginRequest, response: Response, request: Request):
+        if not auth_service.local_login_enabled:
+            raise HTTPException(status_code=403, detail="Local login is disabled")
         session = auth_service.authenticate(payload)
         auth_service.set_auth_cookies(
             response,
@@ -76,6 +88,37 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
                 user_agent=str(request.headers.get("user-agent") or ""),
             )
         return session.model_dump()
+
+    @router.get("/auth/config")
+    def auth_config():
+        return auth_service.auth_config().model_dump()
+
+    @router.get("/auth/oauth/login")
+    def oauth_login(request: Request):
+        state = auth_service.create_analytics_session_id()
+        response = RedirectResponse(auth_service.build_oauth2_authorize_url(state=state, request=request), status_code=302)
+        auth_service.set_oauth_state_cookie(response, state)
+        return response
+
+    @router.get("/auth/oauth/callback")
+    def oauth_callback(request: Request, code: str = Query(default=""), state: str = Query(default=""), error: str = Query(default="")):
+        base = "/frontend/?auth=oauth"
+        if error:
+            return RedirectResponse(f"{base}&error={urllib.parse.quote(error)}", status_code=302)
+        expected_state = str(request.cookies.get(auth_service.oauth2_state_cookie_name) or "").strip()
+        if not code or not state or not expected_state or not secrets_compare(state, expected_state):
+            return RedirectResponse(f"{base}&error=invalid_state", status_code=302)
+        try:
+            payload = auth_service.exchange_oauth2_code(code=code, request=request)
+            user = auth_service.create_or_update_oauth2_user(payload["claims"])
+            session = auth_service.create_session_for_user(user)
+        except HTTPException as exc:
+            detail = urllib.parse.quote(str(exc.detail or "oauth_failed"))
+            return RedirectResponse(f"{base}&error={detail}", status_code=302)
+        response = RedirectResponse(f"{base}&success=1", status_code=302)
+        auth_service.set_auth_cookies(response, access_token=session.access_token, refresh_token=session.refresh_token)
+        auth_service.clear_oauth_state_cookie(response)
+        return response
 
     @router.post("/auth/refresh")
     def refresh_session(request: Request, response: Response):

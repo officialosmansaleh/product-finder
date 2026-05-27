@@ -101,6 +101,7 @@ def _missing_scoring_weight_definitions(existing_keys: set[str]) -> tuple[Settin
 
 CATEGORY_ORDER: tuple[str, ...] = (
     "Website",
+    "Security",
     "Email",
     "Administration",
     "Scoring",
@@ -178,6 +179,97 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
         placeholder="lax, strict, or none",
     ),
     SettingDefinition(
+        key="oauth2_enabled",
+        label="OAuth2 Login Enabled",
+        category="Security",
+        description="Enable OAuth2/OIDC login for users.",
+        env_name="OAUTH2_ENABLED",
+        placeholder="true or false",
+    ),
+    SettingDefinition(
+        key="oauth2_provider_name",
+        label="OAuth2 Provider Name",
+        category="Security",
+        description="Display name shown on the SSO login button.",
+        env_name="OAUTH2_PROVIDER_NAME",
+        placeholder="Microsoft Entra ID",
+    ),
+    SettingDefinition(
+        key="oauth2_client_id",
+        label="OAuth2 Client ID",
+        category="Security",
+        description="Client ID of the OAuth2/OIDC application registration.",
+        env_name="OAUTH2_CLIENT_ID",
+        placeholder="00000000-0000-0000-0000-000000000000",
+    ),
+    SettingDefinition(
+        key="oauth2_client_secret",
+        label="OAuth2 Client Secret",
+        category="Security",
+        description="Client secret of the OAuth2/OIDC application registration.",
+        env_name="OAUTH2_CLIENT_SECRET",
+        secret=True,
+        placeholder="client-secret",
+    ),
+    SettingDefinition(
+        key="oauth2_tenant_id",
+        label="OAuth2 Tenant ID",
+        category="Security",
+        description="Microsoft Entra tenant ID used for login endpoints.",
+        env_name="OAUTH2_TENANT_ID",
+        placeholder="00000000-0000-0000-0000-000000000000",
+    ),
+    SettingDefinition(
+        key="oauth2_redirect_uri",
+        label="OAuth2 Redirect URI",
+        category="Security",
+        description="Callback URL registered in the identity provider.",
+        env_name="OAUTH2_REDIRECT_URI",
+        restart_required=True,
+        immediate_apply=False,
+        placeholder="https://laiting.disano.it/auth/oauth/callback",
+    ),
+    SettingDefinition(
+        key="oauth2_allowed_domains",
+        label="OAuth2 Allowed Domains",
+        category="Security",
+        description="Comma-separated email domains allowed to sign in.",
+        env_name="OAUTH2_ALLOWED_DOMAINS",
+        placeholder="disano.it",
+    ),
+    SettingDefinition(
+        key="oauth2_auto_approve",
+        label="OAuth2 Auto Approve Users",
+        category="Security",
+        description="Automatically approve newly provisioned OAuth2 users.",
+        env_name="OAUTH2_AUTO_APPROVE",
+        placeholder="true or false",
+    ),
+    SettingDefinition(
+        key="oauth2_admin_emails",
+        label="OAuth2 Admin Emails",
+        category="Security",
+        description="Comma-separated SSO emails that should become app admins.",
+        env_name="OAUTH2_ADMIN_EMAILS",
+        placeholder="admin@disano.it",
+    ),
+    SettingDefinition(
+        key="local_login_enabled",
+        label="Local Login Enabled",
+        category="Security",
+        description="Keep password login available as fallback.",
+        env_name="LOCAL_LOGIN_ENABLED",
+        placeholder="true or false",
+    ),
+    SettingDefinition(
+        key="local_signup_enabled",
+        label="Local Signup Enabled",
+        category="Security",
+        description="Keep password signup available as fallback.",
+        env_name="LOCAL_SIGNUP_ENABLED",
+        placeholder="true or false",
+    ),
+    SettingDefinition(
         key="admin_bootstrap_email",
         label="Bootstrap Admin Email",
         category="Administration",
@@ -203,10 +295,18 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
         placeholder="strong-admin-password",
     ),
     SettingDefinition(
+        key="email_delivery_provider",
+        label="Provider Invio Email",
+        category="Email",
+        description="Provider per l'invio email. Usare graph per Microsoft 365 OAuth2 / Graph Mail.Send.",
+        env_name="EMAIL_DELIVERY_PROVIDER",
+        placeholder="smtp oppure graph",
+    ),
+    SettingDefinition(
         key="smtp_host",
         label="SMTP Host",
         category="Email",
-        description="SMTP server hostname for password reset emails.",
+        description="Hostname del server SMTP per le email applicative.",
         env_name="SMTP_HOST",
         placeholder="smtp.example.com",
     ),
@@ -239,9 +339,42 @@ SETTINGS_CATALOG: tuple[SettingDefinition, ...] = (
         key="smtp_from_email",
         label="SMTP From Email",
         category="Email",
-        description="Sender address used for password reset emails.",
+        description="Indirizzo mittente usato per le email applicative.",
         env_name="SMTP_FROM_EMAIL",
         placeholder="no-reply@example.com",
+    ),
+    SettingDefinition(
+        key="ms_graph_tenant_id",
+        label="Tenant ID Microsoft Graph",
+        category="Email",
+        description="Tenant ID Microsoft Entra usato per richiedere token OAuth2 per l'invio email.",
+        env_name="MS_GRAPH_TENANT_ID",
+        placeholder="00000000-0000-0000-0000-000000000000",
+    ),
+    SettingDefinition(
+        key="ms_graph_client_id",
+        label="Client ID Microsoft Graph",
+        category="Email",
+        description="Client ID dell'app registration Entra con permesso Graph Mail.Send.",
+        env_name="MS_GRAPH_CLIENT_ID",
+        placeholder="00000000-0000-0000-0000-000000000000",
+    ),
+    SettingDefinition(
+        key="ms_graph_client_secret",
+        label="Client Secret Microsoft Graph",
+        category="Email",
+        description="Client secret applicativo usato per OAuth2 client credentials con Microsoft Graph.",
+        env_name="MS_GRAPH_CLIENT_SECRET",
+        secret=True,
+        placeholder="client-secret",
+    ),
+    SettingDefinition(
+        key="ms_graph_from_email",
+        label="Email Mittente Microsoft Graph",
+        category="Email",
+        description="Indirizzo mailbox usato da Microsoft Graph per inviare le email applicative.",
+        env_name="MS_GRAPH_FROM_EMAIL",
+        placeholder="laiting@disano.it",
     ),
     SettingDefinition(
         key="scoring_weight_product_family",
@@ -367,7 +500,7 @@ def normalize_setting_value(definition: SettingDefinition, value: str) -> str:
             if number < 1 or number > 65535:
                 raise ValueError("SMTP port must be between 1 and 65535")
         return str(number)
-    if definition.key in {"auth_cookie_secure", "pim_verbose"}:
+    if definition.key in {"auth_cookie_secure", "pim_verbose", "oauth2_enabled", "oauth2_auto_approve", "local_login_enabled", "local_signup_enabled"}:
         lowered = text.lower()
         if lowered not in {"1", "0", "true", "false", "yes", "no", "on", "off"}:
             raise ValueError(f"{definition.label} must be true or false")
@@ -377,13 +510,20 @@ def normalize_setting_value(definition: SettingDefinition, value: str) -> str:
         if lowered not in {"lax", "strict", "none"}:
             raise ValueError("SameSite must be lax, strict, or none")
         return lowered
+    if definition.key == "email_delivery_provider":
+        lowered = text.lower() or "smtp"
+        if lowered not in {"smtp", "graph"}:
+            raise ValueError("Il provider invio email deve essere smtp o graph")
+        return lowered
     if definition.key == "cors_allowed_origins":
         parts = [part.strip() for part in text.split(",") if part.strip()]
         return ",".join(parts)
-    if definition.key in {"admin_bootstrap_email", "smtp_from_email"} and text:
+    if definition.key in {"admin_bootstrap_email", "smtp_from_email", "ms_graph_from_email"} and text:
         if "@" not in text or "." not in text.split("@")[-1]:
-            raise ValueError("Please enter a valid email address")
+            raise ValueError("Inserire un indirizzo email valido")
         return text.lower()
+    if definition.key in {"oauth2_admin_emails", "oauth2_allowed_domains"}:
+        return ",".join(part.strip().lower().lstrip("@") for part in text.split(",") if part.strip())
     return text
 
 
