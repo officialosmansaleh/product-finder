@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Laiting Workspace</title>
-  <link rel="stylesheet" href="/frontend/assets/index.css?v=2026-05-28-facet-wrap-2" />
+  <link rel="stylesheet" href="/frontend/assets/index.css?v=2026-05-28-file-picker-1" />
 </head>
 <body data-page="finder">
   <div id="welcomeGate" class="welcomeGate" aria-hidden="false">
@@ -55,9 +55,13 @@
         <span class="filterLabel" style="margin:0">Include accessories in search</span>
       </label>
       <div id="finderImportRow" class="row importFilesRow" style="display:none;margin-top:8px;align-items:stretch">
-        <input id="finderPdfFile" type="file" accept=".pdf,application/pdf" />
-        <input id="finderImageFile" type="file" accept="image/*" />
-      <button id="btnFinderFilesParse" class="btn secondary compact" type="button">Analyze brief</button>
+        <input id="finderPdfFile" class="visuallyHiddenFile" type="file" accept=".pdf,application/pdf" />
+        <input id="finderImageFile" class="visuallyHiddenFile" type="file" accept="image/*" />
+        <button id="btnSelectPdfFile" class="btn secondary compact filePickerBtn" type="button">Select PDF</button>
+        <span id="finderPdfFileName" class="fileNameLabel">No file selected</span>
+        <button id="btnSelectImageFile" class="btn secondary compact filePickerBtn" type="button">Select image</button>
+        <span id="finderImageFileName" class="fileNameLabel">No file selected</span>
+        <button id="btnFinderFilesParse" class="btn secondary compact" type="button">Analyze brief</button>
       </div>
       <div id="visionInfo" class="visionInfo" style="display:none"></div>
 
@@ -466,6 +470,6 @@
 
   <script src="/frontend/assets/auth.js?v=2026-04-24-it-role-lockdown-1"></script>
   <script src="/frontend/assets/measurements.js?v=2026-05-13-us-units-1"></script>
-  <script src="/frontend/assets/index.js?v=2026-05-28-fr-labels-1"></script>
+  <script src="/frontend/assets/index.js?v=2026-05-28-file-picker-1"></script>
 </body>
 </html>

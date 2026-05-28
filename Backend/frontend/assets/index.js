@@ -223,6 +223,9 @@
     toast_learning_not_enabled:"Learning is not enabled for your user",
     toast_learning_failed:"Could not save learning",
     toast_select_file_first:"Select PDF and/or image first",
+    select_pdf:"Select PDF",
+    select_image:"Select image",
+    no_file_selected:"No file selected",
     analyzing:"Analyzing...",
     saving:"Saving...",
     analyze_files:"Analyze files",
@@ -385,6 +388,9 @@
     toast_learning_not_enabled:"Apprendimento non abilitato per il tuo utente",
     toast_learning_failed:"Impossibile salvare l'apprendimento",
     toast_select_file_first:"Seleziona prima PDF e/o immagine",
+    select_pdf:"Seleziona PDF",
+    select_image:"Seleziona immagine",
+    no_file_selected:"Nessun file selezionato",
     analyzing:"Analisi...",
     saving:"Salvataggio...",
     analyze_files:"Analizza file",
@@ -523,9 +529,52 @@
     onboarding_step_1:"1. Saisissez une requête naturelle, par exemple : <b>downlight bureau UGR&lt;19 4000K DALI</b>.",
     onboarding_step_2:"2. Ajoutez des filtres depuis le panneau gauche pour affiner les correspondances exactes.",
     onboarding_step_3:"3. Ajoutez des produits au <b>devis</b> et exportez depuis la page Devis.",
+    select_pdf:"Sélectionner un PDF",
+    select_image:"Sélectionner une image",
+    no_file_selected:"Aucun fichier sélectionné",
     matches_search_on:"Correspond à votre recherche sur {fields}.",
     close_search_on:"Proche de votre recherche sur {fields}.",
     related_search_on:"Lié à votre recherche sur {fields}.",
+  });
+  Object.assign(I18N.es, {
+    select_pdf:"Seleccionar PDF",
+    select_image:"Seleccionar imagen",
+    no_file_selected:"Ningún archivo seleccionado",
+  });
+  Object.assign(I18N.pt, {
+    select_pdf:"Selecionar PDF",
+    select_image:"Selecionar imagem",
+    no_file_selected:"Nenhum arquivo selecionado",
+  });
+  Object.assign(I18N.ru, {
+    select_pdf:"Выбрать PDF",
+    select_image:"Выбрать изображение",
+    no_file_selected:"Файл не выбран",
+  });
+  Object.assign(I18N.ar, {
+    select_pdf:"اختيار PDF",
+    select_image:"اختيار صورة",
+    no_file_selected:"لم يتم اختيار ملف",
+  });
+  Object.assign(I18N.pl, {
+    select_pdf:"Wybierz PDF",
+    select_image:"Wybierz obraz",
+    no_file_selected:"Nie wybrano pliku",
+  });
+  Object.assign(I18N.cs, {
+    select_pdf:"Vybrat PDF",
+    select_image:"Vybrat obrázek",
+    no_file_selected:"Není vybrán soubor",
+  });
+  Object.assign(I18N.hr, {
+    select_pdf:"Odaberi PDF",
+    select_image:"Odaberi sliku",
+    no_file_selected:"Nije odabrana datoteka",
+  });
+  Object.assign(I18N.sl, {
+    select_pdf:"Izberi PDF",
+    select_image:"Izberi sliko",
+    no_file_selected:"Ni izbrane datoteke",
   });
   Object.values(I18N).forEach(dict => {
     for (const [key, value] of Object.entries(I18N.en)) {
@@ -996,6 +1045,8 @@
     if ($("btnCloseFilters")) $("btnCloseFilters").textContent = t("close");
     if ($("btnClearAll")) $("btnClearAll").textContent = t("btn_reset");
     if ($("btnFinderFilesParse")) $("btnFinderFilesParse").textContent = t("analyze_brief");
+    if ($("btnSelectPdfFile")) $("btnSelectPdfFile").textContent = t("select_pdf");
+    if ($("btnSelectImageFile")) $("btnSelectImageFile").textContent = t("select_image");
     if ($("btnSaveLearning")) $("btnSaveLearning").textContent = t("save_learning");
     if ($("q")) $("q").placeholder = t("q_placeholder");
     if ($("qMobile")) $("qMobile").placeholder = t("q_mobile_placeholder");
@@ -1019,10 +1070,11 @@
     if (sortSel){
       const map = { score_desc:"sort_score_desc", score_asc:"sort_score_asc", code_asc:"sort_code_asc", code_desc:"sort_code_desc", price_asc:"sort_price_asc", price_desc:"sort_price_desc", power_asc:"sort_power_asc", power_desc:"sort_power_desc", efficacy_desc:"sort_efficacy_desc", lumen_asc:"sort_lumen_asc", lumen_desc:"sort_lumen_desc" };
       Array.from(sortSel.options).forEach(opt => {
-        const k = map[opt.value];
-        if (k && I18N.en[k]) opt.textContent = t(k);
+      const k = map[opt.value];
+      if (k && I18N.en[k]) opt.textContent = t(k);
       });
     }
+    updateFilePickerLabels();
   }
 
   function applyLanguage(){
@@ -3981,6 +4033,25 @@ document.addEventListener("keydown", (ev)=>{
     });
   }
 
+  function updateFilePickerLabels(){
+    const pdfName = $("finderPdfFileName");
+    const imageName = $("finderImageFileName");
+    const pdfFile = $("finderPdfFile")?.files?.[0];
+    const imageFile = $("finderImageFile")?.files?.[0];
+    if (pdfName) pdfName.textContent = pdfFile?.name || t("no_file_selected");
+    if (imageName) imageName.textContent = imageFile?.name || t("no_file_selected");
+  }
+
+  function wireFilePickers(){
+    const pdfInput = $("finderPdfFile");
+    const imageInput = $("finderImageFile");
+    $("btnSelectPdfFile")?.addEventListener("click", ()=> pdfInput?.click());
+    $("btnSelectImageFile")?.addEventListener("click", ()=> imageInput?.click());
+    pdfInput?.addEventListener("change", updateFilePickerLabels);
+    imageInput?.addEventListener("change", updateFilePickerLabels);
+    updateFilePickerLabels();
+  }
+
   function isMobileViewport(){
     return window.matchMedia("(max-width: 980px)").matches;
   }
@@ -4227,6 +4298,7 @@ document.addEventListener("keydown", (ev)=>{
   wireGroupNav();
   wireRanges();
   wireFacetSearch();
+  wireFilePickers();
   wireQuerySync();
   wireMobileFilters();
   wireTopButtons();
