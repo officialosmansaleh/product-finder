@@ -104,12 +104,25 @@ class LocalParserMultilangSpecsTests(unittest.TestCase):
 
     def test_outdoor_lumen_query_does_not_create_product_name_filter(self):
         parsed = local_text_to_filters("faro esterno IP66 DALI 4000K 54000 lumen")
-        self.assertNotIn("product_family", parsed)
+        self.assertEqual(parsed.get("product_family"), "floodlight")
         self.assertEqual(parsed.get("ip_rating"), ">=IP66")
         self.assertEqual(parsed.get("interface"), "dali")
         self.assertEqual(parsed.get("cct_k"), "4000")
         self.assertEqual(parsed.get("lumen_output"), ">=54000")
-        self.assertEqual(parsed.get("product_name_contains"), "faro")
+        self.assertNotIn("product_name_contains", parsed)
+
+    def test_unknown_residual_words_are_not_product_name_filters(self):
+        parsed = local_text_to_filters("ufficio molto luminoso confortevole ip65 4000K dali")
+        self.assertEqual(parsed.get("ip_rating"), ">=IP65")
+        self.assertEqual(parsed.get("interface"), "dali")
+        self.assertEqual(parsed.get("cct_k"), "4000")
+        self.assertNotIn("product_name_contains", parsed)
+        self.assertNotIn("product_name_short", parsed)
+
+    def test_explicit_product_name_filter_is_kept(self):
+        parsed = local_text_to_filters("nome prodotto rodio ip66")
+        self.assertEqual(parsed.get("product_name_contains"), "rodio")
+        self.assertEqual(parsed.get("ip_rating"), ">=IP66")
 
     def test_efficacy_word_is_not_product_name_filter(self):
         parsed = local_text_to_filters("efficienza > 100lm/w")

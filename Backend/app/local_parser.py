@@ -87,6 +87,7 @@ FAMILY_SYNONYMS = {
     ],
     "floodlight": [
         "floodlight", "floodlights", "flood light", "flood",
+        "faro", "fari",
         "projector", "projector light", "proiettore", "proiettori",
         "projecteur", "proyectores", "proyector", "projetor", "прожектор", "كشاف", "naświetlacz",
         "reflektor",
@@ -505,6 +506,36 @@ def _infer_product_name_contains(text: str, filters: Dict[str, Any]) -> Optional
     if not kept:
         return None
     return " ".join(kept[:3]).strip() or None
+
+
+def _infer_explicit_product_name_contains(text: str) -> Optional[str]:
+    if not text:
+        return None
+    m = re.search(
+        r"\b(?:product\s+name|nome\s+prodotto|nome|name|model|modello)\s*(?:contains|contiene|=|:)?\s+(.+)$",
+        str(text or ""),
+        flags=re.IGNORECASE,
+    )
+    if not m:
+        return None
+    family_tokens = _family_query_tokens()
+    kept: list[str] = []
+    for token in _norm_words(m.group(1)):
+        base = _tok_base(token)
+        if not base or len(base) < 2:
+            continue
+        if base in _GENERIC_PRODUCT_QUERY_TOKENS or base in family_tokens:
+            if kept:
+                break
+            continue
+        if any(ch.isdigit() for ch in base):
+            if kept:
+                break
+            continue
+        kept.append(base)
+        if len(kept) >= 3:
+            break
+    return " ".join(kept).strip() or None
 
 
 def _class_token_to_insulation_class(token: str) -> Optional[str]:
@@ -1139,12 +1170,8 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
     # are already converted to >= / <= for dimension regex parsing.
     _parse_dimension_filters(t, filters)
 
-    product_name_contains = _infer_product_name_contains(text, filters)
+    product_name_contains = _infer_explicit_product_name_contains(text)
     if product_name_contains:
         filters["product_name_contains"] = product_name_contains
-    else:
-        product_name_short = _infer_product_name_short(text, filters)
-        if product_name_short:
-            filters["product_name_short"] = product_name_short
 
     return filters
