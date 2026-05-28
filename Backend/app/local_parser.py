@@ -805,7 +805,7 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
         filters.setdefault("ip_rating", f">=IP{cfg_int('parser.default_outdoor_ip', 65):02d}")
         filters.setdefault("ik_rating", f">=IK{cfg_int('parser.default_outdoor_ik', 6):02d}")
 
-    m = re.search(r"\b(\d{3,5})\s*k\b", t)
+    m = re.search(r"\b(\d{3,5})\s*(?:°|º|\?)?\s*k\b", t)
     if m:
         filters["cct_k"] = m.group(1)
 

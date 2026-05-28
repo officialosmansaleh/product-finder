@@ -29,6 +29,8 @@ class LocalParserMultilangSpecsTests(unittest.TestCase):
             ("cri 80", {"cri": ">=80"}),
             ("ra 90", {"cri": ">=90"}),
             ("4000k", {"cct_k": "4000"}),
+            ("4000°K", {"cct_k": "4000"}),
+            ("4000 °K", {"cct_k": "4000"}),
             ("54000 lm", {"lumen_output": ">=54000"}),
             ("54.000 lm", {"lumen_output": ">=54000"}),
             ("54,000 lm", {"lumen_output": ">=54000"}),
