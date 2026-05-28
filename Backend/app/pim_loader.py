@@ -265,6 +265,18 @@ CANON_SPECS: List[CanonicalSpec] = [
             "modo comune",
         ],
     ),
+    CanonicalSpec(
+        "surge_differential_mode",
+        [
+            "Surge (differential mode)",
+            "surge differential mode",
+            "differential mode surge",
+            "surge dm",
+            "surge differential",
+            "sovratensione modo differenziale",
+            "modo differenziale",
+        ],
+    ),
     CanonicalSpec("lifetime_hours", ["lifetime hours", "lifetime", "rated life", "led rated life"]),
     CanonicalSpec("led_rated_life_h", ["LED Rated Life - (h)", "LED Rated Life (h)", "LED Rated Life"]),
     CanonicalSpec("failure_rate_pct", ["Failure rate (Ta=25Â°C) (B)", "Failure rate"]),
@@ -879,6 +891,8 @@ def load_products(
         out["insulation_class"] = out["insulation_class"].apply(_normalize_insulation_class)
     if "surge_common_mode" in out.columns:
         out["surge_common_mode"] = out["surge_common_mode"].apply(_normalize_surge_kv)
+    if "surge_differential_mode" in out.columns:
+        out["surge_differential_mode"] = out["surge_differential_mode"].apply(_normalize_surge_kv)
     if "cct_k" in out.columns:
         out["cct_k"] = out["cct_k"].apply(_normalize_cct_value)
     for numeric_col, unit in [

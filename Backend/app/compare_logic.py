@@ -480,6 +480,7 @@ def handle_export_compare_pdf(
         "control_protocol": "Control",
         "insulation_class": "Insulation",
         "surge_common_mode": "Surge common mode",
+        "surge_differential_mode": "Surge differential mode",
         "emergency_present": "Emergency",
         "warranty_years": "Warranty",
         "led_rated_life_h": "LED rated life",

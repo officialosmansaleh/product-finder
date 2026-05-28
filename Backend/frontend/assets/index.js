@@ -59,7 +59,7 @@
     families: ["manufacturer", "product_family", PRODUCT_NAME_FILTER_KEY],
     protection: ["ip_rating", "ip_visible", "ip_non_visible", "ik_rating"],
     light: ["cct_k", "cri", "ugr", "power_max_w", "power_min_w", "lumen_output", "efficacy_lm_w", "beam_angle_deg"],
-    electrical: ["control_protocol", "interface", "insulation_class", "surge_common_mode", "emergency_present", "ambient_temp_min_c", "ambient_temp_max_c"],
+    electrical: ["control_protocol", "interface", "insulation_class", "surge_common_mode", "surge_differential_mode", "emergency_present", "ambient_temp_min_c", "ambient_temp_max_c"],
     mechanical: ["shape", "housing_color", "diameter", "luminaire_length", "luminaire_width", "luminaire_height"],
     quality: ["warranty_years", "lifetime_hours", "led_rated_life_h", "lumen_maintenance_pct"],
   };
@@ -146,6 +146,7 @@
     filter_ambient_max_full:"Max ambient temp (°C)",
     filter_insulation_class:"Insulation class",
     filter_surge_common_mode:"Surge common mode",
+    filter_surge_differential_mode:"Surge differential mode",
     search_manufacturer_ph:"Manufacturer...",
     search_families_ph:"Search families...",
     search_product_name_ph:"Search product name...",
@@ -166,6 +167,7 @@
     search_interface_ph:"Search interface...",
     search_insulation_class_ph:"Search insulation class...",
     search_surge_ph:"Search surge...",
+    search_surge_differential_ph:"Search differential surge...",
     add_to_quote:"Add to quote",
     add:"Add",
     cancel:"Cancel",
@@ -239,6 +241,7 @@
     filter_interface:"Interfaccia",
     filter_insulation_class:"Classe isolamento",
     filter_surge_common_mode:"Surge modo comune",
+    filter_surge_differential_mode:"Surge modo differenziale",
     filter_emergency_present:"Emergenza",
     filter_warranty_years:"Garanzia",
     filter_lifetime_hours:"Vita utile h",
@@ -316,6 +319,7 @@
     search_interface_ph:"Cerca interfaccia...",
     search_insulation_class_ph:"Cerca classe isolamento...",
     search_surge_ph:"Cerca surge...",
+    search_surge_differential_ph:"Cerca surge differenziale...",
     add_to_quote:"Aggiungi all'offerta",
     add:"Aggiungi",
     cancel:"Annulla",
@@ -742,6 +746,7 @@
       "Interface (CP)":"filter_interface",
       "Insulation class":"filter_insulation_class",
       "Surge common mode":"filter_surge_common_mode",
+      "Surge differential mode":"filter_surge_differential_mode",
       "Emergency":"filter_emergency_present",
       "Min ambient temp (°C)":"filter_ambient_min_full",
       "Max ambient temp (°C)":"filter_ambient_max_full",
@@ -778,6 +783,7 @@
       "Search interface...":"search_interface_ph",
       "Search insulation class...":"search_insulation_class_ph",
       "Search surge...":"search_surge_ph",
+      "Search differential surge...":"search_surge_differential_ph",
       "e.g. -20":"e.g. -20",
       "e.g. 45":"e.g. 45",
     };
@@ -1918,6 +1924,7 @@
       interface: t("filter_interface"),
       insulation_class: t("filter_insulation_class"),
       surge_common_mode: t("filter_surge_common_mode"),
+      surge_differential_mode: t("filter_surge_differential_mode"),
       emergency_present: t("filter_emergency_present"),
       warranty_years: t("filter_warranty_years"),
       lifetime_hours: t("filter_lifetime_hours"),
@@ -2031,6 +2038,7 @@
       interface: ["interface"],
       insulation_class: ["insulation_class", "insulation class", "classe isolamento", "classe di isolamento"],
       surge_common_mode: ["surge_common_mode", "surge", "common mode", "sovratensione", "modo comune"],
+      surge_differential_mode: ["surge_differential_mode", "differential mode", "modo differenziale"],
       emergency_present: ["emergency_present", "emergency"],
       warranty_years: ["warranty_years", "warranty"],
       lifetime_hours: ["lifetime_hours", "lifetime"],
@@ -2463,6 +2471,7 @@
     "led_rated_life_h",
     "lumen_maintenance_pct",
     "surge_common_mode",
+    "surge_differential_mode",
     "ambient_temp_min_c",
     "ambient_temp_max_c",
   ]);
@@ -2978,6 +2987,7 @@
     add("CTRL", p.control_protocol);
     add("Class", p.insulation_class);
     add("Surge", p.surge_common_mode);
+    add("Surge diff", p.surge_differential_mode);
     add("EM", p.emergency_present);
     add("T min", p.ambient_temp_min_c, "ambient_temp_min_c");
     add("T max", p.ambient_temp_max_c, "ambient_temp_max_c");
@@ -3009,6 +3019,7 @@
     ["interface", "Interface"],
     ["insulation_class", "Insulation"],
     ["surge_common_mode", "Surge common"],
+    ["surge_differential_mode", "Surge diff"],
     ["emergency_present", "Emergency"],
     ["ambient_temp_min_c", "Temp min (C)"],
     ["ambient_temp_max_c", "Temp max (C)"],
@@ -3638,6 +3649,7 @@ document.addEventListener("keydown", (ev)=>{
       renderFacetList("interface","interface", data.power_voltage?.interface || [], $("cpSearch").value);
       renderFacetList("insulation_class","insulation_class", data.power_voltage?.insulation_class || [], $("insulationSearch")?.value || "");
       renderFacetList("surge_common_mode","surge_common_mode", data.power_voltage?.surge_common_mode || [], $("surgeCommonSearch")?.value || "");
+      renderFacetList("surge_differential_mode","surge_differential_mode", data.power_voltage?.surge_differential_mode || [], $("surgeDifferentialSearch")?.value || "");
       renderFacetList("emergency_present","emergency_present", data.power_voltage?.emergency_present || [], "");
 
       // Protection (if backend returns them in dimensions_options, adapt; otherwise attempt common keys)
@@ -3780,7 +3792,7 @@ document.addEventListener("keydown", (ev)=>{
   // --------------- Events ----------------
   function wireFacetSearch(){
     let facetTimer = null;
-    const ids = ["famSearch","simSearch","mfrSearch","cctSearch","criSearch","ugrSearch","beamSearch","colSearch","shapeSearch","ctrlSearch","cpSearch","insulationSearch","surgeCommonSearch","ipTotalSearch","ipVisibleSearch","ipNonVisibleSearch","ikSearch","ledLifeSearch","warrSearch","lumMaintSearch"];
+    const ids = ["famSearch","simSearch","mfrSearch","cctSearch","criSearch","ugrSearch","beamSearch","colSearch","shapeSearch","ctrlSearch","cpSearch","insulationSearch","surgeCommonSearch","surgeDifferentialSearch","ipTotalSearch","ipVisibleSearch","ipNonVisibleSearch","ikSearch","ledLifeSearch","warrSearch","lumMaintSearch"];
     ids.forEach(id=>{
       const el = $(id);
       if (!el) return;

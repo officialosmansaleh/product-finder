@@ -236,7 +236,7 @@ _GENERIC_PRODUCT_QUERY_TOKENS = {
     "round", "circular", "circle", "square", "rectangular", "rectangle",
     "interface", "control", "driver", "life", "lifetime", "hours", "hour", "hr", "hrs",
     "insulation", "isolation", "isolamento", "classe",
-    "surge", "common", "mode", "sovratensione",
+    "surge", "common", "mode", "differential", "differenziale", "sovratensione",
     "with", "without", "warranty", "year", "years", "yr", "yrs",
     "yes", "no", "true", "false", "si", "sì", "oui", "ja",
     "housing", "body", "finish", "black", "white", "grey", "gray", "anthracite",
@@ -855,6 +855,16 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
             filters["insulation_class"] = cls
     elif re.search(r"\b(?:double\s+insulation|doppio\s+isolamento)\b", t, flags=re.IGNORECASE):
         filters["insulation_class"] = "Class II"
+
+    m = re.search(
+        r"\b(?:surge(?:\s+protection)?(?:\s*(?:differential\s+mode|dm))?|differential\s+mode\s+surge|sovratensione(?:\s+modo\s+differenziale)?|modo\s+differenziale)\s*(?:[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*(?:kv|k\s*v)\b",
+        t,
+        flags=re.IGNORECASE,
+    )
+    if m:
+        surge = _normalize_surge_kv_token(m.group(1))
+        if surge:
+            filters["surge_differential_mode"] = surge
 
     m = re.search(
         r"\b(?:surge(?:\s+protection)?(?:\s*(?:common\s+mode|cm))?|common\s+mode\s+surge|sovratensione(?:\s+modo\s+comune)?|modo\s+comune)\s*(?:[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*(?:kv|k\s*v)\b",

@@ -47,6 +47,7 @@ SCORING_FIELD_LABELS: dict[str, str] = {
     "interface": "Interface",
     "insulation_class": "Insulation Class",
     "surge_common_mode": "Surge Common Mode",
+    "surge_differential_mode": "Surge Differential Mode",
     "power_min_w": "Power Min",
     "power_max_w": "Power Max",
     "lumen_output": "Lumen Output",
