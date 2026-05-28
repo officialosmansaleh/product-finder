@@ -113,6 +113,17 @@ def _norm_asymmetry_value(x: Any) -> str:
     return s
 
 
+def _value_for_filter(prod: Dict[str, Any], key: str) -> Any:
+    if key in {"product_name_contains", "product_name_short", "name_prefix"}:
+        return prod.get("product_name")
+    if key == "asymmetry":
+        direct = _norm_str(prod.get("asymmetry"))
+        if direct:
+            return direct
+        return prod.get("product_name")
+    return prod.get(key)
+
+
 def _product_name_prefix(x: Any) -> str:
     s = _norm_str(x).lower()
     if not s:
@@ -419,7 +430,7 @@ def score_product(
 
     # 1) Hard: must pass
     for k, wanted in (hard_filters or {}).items():
-        got = prod.get("product_name") if k in {"product_name_contains", "product_name_short", "name_prefix"} else prod.get(k)
+        got = _value_for_filter(prod, k)
 
         if _norm_str(got) == "":
             missing.append(k)
@@ -441,7 +452,7 @@ def score_product(
         w = float(field_weights.get(k, 1.0))
         total_weight += w
 
-        got = prod.get("product_name") if k in {"product_name_contains", "product_name_short", "name_prefix"} else prod.get(k)
+        got = _value_for_filter(prod, k)
         if _norm_str(got) == "":
             miss_mult = family_missing_mult if k == "product_family" else 1.0
             penalty += w * missing_penalty * miss_mult

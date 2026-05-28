@@ -927,6 +927,7 @@ class SearchScoringFiltersTests(unittest.TestCase):
 
         symmetric = {"product_code": "S1", "asymmetry": "symmetric wide beam"}
         asymmetric = {"product_code": "A1", "asymmetry": "asymmetric"}
+        named_asymmetric = {"product_code": "N1", "product_name": "Rodio HP - COB asymmetric"}
 
         score, _matched, deviations, _missing = score_product(symmetric, {"asymmetry": "asymmetric"}, {})
         self.assertEqual(score, 0.0)
@@ -941,6 +942,12 @@ class SearchScoringFiltersTests(unittest.TestCase):
         score, _matched, deviations, _missing = score_product(asymmetric, {"asymmetry": "symmetric"}, {})
         self.assertEqual(score, 0.0)
         self.assertTrue(any("mismatch" in d for d in deviations))
+
+        score, matched, deviations, missing = score_product(named_asymmetric, {"asymmetry": "asymmetric"}, {})
+        self.assertEqual(score, 1.0)
+        self.assertEqual(matched.get("asymmetry"), "Rodio HP - COB asymmetric")
+        self.assertEqual(deviations, [])
+        self.assertEqual(missing, [])
 
     def test_asymmetry_query_excludes_symmetric_similar_results(self):
         from app import main as main_mod
@@ -959,7 +966,6 @@ class SearchScoringFiltersTests(unittest.TestCase):
                     "product_code": "ASY",
                     "product_name": "Rodio asymmetric",
                     "product_family": "floodlight",
-                    "asymmetry": "asymmetric",
                     "manufacturer": "DISANO",
                 },
             ]
