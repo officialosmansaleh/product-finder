@@ -827,8 +827,8 @@ def _normalize_ui_filters(f: Dict[str, Any]) -> Dict[str, Any]:
         if vals:
             out["ambient_temp_min_c"] = vals if isinstance(out["ambient_temp_min_c"], list) else vals[0]
 
-    # Ambient max capability (default <=).
-    _normalize_numeric_values("ambient_temp_max_c", "<=")
+    # Ambient max capability: higher/hotter values are better (default >=).
+    _normalize_numeric_values("ambient_temp_max_c", ">=")
 
     # Warranty anni: "5 yr" / "5" -> ">=5"
     _normalize_numeric_values("warranty_years", ">=")
@@ -1726,6 +1726,8 @@ def _top_values(df: pd.DataFrame, col: str, limit: int = 30) -> List[FacetValue]
     if df is None or df.empty or col not in df.columns:
         return []
     s = df[col].dropna().apply(_normalize_facet_text)
+    if col == "interface":
+        s = s.str.split(r"\s*[;,+]\s*", regex=True).explode().apply(_normalize_facet_text)
     s = s[s != ""]
     if s.empty:
         return []
@@ -1903,7 +1905,7 @@ def _df_filtered_subset(df: pd.DataFrame, filters: Dict[str, Any]) -> pd.DataFra
             source_col = helper_cols[col]
         elif col not in out.columns:
             return
-        default_op = "<=" if col in {"ugr", "ambient_temp_min_c", "ambient_temp_max_c"} else ">="
+        default_op = "<=" if col in {"ugr", "ambient_temp_min_c"} else ">="
         rel_tol = DIMENSION_TOLERANCE if col in DIMENSION_KEYS else 0.0
         values = expr if isinstance(expr, list) else [expr]
         got = out[source_col].astype(str).str.extract(r"(-?\d+(?:\.\d+)?)")[0]

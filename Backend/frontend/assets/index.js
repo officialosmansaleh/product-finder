@@ -2340,7 +2340,7 @@
       const raw = $("ambMaxVal").value;
       const n = Number(raw);
       if (!Number.isFinite(n) || String(raw).trim()===""){ toast("Set maximum ambient temperature first"); return; }
-      setSingleFilter("ambient_temp_max_c", `<=${n}`);
+      setSingleFilter("ambient_temp_max_c", `>=${n}`);
       runSearch();
     });
     $("ambMaxReset").addEventListener("click", ()=>{
@@ -2542,7 +2542,7 @@
     }
     if (["warranty_years", "lifetime_hours", "led_rated_life_h", "lumen_maintenance_pct"].includes(key) && Number.isFinite(n)) return `>=${Math.round(n)}`;
     if (key === "ambient_temp_min_c" && Number.isFinite(n)) return `>=${Math.round(n)}`;
-    if (key === "ambient_temp_max_c" && Number.isFinite(n)) return `<=${Math.round(n)}`;
+    if (key === "ambient_temp_max_c" && Number.isFinite(n)) return `>=${Math.round(n)}`;
     return String(rawValue ?? "");
   }
 
@@ -2563,7 +2563,7 @@
         <div class="facet-item">
           <div class="k">
             <input class="toggle" type="checkbox" data-k="${escapeHtml(key)}" data-v="${escapeHtml(val)}" ${checked}/>
-            <div>${escapeHtml(it.value ?? val)}</div>
+            <div class="facetText">${escapeHtml(it.value ?? val)}</div>
           </div>
           <div class="count">${it.count ?? ""}</div>
         </div>
@@ -2943,6 +2943,8 @@
     add("lm/W", p.efficacy_lm_w ?? p.efficacy_value);
     add("CTRL", p.control_protocol);
     add("EM", p.emergency_present);
+    add("T min", p.ambient_temp_min_c, "ambient_temp_min_c");
+    add("T max", p.ambient_temp_max_c, "ambient_temp_max_c");
     add("Beam", p.beam_angle_deg);
     add("Dia", p.diameter, "diameter");
     add("L", p.luminaire_length, "luminaire_length");
@@ -2952,7 +2954,7 @@
     add("Shape", p.shape);
     add("Warranty", p.warranty_years);
     add("Life(h)", p.led_rated_life_h ?? p.lifetime_hours);
-    add("L maint %", p.lumen_maintenance_pct);
+    add("L maint %", p.lumen_maintenance_pct, "lumen_maintenance_pct");
     return pills.slice(0,16).join("");
   }
 
@@ -2970,6 +2972,8 @@
     ["control_protocol", "Control"],
     ["interface", "Interface"],
     ["emergency_present", "Emergency"],
+    ["ambient_temp_min_c", "Temp min (C)"],
+    ["ambient_temp_max_c", "Temp max (C)"],
     ["shape", "Shape"],
     ["diameter", "Diameter"],
     ["luminaire_length", "Length"],
@@ -3008,6 +3012,17 @@
         const op = m[1] || "<";
         const n = m[2].replace(",", ".");
         return `${op}${n}`;
+      }
+    }
+    if (["cri", "lumen_maintenance_pct"].includes(key)){
+      const m = s.match(/^\s*(<=|>=|<|>|=)?\s*(-?\d+(?:[.,]\d+)?)\s*(%|percent)?\s*$/i);
+      if (m){
+        const op = m[1] || "";
+        const n = Number(String(m[2]).replace(",", "."));
+        if (Number.isFinite(n)){
+          const display = Number.isInteger(n) ? String(n) : String(Number(n.toFixed(1))).replace(/\.0$/, "");
+          return `${op}${display}`;
+        }
       }
     }
     s = window.ProductFinderMeasurements?.formatSpecValue?.(key, s) || s;

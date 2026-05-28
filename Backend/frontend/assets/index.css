@@ -131,11 +131,13 @@
     .filterLabel{font-size:12px;color:var(--muted);line-height:1.35;font-weight:600}
     .filterHint{font-size:11px;color:#94a3b8;line-height:1.25;margin-top:2px}
     .filterCardTitle{font-weight:800;font-size:13px;line-height:1.25;color:var(--ink)}
-    .facet-list{max-height:210px;overflow:auto;padding-right:6px;border:1px solid #eaf0f6;border-radius:14px;padding:8px 10px;background:rgba(255,255,255,.78)}
-    .facet-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f1f5f9}
+    .facet-list{max-height:210px;overflow:auto;overflow-x:hidden;padding-right:6px;border:1px solid #eaf0f6;border-radius:14px;padding:8px 10px;background:rgba(255,255,255,.78)}
+    .facet-item{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid #f1f5f9;min-width:0}
     .facet-item:last-child{border-bottom:0}
-    .count{font-size:var(--fs-xs);color:var(--muted)}
-    .k{display:flex;gap:8px;align-items:center}
+    .count{font-size:var(--fs-xs);color:var(--muted);flex:0 0 auto;line-height:1.35}
+    .k{display:flex;gap:8px;align-items:flex-start;min-width:0;flex:1 1 auto;line-height:1.35}
+    .k .toggle{flex:0 0 auto;margin-top:2px}
+    .facetText{min-width:0;overflow-wrap:anywhere;word-break:break-word}
     .toggle{accent-color: var(--pri)}
     .pill{display:inline-block;font-size:12px;background:#f1f5f9;color:#0f172a;padding:4px 9px;border-radius:999px;font-weight:700}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -526,6 +528,7 @@
 .cookieConsentText{margin-top:8px;color:#475569;line-height:1.5}
 .cookieConsentActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
 .cookiePrefsBtn{position:fixed;right:16px;bottom:16px;z-index:1190;border:1px solid #cbd5e1;background:#fff;color:#0f172a;border-radius:999px;padding:10px 14px;font-weight:700;box-shadow:0 10px 24px rgba(15,23,42,.14);display:none}
+body[data-page="finder"] main{padding-bottom:88px}
 .cookiePrefsModal{position:fixed;inset:0;z-index:1250;display:none}
 .cookiePrefsModal.show{display:block}
 .cookiePrefsBackdrop{position:absolute;inset:0;background:rgba(15,23,42,.5)}

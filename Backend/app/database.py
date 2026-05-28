@@ -891,6 +891,16 @@ class ProductDatabase:
 
             def _parse_numeric_filter(v: str, default_op: str = ">="):
                 txt = str(v).strip().replace(" ", "")
+                if "-" in txt and not txt.startswith("-"):
+                    parts = txt.split("-", 1)
+                    try:
+                        lo = float(parts[0])
+                        hi = float(parts[1])
+                        if lo > hi:
+                            lo, hi = hi, lo
+                        return "range", (lo, hi)
+                    except Exception:
+                        pass
                 m = re.match(r"^(>=|<=|>|<|=)(-?\d+(?:\.\d+)?)$", txt)
                 if m:
                     return m.group(1), float(m.group(2))
@@ -921,10 +931,13 @@ class ProductDatabase:
                 return ('LOWER("housing_color") LIKE ' + ph, [f"%{v}%"])
 
             if key in numeric_cols:
-                default_num_op = "<=" if key in {"ugr_value", "ambient_temp_min_c", "ambient_temp_max_c"} else ">="
+                default_num_op = "<=" if key in {"ugr_value", "ambient_temp_min_c"} else ">="
                 op, num = _parse_numeric_filter(value, default_op=default_num_op)
                 if op is None or num is None:
                     return (None, [])
+                if op == "range":
+                    lo, hi = num
+                    return (f'({numeric_expr(key)} >= {ph} AND {numeric_expr(key)} <= {ph})', [lo, hi])
                 if key in dimension_keys:
                     tol = abs(float(num)) * dimension_tolerance
                     if op in {">=", ">"}:
@@ -988,6 +1001,9 @@ class ProductDatabase:
                 op, num = _parse_numeric_filter(value, default_op=default_op)
                 if op is None or num is None:
                     return (None, [])
+                if op == "range":
+                    lo, hi = num
+                    return (f'({numeric_expr(col_map[key])} >= {ph} AND {numeric_expr(col_map[key])} <= {ph})', [lo, hi])
                 return (f'{numeric_expr(col_map[key])} {op} {ph}', [num])
 
             if key == "control_protocol":

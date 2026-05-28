@@ -27,6 +27,32 @@ class SearchScoringFiltersTests(unittest.TestCase):
         req.state.current_user = {"role": role}
         return req
 
+    def test_unmatched_product_name_filter_is_dropped_when_specs_exist(self):
+        from app.search_logic import _drop_unmatched_name_filters
+
+        df = pd.DataFrame(
+            [
+                {"product_name": "Rodio high efficiency"},
+                {"product_name": "Astro street light"},
+            ]
+        )
+
+        got = _drop_unmatched_name_filters(
+            {"efficacy_lm_w": ">100", "product_name_contains": "efficienza"},
+            product_db=None,
+            db_dataframe=df,
+            map_filters_to_sql=lambda filters: filters,
+        )
+        self.assertEqual(got, {"efficacy_lm_w": ">100"})
+
+        kept = _drop_unmatched_name_filters(
+            {"ip_rating": ">=IP66", "product_name_contains": "rodio"},
+            product_db=None,
+            db_dataframe=df,
+            map_filters_to_sql=lambda filters: filters,
+        )
+        self.assertEqual(kept.get("product_name_contains"), "rodio")
+
     def test_all_active_filters_are_passed_into_scoring(self):
         from app import main as main_mod
         from app.schema import SearchRequest

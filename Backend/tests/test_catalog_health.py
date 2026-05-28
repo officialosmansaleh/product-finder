@@ -95,6 +95,26 @@ class CatalogHealthTests(unittest.TestCase):
         self.assertIn("non_positive_efficacy", issue_keys)
         self.assertIn("negative_warranty", issue_keys)
 
+    def test_interface_facets_split_semicolon_values(self):
+        from app import main as main_mod
+
+        values = main_mod._top_values(
+            pd.DataFrame(
+                [
+                    {"interface": "Zhaga;0-10V"},
+                    {"interface": "Zhaga;0-10V"},
+                    {"interface": "DALI"},
+                ]
+            ),
+            "interface",
+            limit=10,
+        )
+
+        by_value = {row["value"]: row["count"] for row in values}
+        self.assertEqual(by_value.get("Zhaga"), 2)
+        self.assertEqual(by_value.get("0-10V"), 2)
+        self.assertEqual(by_value.get("DALI"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

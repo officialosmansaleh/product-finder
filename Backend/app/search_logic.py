@@ -95,6 +95,99 @@ def _filters_request_accessories(filters: Dict[str, Any]) -> bool:
     return _is_accessories_family(value)
 
 
+TECHNICAL_NAME_FILTER_TOKENS = {
+    "efficacy", "efficiency", "efficient", "efficienza", "efficacia", "rendimento",
+    "lumen", "lumens", "lm", "lmw", "w", "watt", "watts",
+    "cri", "ugr", "ip", "ik", "cct", "dali", "zhaga",
+}
+NAME_FILTER_KEYS = {"product_name_contains", "product_name_short", "name_prefix"}
+NON_NAME_SPEC_EXEMPT_KEYS = NAME_FILTER_KEYS | {"product_family", "shape"}
+
+
+def _drop_technical_only_name_filters(filters: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(filters or {})
+    spec_keys = set(out) - NON_NAME_SPEC_EXEMPT_KEYS
+    if not spec_keys:
+        return out
+    for key in ("product_name_contains", "product_name_short", "name_prefix"):
+        value = out.get(key)
+        if value in (None, "", []):
+            continue
+        values = value if isinstance(value, list) else [value]
+        kept = []
+        for item in values:
+            tokens = [
+                tok
+                for tok in re.findall(r"[a-zA-ZÀ-ÿ0-9/]+", str(item or "").lower())
+                if tok and not any(ch.isdigit() for ch in tok)
+            ]
+            if tokens and all(tok in TECHNICAL_NAME_FILTER_TOKENS for tok in tokens):
+                continue
+            kept.append(item)
+        if not kept:
+            out.pop(key, None)
+        elif isinstance(value, list):
+            out[key] = kept
+        else:
+            out[key] = kept[0]
+    return out
+
+
+def _name_filter_values(filters: Dict[str, Any]) -> Dict[str, Any]:
+    return {key: value for key, value in (filters or {}).items() if key in NAME_FILTER_KEYS and value not in (None, "", [])}
+
+
+def _drop_unmatched_name_filters(
+    filters: Dict[str, Any],
+    *,
+    product_db: Any,
+    db_dataframe: Any,
+    map_filters_to_sql: Callable[[Dict[str, Any]], Dict[str, Any]],
+) -> Dict[str, Any]:
+    out = dict(filters or {})
+    name_filters = _name_filter_values(out)
+    if not name_filters:
+        return out
+    spec_keys = set(out) - NON_NAME_SPEC_EXEMPT_KEYS
+    if not spec_keys:
+        return out
+
+    has_name_match = True
+    if product_db:
+        try:
+            rows = product_db.search_products(map_filters_to_sql(name_filters), limit=1)
+            has_name_match = bool(rows)
+        except Exception:
+            has_name_match = True
+    elif db_dataframe is not None and not getattr(db_dataframe, "empty", True) and "product_name" in db_dataframe.columns:
+        try:
+            series = db_dataframe["product_name"].fillna("").astype(str).str.lower()
+            has_name_match = False
+            for key, value in name_filters.items():
+                values = value if isinstance(value, list) else [value]
+                for item in values:
+                    needle = str(item or "").strip().lower()
+                    if not needle:
+                        continue
+                    if key in {"product_name_short", "name_prefix"}:
+                        matched = series.str.split().str[0].fillna("").eq(needle).any()
+                    else:
+                        matched = series.str.contains(re.escape(needle), na=False).any()
+                    if matched:
+                        has_name_match = True
+                        break
+                if has_name_match:
+                    break
+        except Exception:
+            has_name_match = True
+
+    if has_name_match:
+        return out
+    for key in NAME_FILTER_KEYS:
+        out.pop(key, None)
+    return out
+
+
 def _should_soften_inferred_family(parsed_filters: Dict[str, Any], user_filters: Dict[str, Any]) -> bool:
     if user_filters.get("product_family") not in (None, "", []):
         return False
@@ -288,6 +381,8 @@ def handle_search(
         parsed["product_family"] = "downlight"
 
     user_filters = pre_ai_user_filters
+    parsed = _drop_technical_only_name_filters(parsed)
+    user_filters = _drop_technical_only_name_filters(user_filters)
     if not str(req.text or "").strip() and not user_filters:
         return SearchResponse(
             exact=[],
@@ -299,6 +394,15 @@ def handle_search(
     parsed_filters = _normalize_product_family_filter(dict(parsed), allowed_families)
     user_filters = _normalize_product_family_filter(dict(user_filters), allowed_families)
     filters = {**parsed_filters, **user_filters}
+    filters = _drop_technical_only_name_filters(filters)
+    filters = _drop_unmatched_name_filters(
+        filters,
+        product_db=product_db,
+        db_dataframe=db_dataframe,
+        map_filters_to_sql=map_filters_to_sql,
+    )
+    parsed_filters = {k: v for k, v in parsed_filters.items() if k in filters}
+    user_filters = {k: v for k, v in user_filters.items() if k in filters}
     hard_filters = dict(user_filters)
     ai_family = parsed_filters.get("product_family")
     soften_inferred_family = _should_soften_inferred_family(parsed_filters, user_filters)
@@ -653,6 +757,8 @@ def handle_search(
                 "control_protocol": clean_value(r.get("control_protocol")),
                 "interface": clean_value(r.get("interface")),
                 "emergency_present": clean_value(r.get("emergency_present")),
+                "ambient_temp_min_c": clean_value(r.get("ambient_temp_min_c")),
+                "ambient_temp_max_c": clean_value(r.get("ambient_temp_max_c")),
                 "shape": clean_value(r.get("shape")),
                 "diameter": clean_value(r.get("diameter")),
                 "luminaire_length": clean_value(r.get("luminaire_length")),
@@ -711,6 +817,8 @@ def handle_search(
                 "control_protocol": clean_value(r.get("control_protocol")),
                 "interface": clean_value(r.get("interface")),
                 "emergency_present": clean_value(r.get("emergency_present")),
+                "ambient_temp_min_c": clean_value(r.get("ambient_temp_min_c")),
+                "ambient_temp_max_c": clean_value(r.get("ambient_temp_max_c")),
                 "shape": clean_value(r.get("shape")),
                 "diameter": clean_value(r.get("diameter")),
                 "luminaire_length": clean_value(r.get("luminaire_length")),

@@ -6,6 +6,7 @@ import pandas as pd
 import re
 
 from app.schema import FacetsResponse, FacetValue, SearchRequest
+from app.search_logic import _drop_technical_only_name_filters, _drop_unmatched_name_filters
 
 
 def handle_facets(
@@ -74,7 +75,15 @@ def handle_facets(
             parsed[k] = v
 
     user_filters = pre_ai_user_filters
+    parsed = _drop_technical_only_name_filters(parsed)
+    user_filters = _drop_technical_only_name_filters(user_filters)
     filters = {**parsed, **user_filters}
+    filters = _drop_unmatched_name_filters(
+        filters,
+        product_db=product_db,
+        db_dataframe=db_dataframe,
+        map_filters_to_sql=map_filters_to_sql,
+    )
     sql_filters = map_filters_to_sql(filters)
     strict_recessed_downlight_names = (
         str(filters.get("product_family") or "").strip().lower() == "downlight"

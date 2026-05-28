@@ -47,12 +47,12 @@ class UiFilterNormalizationTests(unittest.TestCase):
             "ugr": ["<19"],
             "cri": [">80"],
             "ambient_temp_min_c": [">=-20"],
-            "ambient_temp_max_c": ["<=45"],
+            "ambient_temp_max_c": ["45"],
         })
         self.assertEqual(got["ugr"], ["<=19"])
         self.assertEqual(got["cri"], [">=80"])
         self.assertEqual(got["ambient_temp_min_c"], ["<=-20"])
-        self.assertEqual(got["ambient_temp_max_c"], ["<=45"])
+        self.assertEqual(got["ambient_temp_max_c"], [">=45"])
 
 
 if __name__ == "__main__":

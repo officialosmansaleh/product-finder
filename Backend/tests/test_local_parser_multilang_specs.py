@@ -33,6 +33,7 @@ class LocalParserMultilangSpecsTests(unittest.TestCase):
             ("54.000 lm", {"lumen_output": ">=54000"}),
             ("54,000 lm", {"lumen_output": ">=54000"}),
             ("54k lm", {"lumen_output": ">=54000"}),
+            ("0-10V", {"interface": "0-10v"}),
             ("dali", {"interface": "dali"}),
             ("warranty 5 years", {"warranty_years": ">=5"}),
             ("5 years warranty", {"warranty_years": ">=5"}),
@@ -99,6 +100,27 @@ class LocalParserMultilangSpecsTests(unittest.TestCase):
         self.assertEqual(parsed.get("cct_k"), "4000")
         self.assertEqual(parsed.get("lumen_output"), ">=54000")
         self.assertEqual(parsed.get("product_name_contains"), "faro")
+
+    def test_efficacy_word_is_not_product_name_filter(self):
+        parsed = local_text_to_filters("efficienza > 100lm/w")
+        self.assertEqual(parsed.get("efficacy_lm_w"), ">100")
+        self.assertNotIn("product_name_contains", parsed)
+        self.assertNotIn("product_name_short", parsed)
+
+    def test_lifetime_exact_and_range_queries(self):
+        self.assertEqual(local_text_to_filters("9000 hr").get("lifetime_hours"), ">=9000")
+        self.assertEqual(local_text_to_filters("=9000 hr").get("lifetime_hours"), "=9000")
+        self.assertEqual(local_text_to_filters("==9000 hr").get("lifetime_hours"), "=9000")
+        self.assertEqual(local_text_to_filters("8000<hr<10000").get("lifetime_hours"), "8000-10000")
+        self.assertEqual(local_text_to_filters("8000-10000 hr").get("lifetime_hours"), "8000-10000")
+
+    def test_ambient_temperature_capability_directions(self):
+        parsed = local_text_to_filters("-20C to 50C")
+        self.assertEqual(parsed.get("ambient_temp_min_c"), "<=-20")
+        self.assertEqual(parsed.get("ambient_temp_max_c"), ">=50")
+
+        parsed = local_text_to_filters("temp max 45C")
+        self.assertEqual(parsed.get("ambient_temp_max_c"), ">=45")
 
 
 if __name__ == "__main__":

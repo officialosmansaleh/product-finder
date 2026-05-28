@@ -71,6 +71,50 @@ class PimLoaderUgrTests(unittest.TestCase):
             finally:
                 db.close()
 
+    def test_sqlite_lifetime_exact_and_range_filters(self):
+        df = pd.DataFrame([
+            {"product_code": "A1", "product_name": "Alpha", "product_family": "Panel", "lifetime_hours": "9000 hr"},
+            {"product_code": "B1", "product_name": "Beta", "product_family": "Panel", "lifetime_hours": "12000 hr"},
+            {"product_code": "C1", "product_name": "Gamma", "product_family": "Panel", "lifetime_hours": "50000 hr"},
+        ])
+
+        with tempfile.TemporaryDirectory() as td:
+            db_path = os.path.join(td, "products.db")
+            db = ProductDatabase(db_path=db_path, database_url="")
+            try:
+                inserted = db.init_db("lifetime-release.xlsx", df=df)
+                self.assertEqual(inserted, 3)
+
+                exact_rows = db.search_products({"lifetime_hours": "=9000"})
+                exact_codes = {str(row.get("product_code")) for row in exact_rows}
+                self.assertEqual(exact_codes, {"A1"})
+
+                range_rows = db.search_products({"lifetime_hours": "8000-13000"})
+                range_codes = {str(row.get("product_code")) for row in range_rows}
+                self.assertEqual(range_codes, {"A1", "B1"})
+            finally:
+                db.close()
+
+    def test_sqlite_ambient_max_filter_uses_minimum_capability(self):
+        df = pd.DataFrame([
+            {"product_code": "A1", "product_name": "Cold", "product_family": "Panel", "ambient_temp_max_c": "40"},
+            {"product_code": "B1", "product_name": "Hot", "product_family": "Panel", "ambient_temp_max_c": "50"},
+            {"product_code": "C1", "product_name": "Hotter", "product_family": "Panel", "ambient_temp_max_c": "60"},
+        ])
+
+        with tempfile.TemporaryDirectory() as td:
+            db_path = os.path.join(td, "products.db")
+            db = ProductDatabase(db_path=db_path, database_url="")
+            try:
+                inserted = db.init_db("ambient-release.xlsx", df=df)
+                self.assertEqual(inserted, 3)
+
+                rows = db.search_products({"ambient_temp_max_c": ">=50"})
+                codes = {str(row.get("product_code")) for row in rows}
+                self.assertEqual(codes, {"B1", "C1"})
+            finally:
+                db.close()
+
 
 if __name__ == "__main__":
     unittest.main()

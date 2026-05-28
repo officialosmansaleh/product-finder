@@ -229,6 +229,7 @@ _GENERIC_PRODUCT_QUERY_TOKENS = {
     "recessed", "recess",
     "ip", "ik", "cri", "ugr", "dali", "zhaga", "emergency", "battery", "backup",
     "power", "w", "kw", "lm", "lumen", "lumens", "lmw", "lm/w", "cct", "k", "mm", "cm", "m",
+    "efficacy", "efficiency", "efficient", "efficienza", "efficacia", "rendimento",
     "min", "max", "minimum", "maximum", "temp", "temperature", "ambient", "operating", "working",
     "outdoor", "esterno", "external", "exterior", "exterieur", "externo", "zewnetrzny", "venkovni", "vanjski", "zunanji",
     "beam", "angle", "degree", "degrees", "asymmetric", "asymmetry", "shape", "color", "colour",
@@ -804,7 +805,9 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
         _append_multi_filter("interface", "dali")
     if re.search(r"\bdmx\b", t):
         _append_multi_filter("interface", "dmx")
-    # Supports "1-10", "1 10", "1/10", with optional V.
+    # Supports "0-10" and "1-10" variants, with optional V.
+    if re.search(r"\b0\s*[-/ ]\s*10\s*(?:v)?\b", t):
+        _append_multi_filter("interface", "0-10v")
     if re.search(r"\b1\s*[-/ ]\s*10\s*(?:v)?\b", t):
         _append_multi_filter("interface", "1-10v")
     # Zhaga / antenna zhaga requests.
@@ -935,7 +938,7 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
         b = float(m.group(2))
         lo, hi = (a, b) if a <= b else (b, a)
         filters["ambient_temp_min_c"] = f"<={lo:g}"
-        filters["ambient_temp_max_c"] = f"<={hi:g}"
+        filters["ambient_temp_max_c"] = f">={hi:g}"
 
     m_min = re.search(
         r"\b(?:ta|tc|ambient|operating|working)?\s*(?:temp(?:erature)?|temperatura)?\s*(?:min|minimum|minimo|minima)\s*[:=]?\s*([+\-]?\d{1,3}(?:\.\d+)?)\s*(?:°|º|[^\w\s])?\s*c\b",
@@ -950,9 +953,9 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
         flags=re.IGNORECASE,
     )
     if m_max:
-        filters["ambient_temp_max_c"] = f"<={float(m_max.group(1)):g}"
+        filters["ambient_temp_max_c"] = f">={float(m_max.group(1)):g}"
 
-    # Handles normalized forms like "ta >= -20 c" / "operating temperature <= 45 c".
+    # Handles normalized forms like "ta >= -20 c" / "operating temperature >= 45 c".
     for tm in re.finditer(
         r"\b(?:ta|tc|ambient(?:\s+temperature)?|operating(?:\s+temperature)?|working(?:\s+temperature)?|temp(?:erature)?)\s*(>=|<=|>|<)\s*([+\-]?\d{1,3}(?:\.\d+)?)\s*(?:°|º|[^\w\s])?\s*c\b",
         t,
@@ -961,12 +964,19 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
         op = tm.group(1)
         val = float(tm.group(2))
         if op in (">=", ">"):
-            # For minimum ambient capability, lower values are better.
-            # Request ">= -25C" means product must be <= -25C.
-            mapped = "<=" if op == ">=" else "<"
-            filters["ambient_temp_min_c"] = f"{mapped}{val:g}"
+            if val < 0:
+                # For minimum ambient capability, lower/colder values are better.
+                # Request ">= -25C" means product must be <= -25C.
+                mapped = "<=" if op == ">=" else "<"
+                filters["ambient_temp_min_c"] = f"{mapped}{val:g}"
+            else:
+                filters["ambient_temp_max_c"] = f"{op}{val:g}"
         elif op in ("<=", "<"):
-            filters["ambient_temp_max_c"] = f"<={val:g}"
+            if val < 0:
+                filters["ambient_temp_min_c"] = f"{op}{val:g}"
+            else:
+                mapped = ">=" if op == "<=" else ">"
+                filters["ambient_temp_max_c"] = f"{mapped}{val:g}"
 
     if any(w in t for w in [
         "asymmetric", "asymmetry", "asimmetrico", "asimmetrica", "asimmetria",
@@ -1005,25 +1015,47 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
         # failure_rate_pct is available in DB/compare, but not always used in current UI filters.
         filters["failure_rate_pct"] = f"<={m.group(2)}"
 
-    # Lifetime hours: 55000 hrs / 55'000 hr / 55k h / 55000hours
-    m = re.search(
-        r"\b(\d{1,3}(?:['.,]\d{3})+|\d+(?:\.\d+)?k|\d{4,7})\s*(?:h|hr|hrs|hour|hours)\b",
-        t
-    )
+    # Lifetime hours: exact (=9000 hr), ranges (8000-10000 hr / 8000<hr<10000),
+    # and default minimum (55000 hrs / 55'000 hr / 55k h / 55000hours).
+    hour_num = r"(?:\d{1,3}(?:['.,]\d{3})+|\d+(?:\.\d+)?k|\d{3,7})"
+    hour_unit = r"(?:h|hr|hrs|hour|hours)"
+    m = re.search(rf"\b({hour_num})\s*<\s*{hour_unit}\s*<\s*({hour_num})\b", t)
+    if not m:
+        m = re.search(rf"\b({hour_num})\s*-\s*({hour_num})\s*{hour_unit}\b", t)
     if m:
-        hours = _parse_loose_int_token(m.group(1))
-        if hours:
-            filters["lifetime_hours"] = f">={hours}"
+        a = _parse_loose_int_token(m.group(1))
+        b = _parse_loose_int_token(m.group(2))
+        if a is not None and b is not None:
+            lo, hi = min(a, b), max(a, b)
+            filters["lifetime_hours"] = f"{lo}-{hi}"
     else:
-        # Handles forms like "L70B50 [h]: 109000" / "LED lifespan [h] 109000"
-        m = re.search(
-            r"\b(?:l\s*\d{2,3}\s*b\s*\d{1,2}.*?\[\s*h\s*\]|lifespan.*?\[\s*h\s*\])\s*[:\-]?\s*(\d{4,7})\b",
-            t,
-        )
+        m = re.search(rf"(==|=)\s*({hour_num})\s*{hour_unit}\b", t)
         if m:
-            hours = _parse_loose_int_token(m.group(1))
+            hours = _parse_loose_int_token(m.group(2))
             if hours:
-                filters["lifetime_hours"] = f">={hours}"
+                filters["lifetime_hours"] = f"={hours}"
+        else:
+            m = re.search(rf"(>=|<=|>|<)\s*({hour_num})\s*{hour_unit}\b", t)
+            if m:
+                hours = _parse_loose_int_token(m.group(2))
+                if hours:
+                    filters["lifetime_hours"] = f"{m.group(1)}{hours}"
+            else:
+                m = re.search(rf"\b({hour_num})\s*{hour_unit}\b", t)
+                if m:
+                    hours = _parse_loose_int_token(m.group(1))
+                    if hours:
+                        filters["lifetime_hours"] = f">={hours}"
+                else:
+                    # Handles forms like "L70B50 [h]: 109000" / "LED lifespan [h] 109000"
+                    m = re.search(
+                        r"\b(?:l\s*\d{2,3}\s*b\s*\d{1,2}.*?\[\s*h\s*\]|lifespan.*?\[\s*h\s*\])\s*[:\-]?\s*(\d{4,7})\b",
+                        t,
+                    )
+                    if m:
+                        hours = _parse_loose_int_token(m.group(1))
+                        if hours:
+                            filters["lifetime_hours"] = f">={hours}"
 
     m = re.search(
         r"\b(?:warranty|garanzia|garantie|garantia)\s*(?:of|di|de|da)?\s*(\d{1,2})\s*(?:y|yr|yrs|year|years|anni|ans|anos)\b",
