@@ -236,6 +236,7 @@ _GENERIC_PRODUCT_QUERY_TOKENS = {
     "round", "circular", "circle", "square", "rectangular", "rectangle",
     "interface", "control", "driver", "life", "lifetime", "hours", "hour", "hr", "hrs",
     "insulation", "isolation", "isolamento", "classe",
+    "surge", "common", "mode", "sovratensione",
     "with", "without", "warranty", "year", "years", "yr", "yrs",
     "yes", "no", "true", "false", "si", "sì", "oui", "ja",
     "housing", "body", "finish", "black", "white", "grey", "gray", "anthracite",
@@ -517,6 +518,15 @@ def _class_token_to_insulation_class(token: str) -> Optional[str]:
         "iii": "Class III",
     }
     return mapping.get(compact)
+
+
+def _normalize_surge_kv_token(token: str) -> Optional[str]:
+    m = re.search(r"(\d+(?:[.,]\d+)?)", str(token or ""))
+    if not m:
+        return None
+    num = float(m.group(1).replace(",", "."))
+    display = str(int(num)) if num.is_integer() else str(num).rstrip("0").rstrip(".")
+    return f"{display} kV"
 
 
 def _is_close_token(a: str, b: str) -> bool:
@@ -845,6 +855,16 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
             filters["insulation_class"] = cls
     elif re.search(r"\b(?:double\s+insulation|doppio\s+isolamento)\b", t, flags=re.IGNORECASE):
         filters["insulation_class"] = "Class II"
+
+    m = re.search(
+        r"\b(?:surge(?:\s+protection)?(?:\s*(?:common\s+mode|cm))?|common\s+mode\s+surge|sovratensione(?:\s+modo\s+comune)?|modo\s+comune)\s*(?:[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*(?:kv|k\s*v)\b",
+        t,
+        flags=re.IGNORECASE,
+    )
+    if m:
+        surge = _normalize_surge_kv_token(m.group(1))
+        if surge:
+            filters["surge_common_mode"] = surge
 
     if any(w in t for w in [
         "emergency", "emergenza", "exit", "kit emergenza", "em kit",

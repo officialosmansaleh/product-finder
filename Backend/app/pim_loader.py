@@ -253,6 +253,18 @@ CANON_SPECS: List[CanonicalSpec] = [
     CanonicalSpec("warranty_years", ["warranty", "warranty years", "garanzia"]),
     CanonicalSpec("certifications", ["regulations","certifications", "certification", "certificazioni"]),
     CanonicalSpec("surge_protection_kv", ["surge protection", "surge kv", "surge (kv)", "sovratensione"]),
+    CanonicalSpec(
+        "surge_common_mode",
+        [
+            "Surge (common mode)",
+            "surge common mode",
+            "common mode surge",
+            "surge cm",
+            "surge common",
+            "sovratensione modo comune",
+            "modo comune",
+        ],
+    ),
     CanonicalSpec("lifetime_hours", ["lifetime hours", "lifetime", "rated life", "led rated life"]),
     CanonicalSpec("led_rated_life_h", ["LED Rated Life - (h)", "LED Rated Life (h)", "LED Rated Life"]),
     CanonicalSpec("failure_rate_pct", ["Failure rate (Ta=25Â°C) (B)", "Failure rate"]),
@@ -465,6 +477,18 @@ def _normalize_insulation_class(value) -> str:
         cls = roman_map.get(token, token.upper())
         return f"Class {cls}"
     return clean
+
+
+def _normalize_surge_kv(value) -> str:
+    text = str(value or "").strip()
+    if not text or text.lower() in {"nan", "none"}:
+        return ""
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*(?:kv|k\s*v)?", text, flags=re.IGNORECASE)
+    if not m:
+        return text
+    num = float(m.group(1).replace(",", "."))
+    display = str(int(num)) if num.is_integer() else str(num).rstrip("0").rstrip(".")
+    return f"{display} kV"
 
 
 def _normalize_cct_value(value) -> str:
@@ -853,6 +877,8 @@ def load_products(
         out["ik_rating"] = out["ik_rating"].apply(_normalize_ik_value)
     if "insulation_class" in out.columns:
         out["insulation_class"] = out["insulation_class"].apply(_normalize_insulation_class)
+    if "surge_common_mode" in out.columns:
+        out["surge_common_mode"] = out["surge_common_mode"].apply(_normalize_surge_kv)
     if "cct_k" in out.columns:
         out["cct_k"] = out["cct_k"].apply(_normalize_cct_value)
     for numeric_col, unit in [

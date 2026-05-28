@@ -38,6 +38,8 @@ class LocalParserMultilangSpecsTests(unittest.TestCase):
             ("classe isolamento II", {"insulation_class": "Class II"}),
             ("class 2", {"insulation_class": "Class II"}),
             ("double insulation", {"insulation_class": "Class II"}),
+            ("surge common mode 6kV", {"surge_common_mode": "6 kV"}),
+            ("sovratensione modo comune 10 kV", {"surge_common_mode": "10 kV"}),
             ("warranty 5 years", {"warranty_years": ">=5"}),
             ("5 years warranty", {"warranty_years": ">=5"}),
             ("emergency", {"emergency_present": "yes"}),

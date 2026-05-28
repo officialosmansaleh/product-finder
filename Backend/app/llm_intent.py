@@ -33,6 +33,7 @@ class IntentFilters(BaseModel):
     control_protocol: Optional[str] = Field(None, description="generic control capability when interface is not specified")
     interface: Optional[str] = Field(None, description="e.g. dali, dmx, 1-10v, zhaga")
     insulation_class: Optional[str] = Field(None, description="electrical insulation class, normalize to Class I, Class II, or Class III")
+    surge_common_mode: Optional[str] = Field(None, description="surge protection common mode value, normalize to values like 6 kV or 10 kV")
     emergency_present: Optional[str] = Field(None, description="yes/no")
     lifetime_hours: Optional[str] = Field(None, description="e.g. >=50000")
     led_rated_life_h: Optional[str] = Field(None, description="e.g. >=100000")
@@ -74,6 +75,7 @@ def _text_system_prompt(allowed_families: Optional[list[str]]) -> str:
         "Use only explicit user requirements; do not infer performance specs from product family alone. "
         "IMPORTANT: map DALI, DMX, 1-10V dimmer, and Zhaga/antenna requests to 'interface' (not 'control_protocol'). "
         "Map insulation/isolation class requests like classe II, class 2, double insulation to insulation_class. "
+        "Map surge common mode requests like surge common mode 6kV or sovratensione modo comune 10kV to surge_common_mode. "
         "Normalize yes/no values to English. Normalize shape to round, square, rectangular, or linear. "
         + allowed_txt
         + "Use operators like >=, <= when appropriate (e.g. >=IP65, <=19 for UGR). "
@@ -250,6 +252,18 @@ def _normalize_insulation_class(value: Any) -> Any:
     return text
 
 
+def _normalize_surge_kv(value: Any) -> Any:
+    if value in (None, "", []):
+        return value
+    text = str(value or "").strip()
+    m = re.search(r"(\d+(?:[.,]\d+)?)", text)
+    if not m:
+        return text
+    num = float(m.group(1).replace(",", "."))
+    display = str(int(num)) if num.is_integer() else str(num).rstrip("0").rstrip(".")
+    return f"{display} kV"
+
+
 def _normalize_llm_filters(filters: Dict[str, Any], allowed_families: Optional[list[str]]) -> Dict[str, Any]:
     out = _drop_empty_and_unknown(filters)
     if "product_family" in out:
@@ -280,6 +294,8 @@ def _normalize_llm_filters(filters: Dict[str, Any], allowed_families: Optional[l
         out["shape"] = _normalize_shape(out.get("shape"))
     if "insulation_class" in out:
         out["insulation_class"] = _normalize_insulation_class(out.get("insulation_class"))
+    if "surge_common_mode" in out:
+        out["surge_common_mode"] = _normalize_surge_kv(out.get("surge_common_mode"))
     if "emergency_present" in out:
         out["emergency_present"] = _normalize_yes_no(out.get("emergency_present"))
     return _drop_empty_and_unknown(out)

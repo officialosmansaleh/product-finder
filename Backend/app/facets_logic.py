@@ -223,6 +223,7 @@ def handle_facets(
             "control_protocol": facet_values("control_protocol", limit=facet_value_limit),
             "interface": facet_values("interface", limit=facet_value_limit),
             "insulation_class": facet_values("insulation_class", limit=facet_value_limit),
+            "surge_common_mode": facet_values("surge_common_mode", limit=facet_value_limit),
             "emergency_present": facet_values("emergency_present", limit=facet_value_limit),
             "manufacturer": facet_values("manufacturer", limit=facet_value_limit, fallback_col="manufacturer"),
         },

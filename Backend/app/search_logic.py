@@ -223,6 +223,7 @@ def _ai_interrogation_context_for_search(
         "has_cct": bool(re.search(r"\b(?:2700|3000|3500|4000|5000|5700|6500)\s*k?\b", lower)),
         "has_interface": bool(re.search(r"\b(?:dali|dmx|zhaga|1\s*-\s*10v|0\s*-\s*10v)\b", lower)),
         "has_insulation_class": bool(re.search(r"\b(?:insulation|isolation|isolamento|classe\s+(?:di\s+)?isolamento|class|classe)\s*(?:i{1,3}|1|2|3)\b", lower)),
+        "has_surge_common_mode": bool(re.search(r"\b(?:surge|sovratensione|common\s+mode|modo\s+comune)\b", lower)),
     }
     reasons: list[str] = []
     if not local_keys:
@@ -236,6 +237,7 @@ def _ai_interrogation_context_for_search(
         "has_cct": "cct_k",
         "has_interface": "interface",
         "has_insulation_class": "insulation_class",
+        "has_surge_common_mode": "surge_common_mode",
     }
     detected_missing = [
         key
@@ -423,7 +425,7 @@ def handle_search(
     spec_signal_keys = set(cfg_list("main.spec_signal_keys", [
         "ip_rating", "ip_visible", "ip_non_visible", "ik_rating", "cct_k", "cri", "ugr",
         "power_max_w", "power_min_w", "lumen_output", "efficacy_lm_w",
-        "beam_angle_deg", "control_protocol", "interface", "insulation_class", "emergency_present",
+        "beam_angle_deg", "control_protocol", "interface", "insulation_class", "surge_common_mode", "emergency_present",
         "lifetime_hours", "led_rated_life_h", "lumen_maintenance_pct", "failure_rate_pct",
         "diameter", "luminaire_length", "luminaire_width", "luminaire_height",
         "ambient_temp_min_c", "ambient_temp_max_c", "shape",
@@ -485,6 +487,7 @@ def handle_search(
             "control_protocol": "Control",
             "interface": "Interface",
             "insulation_class": "Insulation",
+            "surge_common_mode": "Surge common",
             "emergency_present": "Emergency",
             "shape": "Shape",
             "lifetime_hours": "Lifetime",
@@ -493,7 +496,7 @@ def handle_search(
         preferred_order = [
             "product_family", "etim_search_key", "ip_rating", "ip_visible", "ip_non_visible", "ik_rating", "cct_k", "cri", "ugr",
             "lumen_output", "power_max_w", "efficacy_lm_w", "shape",
-            "control_protocol", "interface", "insulation_class", "emergency_present", "lifetime_hours", "lumen_maintenance_pct",
+            "control_protocol", "interface", "insulation_class", "surge_common_mode", "emergency_present", "lifetime_hours", "lumen_maintenance_pct",
         ]
         understood_items: List[Dict[str, Any]] = []
         parts: List[str] = []
@@ -760,6 +763,7 @@ def handle_search(
                 "control_protocol": clean_value(r.get("control_protocol")),
                 "interface": clean_value(r.get("interface")),
                 "insulation_class": clean_value(r.get("insulation_class")),
+                "surge_common_mode": clean_value(r.get("surge_common_mode")),
                 "emergency_present": clean_value(r.get("emergency_present")),
                 "ambient_temp_min_c": clean_value(r.get("ambient_temp_min_c")),
                 "ambient_temp_max_c": clean_value(r.get("ambient_temp_max_c")),
@@ -821,6 +825,7 @@ def handle_search(
                 "control_protocol": clean_value(r.get("control_protocol")),
                 "interface": clean_value(r.get("interface")),
                 "insulation_class": clean_value(r.get("insulation_class")),
+                "surge_common_mode": clean_value(r.get("surge_common_mode")),
                 "emergency_present": clean_value(r.get("emergency_present")),
                 "ambient_temp_min_c": clean_value(r.get("ambient_temp_min_c")),
                 "ambient_temp_max_c": clean_value(r.get("ambient_temp_max_c")),

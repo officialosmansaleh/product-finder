@@ -21,6 +21,7 @@ class CatalogHealthTests(unittest.TestCase):
             _normalize_insulation_class,
             _normalize_ip_value,
             _normalize_numeric_measure,
+            _normalize_surge_kv,
         )
 
         self.assertEqual(_normalize_family_name("road lighting"), "Street lighting")
@@ -31,6 +32,8 @@ class CatalogHealthTests(unittest.TestCase):
         self.assertEqual(_normalize_numeric_measure("15.0", "W"), "15 W")
         self.assertEqual(_normalize_insulation_class("classe II"), "Class II")
         self.assertEqual(_normalize_insulation_class("2"), "Class II")
+        self.assertEqual(_normalize_surge_kv("6kV"), "6 kV")
+        self.assertEqual(_normalize_surge_kv("10 kV"), "10 kV")
 
     def test_catalog_health_detects_duplicates_and_legacy_alias(self):
         from app import main as main_mod
