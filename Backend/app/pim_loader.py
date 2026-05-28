@@ -278,6 +278,21 @@ CANON_SPECS: List[CanonicalSpec] = [
     CanonicalSpec("efficiency", ["efficiency", "efficienza"]),
     CanonicalSpec("control_protocol", ["controllability", "control", "dimming", "protocol"]),
     CanonicalSpec("interface", ["interface", "cp"]),
+    CanonicalSpec(
+        "insulation_class",
+        [
+            "class",
+            "insulation class",
+            "class insulation",
+            "electrical insulation class",
+            "electrical class",
+            "isolation class",
+            "classe isolamento",
+            "classe di isolamento",
+            "classe isol.",
+            "classe isol",
+        ],
+    ),
     CanonicalSpec("emergency_present", ["emergency power supply", "emergency", "emergenza", "em kit", "kit emergenza"]),
     CanonicalSpec("emergency_duration_min", ["emergency duration", "duration", "durata emergenza", "min"]),
     CanonicalSpec(
@@ -324,7 +339,7 @@ CANON_SPECS: List[CanonicalSpec] = [
     CanonicalSpec("housing_material", ["housing material", "material", "materiale", "corpo"]),
     CanonicalSpec("shape", ["shape", "forma"]),
     CanonicalSpec("housing_color",    ["Colour - Housing", "Color - Housing", "Housing color", "colore", "finitura"]),
-    CanonicalSpec("protection_class", ["protection class", "classe di protezione", "class"]),
+    CanonicalSpec("protection_class", ["protection class", "classe di protezione"]),
     CanonicalSpec("luminaire_height", ["Luminaire height", "height", "H", "altezza"]),
     CanonicalSpec("luminaire_width",  ["Luminaire Width", "luminaire width", "width", "W", "larghezza"]),
     CanonicalSpec("luminaire_length", ["Luminaire length", "luminaire length", "length", "L", "lunghezza"]),
@@ -411,6 +426,45 @@ def _normalize_ik_value(value) -> str:
     if m:
         return f"IK{str(int(m.group(1))).zfill(2)}"
     return str(value or "").strip()
+
+
+def _normalize_insulation_class(value) -> str:
+    text = str(value or "").strip()
+    if not text or text.lower() in {"nan", "none"}:
+        return ""
+    clean = re.sub(r"\s+", " ", text).strip()
+    if re.search(r"\b(?:double\s+insulation|doppio\s+isolamento)\b", clean, flags=re.IGNORECASE):
+        return "Class II"
+    compact = re.sub(r"[^a-z0-9ivx]+", "", clean.lower())
+    roman_map = {
+        "1": "I",
+        "i": "I",
+        "class1": "I",
+        "classi": "I",
+        "classe1": "I",
+        "classei": "I",
+        "2": "II",
+        "ii": "II",
+        "class2": "II",
+        "classii": "II",
+        "classe2": "II",
+        "classeii": "II",
+        "3": "III",
+        "iii": "III",
+        "class3": "III",
+        "classiii": "III",
+        "classe3": "III",
+        "classeiii": "III",
+    }
+    cls = roman_map.get(compact)
+    if cls:
+        return f"Class {cls}"
+    m = re.search(r"\b(?:class|classe)\s*(i{1,3}|1|2|3)\b", clean, flags=re.IGNORECASE)
+    if m:
+        token = m.group(1).lower()
+        cls = roman_map.get(token, token.upper())
+        return f"Class {cls}"
+    return clean
 
 
 def _normalize_cct_value(value) -> str:
@@ -797,6 +851,8 @@ def load_products(
         out["ip_non_visible"] = out["ip_non_visible"].apply(_normalize_ip_value)
     if "ik_rating" in out.columns:
         out["ik_rating"] = out["ik_rating"].apply(_normalize_ik_value)
+    if "insulation_class" in out.columns:
+        out["insulation_class"] = out["insulation_class"].apply(_normalize_insulation_class)
     if "cct_k" in out.columns:
         out["cct_k"] = out["cct_k"].apply(_normalize_cct_value)
     for numeric_col, unit in [

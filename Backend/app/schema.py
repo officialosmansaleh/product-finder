@@ -16,6 +16,7 @@ ALLOWED_FILTER_KEYS = {
     "cct_k",
     "control_protocol",
     "interface",
+    "insulation_class",
     "power_min_w",
     "power_max_w",
     "lumen_output",
@@ -75,6 +76,7 @@ SOFT_FILTER_KEYS = {
 
     "control_protocol",
     "interface",
+    "insulation_class",
     "emergency_present",
     "beam_angle_deg",
     "beam_type",

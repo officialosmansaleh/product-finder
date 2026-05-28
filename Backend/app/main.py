@@ -2050,7 +2050,7 @@ def _df_filtered_subset(df: pd.DataFrame, filters: Dict[str, Any]) -> pd.DataFra
                     filters[col] = "<=" + v[1:]
             _apply_numeric(col, filters[col])
 
-    for col in ["control_protocol", "interface", "emergency_present", "mounting_type", "shape", "housing_material", "housing_color", "product_family", "manufacturer"]:
+    for col in ["control_protocol", "interface", "insulation_class", "emergency_present", "mounting_type", "shape", "housing_material", "housing_color", "product_family", "manufacturer"]:
         if col in filters:
             _apply_contains(col, filters[col])
     if PRODUCT_NAME_FILTER_KEY in filters:
@@ -3172,7 +3172,7 @@ _COMPARE_FIELD_PRIORITY = [
     "cct_k", "cri", "ugr",
     "power_max_w", "power_min_w", "lumen_output", "efficacy_lm_w",
     "beam_angle_deg", "beam_type", "asymmetry",
-    "control_protocol", "interface", "emergency_present",
+    "control_protocol", "interface", "insulation_class", "emergency_present",
     "shape", "housing_color", "housing_material", "mounting_type",
     "diameter", "luminaire_length", "luminaire_width", "luminaire_height",
     "ambient_temp_min_c", "ambient_temp_max_c",

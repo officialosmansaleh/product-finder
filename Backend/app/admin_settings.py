@@ -45,6 +45,7 @@ SCORING_FIELD_LABELS: dict[str, str] = {
     "ik_rating": "IK Rating",
     "control_protocol": "Control Protocol",
     "interface": "Interface",
+    "insulation_class": "Insulation Class",
     "power_min_w": "Power Min",
     "power_max_w": "Power Max",
     "lumen_output": "Lumen Output",

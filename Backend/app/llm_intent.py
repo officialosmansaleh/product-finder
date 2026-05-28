@@ -32,6 +32,7 @@ class IntentFilters(BaseModel):
     beam_type: Optional[str] = Field(None, description="narrow, medium, wide, flood, spot")
     control_protocol: Optional[str] = Field(None, description="generic control capability when interface is not specified")
     interface: Optional[str] = Field(None, description="e.g. dali, dmx, 1-10v, zhaga")
+    insulation_class: Optional[str] = Field(None, description="electrical insulation class, normalize to Class I, Class II, or Class III")
     emergency_present: Optional[str] = Field(None, description="yes/no")
     lifetime_hours: Optional[str] = Field(None, description="e.g. >=50000")
     led_rated_life_h: Optional[str] = Field(None, description="e.g. >=100000")
@@ -72,6 +73,7 @@ def _text_system_prompt(allowed_families: Optional[list[str]]) -> str:
         "IMPORTANT: Do NOT output lumen_output. "
         "Use only explicit user requirements; do not infer performance specs from product family alone. "
         "IMPORTANT: map DALI, DMX, 1-10V dimmer, and Zhaga/antenna requests to 'interface' (not 'control_protocol'). "
+        "Map insulation/isolation class requests like classe II, class 2, double insulation to insulation_class. "
         "Normalize yes/no values to English. Normalize shape to round, square, rectangular, or linear. "
         + allowed_txt
         + "Use operators like >=, <= when appropriate (e.g. >=IP65, <=19 for UGR). "
@@ -216,6 +218,38 @@ def _normalize_shape(value: Any) -> Any:
     return value
 
 
+def _normalize_insulation_class(value: Any) -> Any:
+    if value in (None, "", []):
+        return value
+    text = str(value or "").strip()
+    if re.search(r"\b(?:double\s+insulation|doppio\s+isolamento)\b", text, flags=re.IGNORECASE):
+        return "Class II"
+    compact = re.sub(r"[^a-z0-9ivx]+", "", text.lower())
+    mapping = {
+        "1": "Class I",
+        "i": "Class I",
+        "class1": "Class I",
+        "classi": "Class I",
+        "classe1": "Class I",
+        "classei": "Class I",
+        "2": "Class II",
+        "ii": "Class II",
+        "class2": "Class II",
+        "classii": "Class II",
+        "classe2": "Class II",
+        "classeii": "Class II",
+        "3": "Class III",
+        "iii": "Class III",
+        "class3": "Class III",
+        "classiii": "Class III",
+        "classe3": "Class III",
+        "classeiii": "Class III",
+    }
+    if compact in mapping:
+        return mapping[compact]
+    return text
+
+
 def _normalize_llm_filters(filters: Dict[str, Any], allowed_families: Optional[list[str]]) -> Dict[str, Any]:
     out = _drop_empty_and_unknown(filters)
     if "product_family" in out:
@@ -225,9 +259,11 @@ def _normalize_llm_filters(filters: Dict[str, Any], allowed_families: Optional[l
             out[key] = _normalize_rating(out.get(key), "IP", 2)
     if "ik_rating" in out:
         out["ik_rating"] = _normalize_rating(out.get("ik_rating"), "IK", 2)
-    for key in ("ugr", "power_max_w", "ambient_temp_min_c", "ambient_temp_max_c"):
+    for key in ("ugr", "power_max_w", "ambient_temp_min_c"):
         if key in out:
             out[key] = _normalize_numeric(out.get(key), "<=")
+    if "ambient_temp_max_c" in out:
+        out["ambient_temp_max_c"] = _normalize_numeric(out.get("ambient_temp_max_c"), ">=")
     for key in ("luminaire_height", "luminaire_width", "luminaire_length", "diameter"):
         if key in out:
             out[key] = _normalize_numeric(out.get(key), "=")
@@ -242,6 +278,8 @@ def _normalize_llm_filters(filters: Dict[str, Any], allowed_families: Optional[l
         out["cct_k"] = str(cct or "").lstrip("<>=")
     if "shape" in out:
         out["shape"] = _normalize_shape(out.get("shape"))
+    if "insulation_class" in out:
+        out["insulation_class"] = _normalize_insulation_class(out.get("insulation_class"))
     if "emergency_present" in out:
         out["emergency_present"] = _normalize_yes_no(out.get("emergency_present"))
     return _drop_empty_and_unknown(out)

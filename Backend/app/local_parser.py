@@ -235,6 +235,7 @@ _GENERIC_PRODUCT_QUERY_TOKENS = {
     "beam", "angle", "degree", "degrees", "asymmetric", "asymmetry", "shape", "color", "colour",
     "round", "circular", "circle", "square", "rectangular", "rectangle",
     "interface", "control", "driver", "life", "lifetime", "hours", "hour", "hr", "hrs",
+    "insulation", "isolation", "isolamento", "classe",
     "with", "without", "warranty", "year", "years", "yr", "yrs",
     "yes", "no", "true", "false", "si", "sì", "oui", "ja",
     "housing", "body", "finish", "black", "white", "grey", "gray", "anthracite",
@@ -503,6 +504,19 @@ def _infer_product_name_contains(text: str, filters: Dict[str, Any]) -> Optional
     if not kept:
         return None
     return " ".join(kept[:3]).strip() or None
+
+
+def _class_token_to_insulation_class(token: str) -> Optional[str]:
+    compact = re.sub(r"[^a-z0-9ivx]+", "", str(token or "").lower())
+    mapping = {
+        "1": "Class I",
+        "i": "Class I",
+        "2": "Class II",
+        "ii": "Class II",
+        "3": "Class III",
+        "iii": "Class III",
+    }
+    return mapping.get(compact)
 
 
 def _is_close_token(a: str, b: str) -> bool:
@@ -813,6 +827,24 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
     # Zhaga / antenna zhaga requests.
     if re.search(r"\bzhaga\b", t):
         _append_multi_filter("interface", "zhaga")
+
+    m = re.search(
+        r"\b(?:insulation|isolation|isolamento|classe(?:\s+di)?\s+isolamento|classe|class)\s*(?:class|classe)?\s*(i{1,3}|1|2|3)\b",
+        t,
+        flags=re.IGNORECASE,
+    )
+    if not m:
+        m = re.search(
+            r"\b(i{1,3}|1|2|3)\s*(?:insulation|isolation|isolamento|classe(?:\s+di)?\s+isolamento|class|classe)\b",
+            t,
+            flags=re.IGNORECASE,
+        )
+    if m:
+        cls = _class_token_to_insulation_class(m.group(1))
+        if cls:
+            filters["insulation_class"] = cls
+    elif re.search(r"\b(?:double\s+insulation|doppio\s+isolamento)\b", t, flags=re.IGNORECASE):
+        filters["insulation_class"] = "Class II"
 
     if any(w in t for w in [
         "emergency", "emergenza", "exit", "kit emergenza", "em kit",

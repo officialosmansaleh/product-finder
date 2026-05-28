@@ -18,6 +18,7 @@ class CatalogHealthTests(unittest.TestCase):
             _normalize_cct_value,
             _normalize_family_name,
             _normalize_ik_value,
+            _normalize_insulation_class,
             _normalize_ip_value,
             _normalize_numeric_measure,
         )
@@ -28,6 +29,8 @@ class CatalogHealthTests(unittest.TestCase):
         self.assertEqual(_normalize_ik_value("ik8"), "IK08")
         self.assertEqual(_normalize_cct_value("4000 k"), "4000K")
         self.assertEqual(_normalize_numeric_measure("15.0", "W"), "15 W")
+        self.assertEqual(_normalize_insulation_class("classe II"), "Class II")
+        self.assertEqual(_normalize_insulation_class("2"), "Class II")
 
     def test_catalog_health_detects_duplicates_and_legacy_alias(self):
         from app import main as main_mod

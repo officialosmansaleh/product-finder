@@ -222,6 +222,7 @@ def handle_facets(
             "voltage_range": facet_values("voltage_range", limit=facet_value_limit),
             "control_protocol": facet_values("control_protocol", limit=facet_value_limit),
             "interface": facet_values("interface", limit=facet_value_limit),
+            "insulation_class": facet_values("insulation_class", limit=facet_value_limit),
             "emergency_present": facet_values("emergency_present", limit=facet_value_limit),
             "manufacturer": facet_values("manufacturer", limit=facet_value_limit, fallback_col="manufacturer"),
         },
