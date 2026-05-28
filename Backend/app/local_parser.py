@@ -1079,6 +1079,8 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
         "asymetrický", "asymetricky", "asimetri", "asimetričen", "asimetrican", "asimetričan"
     ]):
         filters["asymmetry"] = "asymmetric"
+    elif re.search(r"\b(?:symmetric|symmetry|simmetrico|simmetrica|simmetria|symetrique|simetrico|simetrica|simetria)\b", t):
+        filters["asymmetry"] = "symmetric"
 
     m = re.search(
         r"\b(\d{2,4})\s*(?:mm)?\s*(?:x|×|by|per)\s*(\d{2,4})\s*(?:mm)?\b",

@@ -102,6 +102,24 @@ class LLMIntentNormalizationTests(unittest.TestCase):
         self.assertNotIn("product_family", filters)
         self.assertEqual(filters["ip_rating"], ">=IP66")
 
+    def test_symmetric_shape_from_llm_is_normalized_to_asymmetry(self):
+        import app.llm_intent as llm_intent
+
+        fake_result = {
+            "status": "ok",
+            "provider": "openai",
+            "model": "test-model",
+            "used_retry": False,
+            "message": "",
+            "content": {"shape": "simmetrico", "asymmetry": "asimmetrico"},
+        }
+
+        with patch.object(llm_intent, "infer_text_filters", return_value=fake_result):
+            filters = llm_intent.llm_intent_to_filters("faro asimmetrico")
+
+        self.assertEqual(filters["asymmetry"], "asymmetric")
+        self.assertNotIn("shape", filters)
+
     def test_model_candidates_can_be_configured_from_environment(self):
         import app.ai_service as ai_service
 

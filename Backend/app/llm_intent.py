@@ -19,7 +19,7 @@ class IntentFilters(BaseModel):
     ip_visible: Optional[str] = Field(None, description="IP visible side (IP v.l.), e.g. >=IP65")
     ip_non_visible: Optional[str] = Field(None, description="IP non-visible side (IP v.a.), e.g. >=IP20")
     ik_rating: Optional[str] = Field(None, description="e.g. >=IK08")
-    asymmetry: Optional[str] = Field(None, description="e.g. asymmetric, asimmetrico, yes")
+    asymmetry: Optional[str] = Field(None, description="beam distribution symmetry, e.g. asymmetric/asimmetrico or symmetric/simmetrico")
     shape: Optional[str] = Field(None, description="round, square, rectangular, linear")
     housing_color: Optional[str] = Field(None, description="white, black, grey, anthracite, etc.")
     ugr: Optional[str] = Field(None, description="e.g. <=19, <=22")
@@ -53,7 +53,7 @@ class IntentFilters(BaseModel):
 class ImageIntentFilters(BaseModel):
     product_family: Optional[str] = Field(None, description="Best matching fixture family from catalog vocabulary")
     shape: Optional[str] = Field(None, description="round, square, linear, rectangular, etc.")
-    asymmetry: Optional[str] = Field(None, description="asymmetric when clearly visible")
+    asymmetry: Optional[str] = Field(None, description="beam distribution symmetry, asymmetric/symmetric when clearly visible")
     housing_color: Optional[str] = Field(None, description="white, black, grey, etc. only if obvious")
     confidence: Literal["low", "medium", "high"] = "medium"
     notes: Optional[str] = None
@@ -222,6 +222,17 @@ def _normalize_shape(value: Any) -> Any:
     return value
 
 
+def _normalize_asymmetry(value: Any) -> Any:
+    if value in (None, "", []):
+        return value
+    text = str(value or "").strip().lower()
+    if re.search(r"\b(?:asymmetric|asymmetry|asimmetrico|asimmetrica|asimmetria|asymetrique|asimetrico|assimetrico)\b", text):
+        return "asymmetric"
+    if re.search(r"\b(?:symmetric|symmetry|simmetrico|simmetrica|simmetria|symetrique|simetrico|simetrica|simetria)\b", text):
+        return "symmetric"
+    return value
+
+
 def _normalize_insulation_class(value: Any) -> Any:
     if value in (None, "", []):
         return value
@@ -293,7 +304,14 @@ def _normalize_llm_filters(filters: Dict[str, Any], allowed_families: Optional[l
         cct = _normalize_numeric(out.get("cct_k"), "")
         out["cct_k"] = str(cct or "").lstrip("<>=")
     if "shape" in out:
-        out["shape"] = _normalize_shape(out.get("shape"))
+        shape_asymmetry = _normalize_asymmetry(out.get("shape"))
+        if shape_asymmetry in {"asymmetric", "symmetric"}:
+            out.pop("shape", None)
+            out.setdefault("asymmetry", shape_asymmetry)
+        else:
+            out["shape"] = _normalize_shape(out.get("shape"))
+    if "asymmetry" in out:
+        out["asymmetry"] = _normalize_asymmetry(out.get("asymmetry"))
     if "insulation_class" in out:
         out["insulation_class"] = _normalize_insulation_class(out.get("insulation_class"))
     if "surge_common_mode" in out:
@@ -386,7 +404,7 @@ def llm_image_to_inference(
         system_prompt=_image_system_prompt(allowed_families),
         user_prompt=(
             "Identify likely luminaire family/type and visible shape. "
-            "If clearly visible, include asymmetry and housing_color. "
+            "If clearly visible, include beam asymmetry/symmetry and housing_color. "
             "Return strict JSON only."
         ),
         log_context=log_context,

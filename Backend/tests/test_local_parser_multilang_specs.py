@@ -58,6 +58,9 @@ class LocalParserMultilangSpecsTests(unittest.TestCase):
             ("hitna", {"emergency_present": "yes"}),
             ("nujna", {"emergency_present": "yes"}),
             ("asymmetric", {"asymmetry": "asymmetric"}),
+            ("symmetric beam", {"asymmetry": "symmetric"}),
+            ("simmetrico", {"asymmetry": "symmetric"}),
+            ("fascio simmetrico", {"asymmetry": "symmetric"}),
             ("asimmetrico", {"asymmetry": "asymmetric"}),
             ("asymetrique", {"asymmetry": "asymmetric"}),
             ("asimetrico", {"asymmetry": "asymmetric"}),
@@ -128,6 +131,15 @@ class LocalParserMultilangSpecsTests(unittest.TestCase):
         parsed = local_text_to_filters("nome prodotto rodio ip66")
         self.assertEqual(parsed.get("product_name_contains"), "rodio")
         self.assertEqual(parsed.get("ip_rating"), ">=IP66")
+
+    def test_symmetric_and_asymmetric_are_beam_distribution_not_shape(self):
+        for query, expected in [
+            ("faro simmetrico 4000K", "symmetric"),
+            ("faro asimmetrico 4000K", "asymmetric"),
+        ]:
+            parsed = local_text_to_filters(query)
+            self.assertEqual(parsed.get("asymmetry"), expected)
+            self.assertNotIn("shape", parsed)
 
     def test_efficacy_word_is_not_product_name_filter(self):
         parsed = local_text_to_filters("efficienza > 100lm/w")
