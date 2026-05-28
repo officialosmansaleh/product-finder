@@ -206,6 +206,26 @@
     open_compare_workspace:"Open compare workspace",
     clear_filters_keep_query:"Clear filters and keep the query",
     public_search_placeholder:"Search name, code, or family...",
+    include_accessories:"Include accessories in search",
+    save_learning:"Save learning",
+    query:"Query",
+    query_hint_private:"Tip: you can search by application or specs. Filters below refine results.",
+    query_help_private:"Use Enter to run search. Use Ctrl+Enter (or Cmd+Enter) for a new line.",
+    expand:"Expand",
+    collapse:"Collapse",
+    has_active_filters:"Has active filters",
+    active_filter_count:"{n} active filter",
+    active_filter_count_plural:"{n} active filters",
+    toast_enter_search:"Please enter a search term or select at least one filter.",
+    toast_save_learning_need_context:"Run a search or set filters before saving learning",
+    toast_learning_saved:"Learning saved",
+    toast_login_learning:"Log in to save learning",
+    toast_learning_not_enabled:"Learning is not enabled for your user",
+    toast_learning_failed:"Could not save learning",
+    toast_select_file_first:"Select PDF and/or image first",
+    analyzing:"Analyzing...",
+    saving:"Saving...",
+    analyze_files:"Analyze files",
     matches_search_on:"Matches your search on {fields}.",
     close_search_on:"Close to your search on {fields}.",
     related_search_on:"Related to your search on {fields}.",
@@ -348,6 +368,26 @@
     why_it_appears:"Perche appare",
     what_differs:"Differenze",
     not_available:"Non disponibile",
+    include_accessories:"Includi accessori nella ricerca",
+    save_learning:"Salva apprendimento",
+    query:"Query",
+    query_hint_private:"Suggerimento: puoi cercare per applicazione o specifiche. I filtri sotto restringono i risultati.",
+    query_help_private:"Usa Invio per cercare. Usa Ctrl+Invio (o Cmd+Invio) per andare a capo.",
+    expand:"Espandi",
+    collapse:"Riduci",
+    has_active_filters:"Ci sono filtri attivi",
+    active_filter_count:"{n} filtro attivo",
+    active_filter_count_plural:"{n} filtri attivi",
+    toast_enter_search:"Inserisci una ricerca o seleziona almeno un filtro.",
+    toast_save_learning_need_context:"Esegui una ricerca o imposta filtri prima di salvare l'apprendimento",
+    toast_learning_saved:"Apprendimento salvato",
+    toast_login_learning:"Accedi per salvare l'apprendimento",
+    toast_learning_not_enabled:"Apprendimento non abilitato per il tuo utente",
+    toast_learning_failed:"Impossibile salvare l'apprendimento",
+    toast_select_file_first:"Seleziona prima PDF e/o immagine",
+    analyzing:"Analisi...",
+    saving:"Salvataggio...",
+    analyze_files:"Analizza file",
     vision_guess:"Analisi immagine",
     confidence:"Confidenza",
     model:"Modello",
@@ -712,6 +752,9 @@
       "Use Enter to run search.":"enter_search",
       "Selected filters":"selected_filters",
       "Use Lock to make a parsed filter mandatory, or x to deactivate a filter. Search auto-runs.":"chip_remove_hint",
+      "Include accessories in search":"include_accessories",
+      "Save learning":"save_learning",
+      "Query":"query",
       "Product families":"product_families",
       "Protection":"protection",
       "Photometric":"photometric",
@@ -757,6 +800,8 @@
       "Apply":"apply",
       "Reset":"btn_reset",
       "Exact":"exact_filter",
+      "Expand":"expand",
+      "Collapse":"collapse",
     };
     const placeholderKeyByEnglish = {
       "Manufacturer...":"search_manufacturer_ph",
@@ -826,8 +871,10 @@
     }
     if ($("btnQuote")) $("btnQuote").textContent = t("btn_quote");
     if ($("btnOpenFilters")) $("btnOpenFilters").textContent = t("btn_filters");
+    if ($("btnCloseFilters")) $("btnCloseFilters").textContent = t("close");
     if ($("btnClearAll")) $("btnClearAll").textContent = t("btn_reset");
     if ($("btnFinderFilesParse")) $("btnFinderFilesParse").textContent = t("analyze_brief");
+    if ($("btnSaveLearning")) $("btnSaveLearning").textContent = t("save_learning");
     if ($("q")) $("q").placeholder = t("q_placeholder");
     if ($("qMobile")) $("qMobile").placeholder = t("q_mobile_placeholder");
     if ($("btnPrevPage")) $("btnPrevPage").textContent = t("prev");
@@ -1765,7 +1812,7 @@
     const prev = btn ? btn.textContent : "";
     if (btn && manageButton){
       btn.disabled = true;
-      btn.textContent = "Analyzing...";
+      btn.textContent = t("analyzing");
     }
     try{
       const r = await fetch("/parse-pdf", { method: "POST", body: fd });
@@ -1795,7 +1842,7 @@
     }finally{
       if (btn && manageButton){
         btn.disabled = false;
-        btn.textContent = prev || "Analyze files";
+        btn.textContent = prev || t("analyze_files");
       }
     }
   }
@@ -1811,7 +1858,7 @@
     const prev = btn ? btn.textContent : "";
     if (btn && manageButton){
       btn.disabled = true;
-      btn.textContent = "Analyzing...";
+      btn.textContent = t("analyzing");
     }
     try{
       const r = await fetch("/parse-image", { method: "POST", body: fd });
@@ -1837,7 +1884,7 @@
     }finally{
       if (btn && manageButton){
         btn.disabled = false;
-        btn.textContent = prev || "Analyze files";
+        btn.textContent = prev || t("analyze_files");
       }
     }
   }
@@ -2153,7 +2200,7 @@
       el.classList.toggle("collapsed", !!collapsed);
       const btn = el.querySelector(".groupCollapseBtn");
       if (btn){
-        btn.textContent = collapsed ? "Expand" : "Collapse";
+        btn.textContent = collapsed ? t("expand") : t("collapse");
         btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
       }
     };
@@ -2189,7 +2236,9 @@
       const count = g === "all" ? (anyActive ? 1 : 0) : Number(activeCountByGroup[g] || 0);
       btn.classList.toggle("hasFilters", count > 0);
       if (count > 0){
-        btn.title = g === "all" ? "Has active filters" : `${count} active filter${count === 1 ? "" : "s"}`;
+        btn.title = g === "all"
+          ? t("has_active_filters")
+          : t(count === 1 ? "active_filter_count" : "active_filter_count_plural", { n: count });
       } else {
         btn.removeAttribute("title");
       }
@@ -2217,7 +2266,7 @@
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "groupCollapseBtn";
-      btn.textContent = "Expand";
+      btn.textContent = t("expand");
       btn.setAttribute("aria-expanded", "false");
 
       group.insertBefore(head, firstHeader);
@@ -2226,7 +2275,7 @@
 
       btn.addEventListener("click", () => {
         const collapsed = group.classList.toggle("collapsed");
-        btn.textContent = collapsed ? "Expand" : "Collapse";
+        btn.textContent = collapsed ? t("expand") : t("collapse");
         btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
       });
 
@@ -2650,14 +2699,14 @@
     const correctedFilters = buildFiltersPayload();
     const preferredCodes = topResultCodesForFeedback();
     if (!queryText && !Object.keys(correctedFilters).length && !preferredCodes.length){
-      toast("Run a search or set filters before saving learning");
+      toast(t("toast_save_learning_need_context"));
       return;
     }
     const btn = $("btnSaveLearning");
     const oldText = btn ? btn.textContent : "";
     if (btn){
       btn.disabled = true;
-      btn.textContent = "Saving...";
+      btn.textContent = t("saving");
     }
     try{
       await postJSON("/feedback/search", {
@@ -2668,7 +2717,7 @@
         preferred_product_codes: preferredCodes,
         source: "finder-ui"
       });
-      toast("Learning saved");
+      toast(t("toast_learning_saved"));
       if (typeof trackUsage === "function"){
         trackUsage("search_feedback_saved_client", {
           page: "finder",
@@ -2680,17 +2729,17 @@
     }catch(e){
       const msg = String(e?.message || e || "");
       if (msg.startsWith("401")){
-        toast("Log in to save learning");
+        toast(t("toast_login_learning"));
         try{ window.ProductFinderAuth?.open?.("login"); }catch(_e){}
       } else if (msg.startsWith("403")){
-        toast("Learning is not enabled for your user");
+        toast(t("toast_learning_not_enabled"));
       } else {
-        toast("Could not save learning");
+        toast(t("toast_learning_failed"));
       }
     }finally{
       if (btn){
         btn.disabled = false;
-        btn.textContent = oldText || "Save learning";
+        btn.textContent = oldText || t("save_learning");
       }
     }
   }
@@ -2776,21 +2825,21 @@
     const help = $("finderQueryHelp");
     const buildLabel = $("buildLabel");
 
-    if (title) title.textContent = publicMode ? "Catalog search" : "Query";
+    if (title) title.textContent = publicMode ? t("catalog_search") : t("query");
     if (hint) {
       hint.textContent = publicMode
-        ? "Search by product name, product code, or family. Use the filters below to narrow the catalog."
-        : "Tip: you can search by application or specs. Filters below refine results.";
+        ? t("catalog_hint")
+        : t("query_hint_private");
     }
     if (help) {
       help.textContent = publicMode
-        ? "Use Enter to run search."
-        : "Use Enter to run search. Use Ctrl+Enter (or Cmd+Enter) for a new line.";
+        ? t("enter_search")
+        : t("query_help_private");
     }
     if (q) {
       q.placeholder = publicMode
-        ? "e.g. 154839, downlight, emergency, linear"
-        : "e.g. downlight for office, UGR<19, 4000K, DALI, IP54";
+        ? t("public_search_placeholder")
+        : t("q_placeholder");
     }
     if (qMobile) {
       qMobile.placeholder = publicMode ? t("public_search_placeholder") : t("q_mobile_placeholder");
@@ -2976,30 +3025,30 @@
       if (!displayValue) return;
       pills.push(`<span class="pill">${escapeHtml(displayLabel)}: ${escapeHtml(displayValue)}</span>`);
     };
-    add("IP", p.ip_rating);
-    add("IK", p.ik_rating);
-    add("CCT", p.cct_k);
-    add("CRI", p.cri);
-    add("UGR", p.ugr);
-    add("W", p.power_max_w ?? p.power_max_value ?? p.power);
+    add("IP", p.ip_rating, "ip_rating");
+    add("IK", p.ik_rating, "ik_rating");
+    add("CCT", p.cct_k, "cct_k");
+    add("CRI", p.cri, "cri");
+    add("UGR", p.ugr, "ugr");
+    add("W", p.power_max_w ?? p.power_max_value ?? p.power, "power_max_w");
     add("lm", p.lumen_output ?? p.lumen_output_value, "lumen_output");
-    add("lm/W", p.efficacy_lm_w ?? p.efficacy_value);
-    add("CTRL", p.control_protocol);
-    add("Class", p.insulation_class);
-    add("Surge", p.surge_common_mode);
-    add("Surge diff", p.surge_differential_mode);
-    add("EM", p.emergency_present);
+    add("lm/W", p.efficacy_lm_w ?? p.efficacy_value, "efficacy_lm_w");
+    add("CTRL", p.control_protocol, "control_protocol");
+    add("Class", p.insulation_class, "insulation_class");
+    add("Surge", p.surge_common_mode, "surge_common_mode");
+    add("Surge diff", p.surge_differential_mode, "surge_differential_mode");
+    add("EM", p.emergency_present, "emergency_present");
     add("T min", p.ambient_temp_min_c, "ambient_temp_min_c");
     add("T max", p.ambient_temp_max_c, "ambient_temp_max_c");
-    add("Beam", p.beam_angle_deg);
+    add("Beam", p.beam_angle_deg, "beam_angle_deg");
     add("Dia", p.diameter, "diameter");
     add("L", p.luminaire_length, "luminaire_length");
     add("Wdt", p.luminaire_width, "luminaire_width");
     add("H", p.luminaire_height, "luminaire_height");
-    add("Color", p.housing_color);
-    add("Shape", p.shape);
-    add("Warranty", p.warranty_years);
-    add("Life(h)", p.led_rated_life_h ?? p.lifetime_hours);
+    add("Color", p.housing_color, "housing_color");
+    add("Shape", p.shape, "shape");
+    add("Warranty", p.warranty_years, "warranty_years");
+    add("Life(h)", p.led_rated_life_h ?? p.lifetime_hours, "lifetime_hours");
     add("L maint %", p.lumen_maintenance_pct, "lumen_maintenance_pct");
     return pills.slice(0,16).join("");
   }
@@ -3129,7 +3178,8 @@
       const displayValue = formatSpecDisplayValue(key, value);
       if (!displayValue) return "";
       const state = specStateClass(key, matchedKeys, deviatedKeys);
-      const displayLabel = window.ProductFinderMeasurements?.labelForKey?.(key, label) || label;
+      const baseLabel = filterDisplayLabel(key) || label;
+      const displayLabel = window.ProductFinderMeasurements?.labelForKey?.(key, baseLabel) || baseLabel;
       return `
         <div class="specRow ${state}">
           <span class="specKey">${escapeHtml(displayLabel)}</span>
@@ -3688,7 +3738,7 @@ document.addEventListener("keydown", (ev)=>{
     const queryText = $("q").value || "";
     const rawFilters = buildFiltersPayload();
     if (!String(queryText || "").trim() && Object.keys(rawFilters).length === 0){
-      toast("Please enter a search term or select at least one filter.");
+      toast(t("toast_enter_search"));
       return;
     }
     if (isPublicCatalogMode() && !isPublicQueryWithinLimit(queryText)){
@@ -3907,14 +3957,14 @@ document.addEventListener("keydown", (ev)=>{
       const pdfFile = $("finderPdfFile")?.files?.[0];
       const imageFile = $("finderImageFile")?.files?.[0];
       if (!pdfFile && !imageFile){
-        toast("Select PDF and/or image first");
+        toast(t("toast_select_file_first"));
         return;
       }
       const btn = $("btnFinderFilesParse");
       const prev = btn ? btn.textContent : "";
       if (btn){
         btn.disabled = true;
-        btn.textContent = "Analyzing...";
+        btn.textContent = t("analyzing");
       }
       try{
         let merged = {};
@@ -3954,7 +4004,7 @@ document.addEventListener("keydown", (ev)=>{
       }finally{
         if (btn){
           btn.disabled = false;
-          btn.textContent = prev || "Analyze files";
+          btn.textContent = prev || t("analyze_files");
         }
       }
     });
