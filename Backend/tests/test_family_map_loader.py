@@ -212,6 +212,59 @@ class FamilyMapLoaderTests(unittest.TestCase):
 
         self.assertEqual(loaded.loc[0, "product_family"], "Panel")
 
+    def test_longest_product_name_prefix_handles_spot_panel_and_spot_m(self):
+        with tempfile.TemporaryDirectory() as td:
+            pim_path = os.path.join(td, "pim.xlsx")
+            family_path = os.path.join(td, "family_map.xlsx")
+            pd.DataFrame(
+                [
+                    {
+                        "Order code": "P1",
+                        "Short product code": "",
+                        "Product name": "Spot panel 1 - UGR<lt/>16",
+                        "Manufacturer": "DISANO",
+                    },
+                    {
+                        "Order code": "M1",
+                        "Short product code": "",
+                        "Product name": "Spot M1-A - ceiling - UGR<lt/>19",
+                        "Manufacturer": "DISANO",
+                    },
+                    {
+                        "Order code": "MW",
+                        "Short product code": "",
+                        "Product name": "Spot MW - ceiling",
+                        "Manufacturer": "DISANO",
+                    },
+                ]
+            ).to_excel(pim_path, index=False)
+            pd.DataFrame(
+                [
+                    {
+                        "Product name": "Spot",
+                        "Product family": "Panel",
+                        "Short product code": "",
+                    },
+                    {
+                        "Product name": "Spot panel",
+                        "Product family": "Panel",
+                        "Short product code": "",
+                    },
+                    {
+                        "Product name": "Spot M",
+                        "Product family": "ceiling/wall",
+                        "Short product code": "",
+                    },
+                ]
+            ).to_excel(family_path, index=False)
+
+            loaded = load_products(pim_path, family_map_path=family_path, verbose=False)
+
+        by_code = dict(zip(loaded["product_code"], loaded["product_family"]))
+        self.assertEqual(by_code["P1"], "Panel")
+        self.assertEqual(by_code["M1"], "ceiling/wall")
+        self.assertEqual(by_code["MW"], "ceiling/wall")
+
     def test_pim_taxonomy_assigns_fixture_families_before_accessory_rules(self):
         with tempfile.TemporaryDirectory() as td:
             pim_path = os.path.join(td, "pim.xlsx")

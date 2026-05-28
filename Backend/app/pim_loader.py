@@ -406,6 +406,39 @@ def _family_composite_key(short_code, product_name) -> str:
     return f"{short_key}::{name_key}"
 
 
+NAME_PREFIX_KEY_PREFIX = "name::"
+
+
+def _product_name_prefix_key(product_name) -> str:
+    name_key = re.sub(r"\s+", " ", _norm_key(product_name).lower()).strip()
+    if not name_key:
+        return ""
+    return f"{NAME_PREFIX_KEY_PREFIX}{name_key}"
+
+
+def _name_prefix_family_map(fam_map: dict) -> list[tuple[str, str]]:
+    prefixes: list[tuple[str, str]] = []
+    for key, family in (fam_map or {}).items():
+        clean_key = str(key or "").strip().lower()
+        if not clean_key.startswith(NAME_PREFIX_KEY_PREFIX):
+            continue
+        prefix = clean_key[len(NAME_PREFIX_KEY_PREFIX):].strip()
+        if prefix and family:
+            prefixes.append((prefix, family))
+    prefixes.sort(key=lambda item: len(item[0]), reverse=True)
+    return prefixes
+
+
+def _family_from_name_prefix(product_name, prefixes: list[tuple[str, str]]) -> str:
+    name_key = re.sub(r"\s+", " ", _norm_key(product_name).lower()).strip()
+    if not name_key:
+        return ""
+    for prefix, family in prefixes:
+        if name_key.startswith(prefix):
+            return family
+    return ""
+
+
 FAMILY_NAME_ALIASES = {
     "road lighting": "Street lighting",
 }
@@ -554,6 +587,7 @@ def load_family_map(path: str) -> dict:
 
     fm["FamilyKey"] = fm[short_code_col].apply(_norm_key)
     fm["NameKey"] = fm[product_name_col].apply(_first_word) if product_name_col else ""
+    fm["NamePrefixKey"] = fm[product_name_col].apply(_product_name_prefix_key) if product_name_col else ""
     fm["CompositeFamilyKey"] = [
         _family_composite_key(short_code, product_name)
         for short_code, product_name in zip(fm[short_code_col], fm[product_name_col] if product_name_col else [""] * len(fm))
@@ -580,6 +614,9 @@ def load_family_map(path: str) -> dict:
         k = str(r["FamilyKey"]).strip().lower()
         if k and v and k not in out:
             out[k] = v
+        name_prefix_key = str(r.get("NamePrefixKey") or "").strip().lower()
+        if name_prefix_key and v and name_prefix_key not in out:
+            out[name_prefix_key] = v
         name_key = str(r.get("NameKey") or "").strip().lower()
         if name_key and v and name_key not in out:
             out[name_key] = v
@@ -748,14 +785,29 @@ def load_products(
             print(f"No family map available; derived {len(fam_map)} family keys from PIM product_family")
 
     # ---- CREA product_family SOLO DAL MAPPING ----
-    # Rule: short_product_code + product-name prefix, then short code, then first word.
+    # Rule: longest product-name prefix, then short_product_code + first
+    # product-name word, then short code, then first word.
+    name_prefix_items = _name_prefix_family_map(fam_map)
     out['family_key'] = [
         _family_composite_key(short_code, product_name)
         for short_code, product_name in zip(out['short_product_code'], out['product_name'])
     ]
     
     # Applica il mapping
-    out['product_family'] = out['family_key'].map(fam_map)
+    out['product_family'] = pd.Series([pd.NA] * len(out), index=out.index, dtype="object")
+
+    missing_mask = out['product_family'].isna()
+    if missing_mask.any() and name_prefix_items:
+        prefix_family = out.loc[missing_mask, 'product_name'].apply(
+            lambda value: _family_from_name_prefix(value, name_prefix_items)
+        )
+        prefix_hit = prefix_family.astype(str).str.strip().ne("")
+        if prefix_hit.any():
+            out.loc[prefix_family.index[prefix_hit], 'product_family'] = prefix_family.loc[prefix_hit]
+
+    missing_mask = out['product_family'].isna()
+    if missing_mask.any():
+        out.loc[missing_mask, 'product_family'] = out.loc[missing_mask, 'family_key'].map(fam_map)
 
     missing_mask = out['product_family'].isna()
     if missing_mask.any():
