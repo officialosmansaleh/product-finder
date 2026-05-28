@@ -2441,6 +2441,23 @@
       .replace(/(\d+\.\d*?[1-9])0+\b/g, "$1");
   }
 
+  const ZERO_HIDDEN_FACET_KEYS = new Set([
+    "ugr",
+    "cri",
+    "cct_k",
+    "power_max_w",
+    "power_min_w",
+    "lumen_output",
+    "efficacy_lm_w",
+    "beam_angle_deg",
+    "warranty_years",
+    "lifetime_hours",
+    "led_rated_life_h",
+    "lumen_maintenance_pct",
+    "ambient_temp_min_c",
+    "ambient_temp_max_c",
+  ]);
+
   function isZeroLike(v){
     const n = extractFirstNumber(v);
     return Number.isFinite(n) && Math.abs(Number(n)) < 1e-9;
@@ -2453,7 +2470,7 @@
     for (const it of list){
       const src = String(it?.raw ?? it?.value ?? "").trim();
       if (!src) continue;
-      if (isZeroLike(src)) continue;
+      if (ZERO_HIDDEN_FACET_KEYS.has(key) && isZeroLike(src)) continue;
       let value = String(it?.value ?? src).trim();
       let raw = src || value;
       let sortNum = null;
