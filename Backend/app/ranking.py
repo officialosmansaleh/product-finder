@@ -309,8 +309,11 @@ def select_exact_and_similar(
     has_spec_tokens = any(tok in q_l for tok in ("ip", "ik", "cri", "ugr", "dali", "lm/w", "lm"))
     has_cmp_tokens = any(tok in q_l for tok in (">=", "<=", ">", "<", "="))
     has_digits = any(ch.isdigit() for ch in q_l)
+    has_non_relaxable_filter = any(k in (hard_filters or {}) for k in {"asymmetry"})
     allow_relaxed_fallback = (not q_l) or (
-        bool(hard_filters or soft_filters) and (len(q_l) >= 20 or has_spec_tokens or has_cmp_tokens or has_digits)
+        bool(hard_filters or soft_filters)
+        and not has_non_relaxable_filter
+        and (len(q_l) >= 20 or has_spec_tokens or has_cmp_tokens or has_digits)
     )
 
     if not similar_scored and rows and allow_relaxed_fallback:

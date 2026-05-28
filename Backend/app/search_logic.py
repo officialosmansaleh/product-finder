@@ -418,6 +418,8 @@ def handle_search(
         hard_filters.setdefault("product_family", ai_family)
     if parsed_filters.get("etim_search_key") not in (None, "", []):
         hard_filters.setdefault("etim_search_key", parsed_filters.get("etim_search_key"))
+    if parsed_filters.get("asymmetry") not in (None, "", []):
+        hard_filters.setdefault("asymmetry", parsed_filters.get("asymmetry"))
     soft_filters: Dict[str, Any] = dict(parsed_filters)
     similar_score_filters = dict(filters)
     sql_filters = map_filters_to_sql(filters)

@@ -922,6 +922,66 @@ class SearchScoringFiltersTests(unittest.TestCase):
             self.assertEqual(deviations, [])
             self.assertEqual(missing, [])
 
+    def test_asymmetry_scoring_does_not_match_opposite_symmetry(self):
+        from app.scoring import score_product
+
+        symmetric = {"product_code": "S1", "asymmetry": "symmetric wide beam"}
+        asymmetric = {"product_code": "A1", "asymmetry": "asymmetric"}
+
+        score, _matched, deviations, _missing = score_product(symmetric, {"asymmetry": "asymmetric"}, {})
+        self.assertEqual(score, 0.0)
+        self.assertTrue(any("mismatch" in d for d in deviations))
+
+        score, matched, deviations, missing = score_product(asymmetric, {"asymmetry": "asymmetric"}, {})
+        self.assertEqual(score, 1.0)
+        self.assertEqual(matched.get("asymmetry"), "asymmetric")
+        self.assertEqual(deviations, [])
+        self.assertEqual(missing, [])
+
+        score, _matched, deviations, _missing = score_product(asymmetric, {"asymmetry": "symmetric"}, {})
+        self.assertEqual(score, 0.0)
+        self.assertTrue(any("mismatch" in d for d in deviations))
+
+    def test_asymmetry_query_excludes_symmetric_similar_results(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "SYM",
+                    "product_name": "Mini Rodio - symmetric wide beam",
+                    "product_family": "floodlight",
+                    "asymmetry": "symmetric wide beam",
+                    "manufacturer": "DISANO",
+                },
+                {
+                    "product_code": "ASY",
+                    "product_name": "Rodio asymmetric",
+                    "product_family": "floodlight",
+                    "asymmetry": "asymmetric",
+                    "manufacturer": "DISANO",
+                },
+            ]
+        )
+        req = SearchRequest(
+            text="asimmetrico proiettore",
+            filters={},
+            limit=10,
+            include_similar=True,
+            allow_ai=False,
+            debug=True,
+        )
+
+        with patch.object(main_mod, "PRODUCT_DB", None), patch.object(main_mod, "DB", fake_rows_df):
+            resp = main_mod.search(req)
+
+        exact_codes = [hit.product_code for hit in resp.exact]
+        similar_codes = [hit.product_code for hit in resp.similar]
+        self.assertIn("ASY", exact_codes)
+        self.assertNotIn("SYM", exact_codes + similar_codes)
+        self.assertEqual((resp.backend_debug_filters or {}).get("hard_filters", {}).get("asymmetry"), "asymmetric")
+
     def test_soft_lumen_query_seeds_database_candidates(self):
         from app import main as main_mod
         from app.schema import SearchRequest

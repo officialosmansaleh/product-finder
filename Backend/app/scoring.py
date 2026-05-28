@@ -102,6 +102,17 @@ def _norm_shape_value(x: Any) -> str:
     return s
 
 
+def _norm_asymmetry_value(x: Any) -> str:
+    s = _norm_str(x).lower()
+    if not s:
+        return ""
+    if re.search(r"\b(?:asymmetric|asymmetry|asimmetrico|asimmetrica|asimmetria|asymetrique|asimetrico|assimetrico)\b", s):
+        return "asymmetric"
+    if re.search(r"\b(?:symmetric|symmetry|simmetrico|simmetrica|simmetria|symetrique|simetrico|simetrica|simetria)\b", s):
+        return "symmetric"
+    return s
+
+
 def _product_name_prefix(x: Any) -> str:
     s = _norm_str(x).lower()
     if not s:
@@ -344,6 +355,17 @@ def _match_value(key: str, got: Any, wanted: Any) -> tuple[bool, str]:
     if k == "shape":
         g_s = _norm_shape_value(got)
         w_s = _norm_shape_value(wanted)
+        if not g_s:
+            return (False, f"missing '{k}'")
+        if not w_s:
+            return (True, f"{k} no constraint")
+        if g_s == w_s:
+            return (True, f"{k} canonical match")
+        return (False, f"{k} mismatch: wanted '{wanted}', got '{got}'")
+
+    if k == "asymmetry":
+        g_s = _norm_asymmetry_value(got)
+        w_s = _norm_asymmetry_value(wanted)
         if not g_s:
             return (False, f"missing '{k}'")
         if not w_s:
