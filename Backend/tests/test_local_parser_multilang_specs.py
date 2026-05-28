@@ -95,6 +95,11 @@ class LocalParserMultilangSpecsTests(unittest.TestCase):
                 lines.append(f"- {q!r} key={k!r}: expected {exp!r}, got {got!r}, parsed={parsed}")
             self.fail("\n".join(lines))
 
+    def test_plafoniera_stagna_maps_to_waterproof(self):
+        parsed = local_text_to_filters("plafoniera stagna ip65")
+        self.assertEqual(parsed.get("product_family"), "waterproof")
+        self.assertEqual(parsed.get("ip_rating"), ">=IP65")
+
     def test_technical_warranty_words_are_not_product_name_filters(self):
         parsed = local_text_to_filters("road lighting with warranty 5 years lifetime 50000 h round shape")
         self.assertEqual(parsed.get("warranty_years"), ">=5")
