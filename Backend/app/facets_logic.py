@@ -6,7 +6,7 @@ import pandas as pd
 import re
 
 from app.schema import FacetsResponse, FacetValue, SearchRequest
-from app.search_logic import _drop_technical_only_name_filters, _drop_unmatched_name_filters
+from app.search_logic import _drop_technical_only_name_filters, _drop_unmatched_name_filters, _should_call_ai_for_search_text
 
 
 def handle_facets(
@@ -58,6 +58,7 @@ def handle_facets(
                 },
             )
             if getattr(req, "allow_ai", True) and (req.text or "").strip()
+            and _should_call_ai_for_search_text(req.text or "", parsed, pre_ai_user_filters)
             else {}
         )
         print("/facets LLM EXTRA:", llm_extra)

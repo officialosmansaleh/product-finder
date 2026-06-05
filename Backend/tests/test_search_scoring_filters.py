@@ -388,6 +388,88 @@ class SearchScoringFiltersTests(unittest.TestCase):
 
         self.assertIn("22150313-00", {hit.product_code for hit in resp.exact})
 
+    def test_single_token_catalog_lookup_does_not_call_ai(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "R1",
+                    "product_name": "Rodio LED",
+                    "manufacturer": "DISANO",
+                    "product_family": "street lighting",
+                },
+                {
+                    "product_code": "X1",
+                    "product_name": "Other Product",
+                    "manufacturer": "DISANO",
+                    "product_family": "downlight",
+                },
+            ]
+        )
+
+        req = SearchRequest(
+            text="rodio",
+            filters={},
+            limit=5,
+            include_similar=True,
+            allow_ai=True,
+            debug=True,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value={}), patch.object(
+            main_mod, "llm_intent_to_filters_with_meta", side_effect=AssertionError("AI must not run for name lookup")
+        ), patch.object(main_mod, "llm_intent_to_filters", side_effect=AssertionError("AI must not run for name lookup")), patch.object(
+            main_mod, "PRODUCT_DB", None
+        ), patch.object(main_mod, "DB", fake_rows_df):
+            resp = main_mod.search(req)
+
+        self.assertIn("R1", {hit.product_code for hit in resp.exact})
+        self.assertEqual((resp.backend_debug_filters or {}).get("filters"), {})
+
+    def test_product_name_with_spec_does_not_call_ai(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "R100",
+                    "product_name": "Rodio 100",
+                    "manufacturer": "DISANO",
+                    "product_family": "street lighting",
+                    "power_max_w": "100 W",
+                },
+                {
+                    "product_code": "X100",
+                    "product_name": "Other 100",
+                    "manufacturer": "DISANO",
+                    "product_family": "downlight",
+                    "power_max_w": "100 W",
+                },
+            ]
+        )
+
+        req = SearchRequest(
+            text="Rodio 100W",
+            filters={},
+            limit=5,
+            include_similar=True,
+            allow_ai=True,
+            debug=True,
+        )
+
+        with patch.object(
+            main_mod, "llm_intent_to_filters_with_meta", side_effect=AssertionError("AI must not run for name lookup")
+        ), patch.object(main_mod, "llm_intent_to_filters", side_effect=AssertionError("AI must not run for name lookup")), patch.object(
+            main_mod, "PRODUCT_DB", None
+        ), patch.object(main_mod, "DB", fake_rows_df):
+            resp = main_mod.search(req)
+
+        self.assertIn("R100", {hit.product_code for hit in resp.exact})
+        self.assertEqual((resp.backend_debug_filters or {}).get("filters", {}).get("product_name_contains"), "rodio")
+
     def test_text_relevance_matches_compact_order_code(self):
         from app import main as main_mod
 

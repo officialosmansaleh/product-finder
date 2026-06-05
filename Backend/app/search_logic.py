@@ -104,6 +104,28 @@ NAME_FILTER_KEYS = {"product_name_contains", "product_name_short", "name_prefix"
 NON_NAME_SPEC_EXEMPT_KEYS = NAME_FILTER_KEYS | {"product_family", "shape"}
 
 
+def _looks_like_short_catalog_lookup(text: str) -> bool:
+    q = str(text or "").strip().lower()
+    if not q or len(q) > 80:
+        return False
+    if re.search(r"(>=|<=|>|<|=)", q):
+        return False
+    if re.search(r"\b(?:ip\s*\d{2}|ik\s*\d{1,2}|cri|ugr|dali|dmx|zhaga|lm\s*/?\s*w|lm|l\s*\d{2}\s*b\s*\d{1,2})\b", q):
+        return False
+    tokens = [tok for tok in re.findall(r"[a-z0-9][a-z0-9._-]*", q) if tok]
+    return 1 <= len(tokens) <= 3
+
+
+def _should_call_ai_for_search_text(text: str, parsed_filters: Dict[str, Any], user_filters: Dict[str, Any]) -> bool:
+    if not str(text or "").strip():
+        return False
+    if _name_filter_values(parsed_filters):
+        return False
+    if not parsed_filters and not user_filters and _looks_like_short_catalog_lookup(text):
+        return False
+    return True
+
+
 def _drop_technical_only_name_filters(filters: Dict[str, Any]) -> Dict[str, Any]:
     out = dict(filters or {})
     spec_keys = set(out) - NON_NAME_SPEC_EXEMPT_KEYS
@@ -315,7 +337,7 @@ def handle_search(
         allowed_families=allowed_families,
     )
     try:
-        if getattr(req, "allow_ai", True) and (req.text or "").strip():
+        if getattr(req, "allow_ai", True) and _should_call_ai_for_search_text(req.text or "", parsed, pre_ai_user_filters):
             logger.info("Calling LLM...")
             if callable(llm_intent_to_filters_with_meta):
                 ai_meta = llm_intent_to_filters_with_meta(req.text or "", allowed_families=allowed_families, log_context=ai_log_context) or ai_meta
