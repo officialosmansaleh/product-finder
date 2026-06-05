@@ -624,7 +624,7 @@ def handle_search(
     if not include_price and sort_mode in {"price_asc", "price_desc"}:
         sort_mode = "score_desc"
     needs_global_sort = sort_mode in {
-        "price_asc", "price_desc", "power_asc", "power_desc", "efficacy_desc", "lumen_asc", "lumen_desc", "code_asc", "code_desc"
+        "price_asc", "price_desc", "power_asc", "power_desc", "efficacy_desc", "lumen_asc", "lumen_desc", "name_asc", "name_desc", "code_asc", "code_desc"
     }
     candidate_limit = min(
         max(limit * cfg_int("main.search_candidate_multiplier", 30), cfg_int("main.search_candidate_min", 500)),

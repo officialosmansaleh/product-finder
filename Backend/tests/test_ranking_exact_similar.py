@@ -209,6 +209,26 @@ class RankingSelectionTests(unittest.TestCase):
         )
         self.assertEqual([x["row"]["product_code"] for x in exact], ["B"])
 
+    def test_name_sort_applies_before_limit(self):
+        exact_pool = [
+            _mk_scored("A", 1.0, 0.0, name="Zenith"),
+            _mk_scored("B", 1.0, 0.0, name="Alfa"),
+            _mk_scored("C", 1.0, 0.0, name="Midifloor"),
+        ]
+        exact, _ = select_exact_and_similar(
+            exact_pool=exact_pool,
+            similar_pool=[],
+            rows=[],
+            text_query="floor",
+            hard_filters={},
+            soft_filters={"product_family": "floor"},
+            limit=1,
+            include_similar=False,
+            text_relevance_fn=lambda _row, _q: 0.0,
+            sort_mode="name_asc",
+        )
+        self.assertEqual([x["row"]["product_code"] for x in exact], ["B"])
+
     def test_default_ranking_prefers_power_closest_to_requested_ceiling(self):
         exact_pool = [
             {**_mk_scored("A", 1.0, 0.0), "row": {"product_code": "A", "product_name": "Rodio", "power_max_w": "40 W"}},

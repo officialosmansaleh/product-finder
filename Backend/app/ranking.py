@@ -222,6 +222,10 @@ def _sort_for_mode(items: list[dict[str, Any]], sort_mode: str, relevance_filter
         return sorted(items, key=lambda x: str((x.get("row") or {}).get("product_code") or ""))
     if mode == "code_desc":
         return sorted(items, key=lambda x: str((x.get("row") or {}).get("product_code") or ""), reverse=True)
+    if mode == "name_asc":
+        return sorted(items, key=lambda x: (str((x.get("row") or {}).get("product_name") or ""), str((x.get("row") or {}).get("product_code") or "")))
+    if mode == "name_desc":
+        return sorted(items, key=lambda x: (str((x.get("row") or {}).get("product_name") or ""), str((x.get("row") or {}).get("product_code") or "")), reverse=True)
 
     numeric_modes = {
         "price_asc": ("price", "asc"),
