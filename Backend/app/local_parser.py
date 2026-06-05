@@ -505,6 +505,8 @@ def _infer_product_name_contains(text: str, filters: Dict[str, Any]) -> Optional
         kept.append(base)
     if not kept:
         return None
+    if len(kept) != 1:
+        return None
     return " ".join(kept[:3]).strip() or None
 
 
@@ -1177,5 +1179,9 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
     product_name_contains = _infer_explicit_product_name_contains(text)
     if product_name_contains:
         filters["product_name_contains"] = product_name_contains
+    else:
+        product_name_contains = _infer_product_name_contains(text, filters)
+        if product_name_contains:
+            filters["product_name_contains"] = product_name_contains
 
     return filters

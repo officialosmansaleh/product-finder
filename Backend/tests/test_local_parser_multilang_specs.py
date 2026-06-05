@@ -132,6 +132,11 @@ class LocalParserMultilangSpecsTests(unittest.TestCase):
         self.assertEqual(parsed.get("product_name_contains"), "rodio")
         self.assertEqual(parsed.get("ip_rating"), ">=IP66")
 
+    def test_product_name_token_is_kept_with_technical_filter(self):
+        parsed = local_text_to_filters("Rodio 100W")
+        self.assertEqual(parsed.get("product_name_contains"), "rodio")
+        self.assertEqual(parsed.get("power_max_w"), "<=100")
+
     def test_symmetric_and_asymmetric_are_beam_distribution_not_shape(self):
         for query, expected in [
             ("faro simmetrico 4000K", "symmetric"),
