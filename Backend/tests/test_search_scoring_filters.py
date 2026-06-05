@@ -606,6 +606,72 @@ class SearchScoringFiltersTests(unittest.TestCase):
         self.assertEqual((resp.backend_debug_filters or {}).get("filters", {}).get("product_name_contains"), "mini rodio")
         self.assertEqual((resp.backend_debug_filters or {}).get("filters", {}).get("power_max_w"), "<=100")
 
+    def test_name_anchor_family_ranks_before_generic_spec_matches(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        midifloor = {
+            "product_code": "MID4",
+            "product_name": "Midifloor",
+            "manufacturer": "DISANO",
+            "product_family": "uplight",
+            "power_max_w": "4 W",
+            "power_max_value": "4",
+        }
+        same_family_power = {
+            "product_code": "MICRO3",
+            "product_name": "Microfloor LED",
+            "manufacturer": "DISANO",
+            "product_family": "uplight",
+            "power_max_w": "3 W",
+            "power_max_value": "3",
+        }
+        generic_power = {
+            "product_code": "GEN3",
+            "product_name": "Generic emergency 3W",
+            "manufacturer": "DISANO",
+            "product_family": "emergency",
+            "power_max_w": "3 W",
+            "power_max_value": "3",
+        }
+
+        class FakeProductDb:
+            backend = "sqlite"
+
+            def search_products(self, filters, limit=100):
+                filters = dict(filters or {})
+                if filters.get("product_name_contains") == "midifloor" and filters.get("power_max_w") == "<=3":
+                    return []
+                if filters.get("product_name_contains") == "midifloor":
+                    return [midifloor]
+                family = filters.get("product_family")
+                if family == ["uplight"] and filters.get("power_max_w") == "<=3":
+                    return [same_family_power]
+                if family == ["uplight"]:
+                    return [midifloor, same_family_power]
+                if filters.get("power_max_w") == "<=3":
+                    return [generic_power, same_family_power]
+                return []
+
+        req = SearchRequest(
+            text="midifloor 3w",
+            filters={},
+            limit=5,
+            include_similar=True,
+            allow_ai=True,
+            debug=True,
+        )
+
+        with patch.object(main_mod, "PRODUCT_DB", FakeProductDb()), patch.object(
+            main_mod, "DB", pd.DataFrame()
+        ), patch.object(main_mod, "_search_rows_by_text_db", return_value=[]):
+            resp = main_mod.search(req)
+
+        similar_codes = [hit.product_code for hit in resp.similar]
+        self.assertIn("MID4", similar_codes[:2])
+        self.assertIn("MICRO3", similar_codes[:2])
+        self.assertGreater(similar_codes.index("GEN3"), 1)
+
     def test_text_relevance_matches_compact_order_code(self):
         from app import main as main_mod
 

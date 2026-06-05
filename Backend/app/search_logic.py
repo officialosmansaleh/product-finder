@@ -635,6 +635,7 @@ def handle_search(
     rows: List[Dict[str, Any]] = []
     used_product_db = False
     exact_seed_codes: set[str] = set()
+    name_anchor_families: List[str] = []
 
     if product_db:
         used_product_db = True
@@ -653,6 +654,14 @@ def handle_search(
                     name_seed_filters[key] = filters[key]
             name_seed_sql = map_filters_to_sql(name_seed_filters) if name_seed_filters else {}
             name_seed = product_db.search_products(name_seed_sql, limit=candidate_limit) if name_seed_sql else []
+            name_anchor_families = list(
+                dict.fromkeys(
+                    str((row or {}).get("product_family") or "").strip()
+                    for row in (combined_seed + name_seed)
+                    if str((row or {}).get("product_family") or "").strip()
+                    and not _is_accessories_family((row or {}).get("product_family"))
+                )
+            )[:5]
 
             family_seed_filters: Dict[str, Any] = {}
             family_value = filters.get("product_family")
@@ -668,9 +677,28 @@ def handle_search(
             }
             spec_seed_sql = map_filters_to_sql(spec_seed_filters) if spec_seed_filters else {}
             spec_seed = product_db.search_products(spec_seed_sql, limit=candidate_limit) if spec_seed_sql else []
+            anchor_family_spec_seed: List[Dict[str, Any]] = []
+            anchor_family_seed: List[Dict[str, Any]] = []
+            if name_anchor_families and filters.get("product_family") in (None, "", []):
+                anchor_family_filters = {"product_family": name_anchor_families}
+                anchor_family_seed_sql = map_filters_to_sql(anchor_family_filters)
+                anchor_family_seed = product_db.search_products(anchor_family_seed_sql, limit=candidate_limit)
+                if spec_seed_filters:
+                    anchor_family_spec_sql = map_filters_to_sql({**spec_seed_filters, **anchor_family_filters})
+                    anchor_family_spec_seed = product_db.search_products(anchor_family_spec_sql, limit=candidate_limit)
             text_seed = search_rows_by_text_db(req.text or "", limit=candidate_limit)
             broad_rows = product_db.search_products({}, limit=candidate_limit)
-            rows = dedupe_rows_by_product_code(exact_seed + combined_seed + name_seed + family_seed + text_seed + spec_seed + broad_rows)[:candidate_limit]
+            rows = dedupe_rows_by_product_code(
+                exact_seed
+                + combined_seed
+                + name_seed
+                + anchor_family_spec_seed
+                + family_seed
+                + anchor_family_seed
+                + text_seed
+                + spec_seed
+                + broad_rows
+            )[:candidate_limit]
         except Exception as e:
             print(f"Product database search failed: {e}")
             used_product_db = False
@@ -698,6 +726,8 @@ def handle_search(
 
     exact_pool: List[Dict[str, Any]] = []
     similar_pool: List[Dict[str, Any]] = []
+    if name_anchor_families and similar_score_filters.get("product_family") in (None, "", []):
+        similar_score_filters["product_family"] = name_anchor_families
     anchor_family = ""
     anchor_product_line = ""
     anchor_rel = -1.0
