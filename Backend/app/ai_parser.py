@@ -143,6 +143,8 @@ def _infer_family(text: str) -> Optional[str]:
     t = _norm_text(text)
     if not t:
         return None
+    if re.search(r"\b(?:surface[\s-]?(?:mount(?:ing|ed)?|mounted)|surface)\b", t):
+        return "ceiling/wall"
     # Ground-recessed wording is a strong uplight cue and should override generic "recessed".
     if re.search(r"\b(?:in[\s-]?ground|inground|ground[\s-]?recess(?:ed)?|buried)\b", t):
         return "uplight"

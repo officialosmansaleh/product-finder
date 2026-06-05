@@ -607,6 +607,8 @@ def _infer_family(text: str) -> Optional[str]:
     t = re.sub(r"\s+", " ", t).strip()
     if not t:
         return None
+    if re.search(r"\b(?:surface[\s-]?(?:mount(?:ing|ed)?|mounted)|surface)\b", t):
+        return "ceiling/wall"
     if re.search(r"\b(?:plafoniera|plafoniere|plafon)\s+(?:stagna|stagne|stagno|stagni)\b", t):
         return "waterproof"
     for family, patterns in _FAMILY_RULE_PATTERNS:
