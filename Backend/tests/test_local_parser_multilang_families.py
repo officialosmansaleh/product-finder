@@ -72,6 +72,15 @@ class LocalParserMultilangFamilyTests(unittest.TestCase):
             self.assertEqual(parsed.get("product_family"), ["ceiling/wall", "wall"], msg=f"Expected ceiling/wall or wall, got: {parsed}")
             self.assertNotIn("etim_search_key", parsed, msg=f"Surface mounting must not be recessed: {parsed}")
 
+    def test_surface_mount_weatherproof_keeps_waterproof_family(self):
+        query = "28.6W, 4000LM, IP65, POLYCARBONATE DIFFUSER, SURFACE MOUNT, 1215MM LENGTH, WEATHERPROOF"
+        parsed = local_text_to_filters(query)
+        self.assertEqual(
+            parsed.get("product_family"),
+            ["waterproof", "ceiling/wall", "wall"],
+            msg=f"Expected waterproof plus surface families, got: {parsed}",
+        )
+
     def test_multilingual_application_family_inference(self):
         cases = [
             # English

@@ -3711,8 +3711,13 @@ document.addEventListener("click", (ev)=>{
       runSearch();
       return;
     }
-    const exists = ignoredAIFilterPairs.some(x => String(x.k) === key && String(x.v) === value);
-    if (!exists) ignoredAIFilterPairs.push({ k: key, v: value });
+    if (key === "product_family"){
+      ignoredAIFilterPairs = ignoredAIFilterPairs.filter(x => String(x.k || "") !== key);
+      ignoredAIFilterPairs.push({ k: key, v: "" });
+    } else {
+      const exists = ignoredAIFilterPairs.some(x => String(x.k) === key && String(x.v) === value);
+      if (!exists) ignoredAIFilterPairs.push({ k: key, v: value });
+    }
     runSearch();
     return;
   }

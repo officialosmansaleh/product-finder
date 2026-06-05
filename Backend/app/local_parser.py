@@ -696,6 +696,21 @@ def _infer_family(text: str) -> Optional[str]:
     return best
 
 
+def _has_waterproof_family_cue(text: str) -> bool:
+    t = (text or "").lower()
+    t = re.sub(r"\s+", " ", t).strip()
+    if not t:
+        return False
+    if re.search(r"\b(?:plafoniera|plafoniere|plafon)\s+(?:stagna|stagne|stagno|stagni)\b", t):
+        return True
+    return bool(
+        re.search(
+            r"\b(?:water[\s-]?proof|weather[\s-]?proof|water[\s-]?tight|water[\s-]?resistant|stagna|stagne|stagno|stagni|vapou?r[\s-]?tight|bulkhead)\b",
+            t,
+        )
+    )
+
+
 def _size_to_mm(a: int, b: int) -> tuple[int, int]:
     # Tender shorthand: 60x60 means 600x600 mm.
     if a <= 300 and b <= 300:
@@ -797,7 +812,11 @@ def local_text_to_filters(text: str) -> Dict[str, Any]:
     fam = _infer_family(text)
     if fam:
         if fam == "ceiling/wall" and re.search(r"\b(?:surface[\s-]?(?:mount(?:ing|ed)?|mounted)|surface)\b", t):
-            filters["product_family"] = ["ceiling/wall", "wall"]
+            families = []
+            if _has_waterproof_family_cue(t):
+                families.append("waterproof")
+            families.extend(["ceiling/wall", "wall"])
+            filters["product_family"] = list(dict.fromkeys(families))
         else:
             filters["product_family"] = fam
     if fam == "downlight" and re.search(r"\brecess(?:ed)?\b", t):

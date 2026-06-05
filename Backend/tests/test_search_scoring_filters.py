@@ -992,6 +992,51 @@ class SearchScoringFiltersTests(unittest.TestCase):
         self.assertEqual(resp.similar, [])
         self.assertEqual((resp.backend_debug_filters or {}).get("hard_filters"), parsed_filters)
 
+    def test_empty_ignored_family_filter_removes_all_inferred_family_values(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "W1",
+                    "product_name": "Weatherproof Surface",
+                    "product_family": "waterproof",
+                    "ip_rating": "IP65",
+                    "manufacturer": "DISANO",
+                },
+                {
+                    "product_code": "L1",
+                    "product_name": "Linear Surface",
+                    "product_family": "linear",
+                    "ip_rating": "IP65",
+                    "manufacturer": "DISANO",
+                },
+            ]
+        )
+
+        parsed_filters = {"product_family": ["waterproof", "ceiling/wall", "wall"], "ip_rating": ">=IP65"}
+        req = SearchRequest(
+            text="surface mount weatherproof IP65",
+            filters={},
+            ignored_ai_filters=[{"key": "product_family", "value": ""}],
+            limit=5,
+            include_similar=True,
+            allow_ai=False,
+            debug=True,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value=parsed_filters), patch.object(
+            main_mod, "PRODUCT_DB", None
+        ), patch.object(main_mod, "DB", fake_rows_df):
+            resp = main_mod.search(req)
+
+        hard_filters = (resp.backend_debug_filters or {}).get("hard_filters") or {}
+        filters = (resp.backend_debug_filters or {}).get("filters") or {}
+        self.assertNotIn("product_family", hard_filters)
+        self.assertNotIn("product_family", filters)
+        self.assertEqual(filters.get("ip_rating"), ">=IP65")
+
     def test_recessed_downlight_excludes_paneltech_even_if_catalog_family_is_wrong(self):
         from app import main as main_mod
         from app.schema import SearchRequest
