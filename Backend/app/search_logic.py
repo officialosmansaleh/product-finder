@@ -99,6 +99,8 @@ TECHNICAL_NAME_FILTER_TOKENS = {
     "efficacy", "efficiency", "efficient", "efficienza", "efficacia", "rendimento",
     "lumen", "lumens", "lm", "lmw", "w", "watt", "watts",
     "cri", "ugr", "ip", "ik", "cct", "dali", "zhaga",
+    "asymmetric", "asymmetry", "asimmetrico", "asimmetrica", "symmetric", "symmetry", "simmetrico", "simmetrica",
+    "beam", "wide", "narrow", "fascio", "ottica",
 }
 NAME_FILTER_KEYS = {"product_name_contains", "product_name_short", "name_prefix"}
 NON_NAME_SPEC_EXEMPT_KEYS = NAME_FILTER_KEYS | {"product_family", "shape"}
@@ -130,20 +132,23 @@ def _with_short_catalog_name_filter(text: str, filters: Dict[str, Any], allowed_
     out = dict(filters or {})
     if _name_filter_values(out):
         return out
-    if out:
-        return out
     if not _looks_like_short_catalog_lookup(text):
         return out
     tokens = [tok for tok in re.findall(r"[a-z0-9][a-z0-9._-]*", str(text or "").strip().lower()) if tok]
-    if len(tokens) != 1:
-        return out
-    token = tokens[0].strip(".,;:/\\-_()[]{}<>\"'`")
-    if len(token) < 3 or any(ch.isdigit() for ch in token):
-        return out
+    name_tokens = []
     family_norms = {_family_norm(fam) for fam in (allowed_families or []) if str(fam).strip()}
-    if _family_norm(token) in family_norms:
+    for token in tokens:
+        token = token.strip(".,;:/\\-_()[]{}<>\"'`")
+        if len(token) < 3 or any(ch.isdigit() for ch in token):
+            continue
+        if token in TECHNICAL_NAME_FILTER_TOKENS:
+            continue
+        if _family_norm(token) in family_norms:
+            continue
+        name_tokens.append(token)
+    if not name_tokens or len(name_tokens) > 3:
         return out
-    out["product_name_contains"] = token
+    out["product_name_contains"] = " ".join(name_tokens)
     return out
 
 

@@ -560,6 +560,52 @@ class SearchScoringFiltersTests(unittest.TestCase):
 
         self.assertEqual([hit.product_code for hit in resp.exact[:1]], ["RODIO50"])
 
+    def test_multi_word_name_with_spec_is_kept(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        mini_rodio = {
+            "product_code": "MINIRODIO87",
+            "product_name": "Mini Rodio - symmetric wide beam",
+            "manufacturer": "DISANO",
+            "product_family": "floodlight",
+            "power_max_w": "87 W",
+            "power_max_value": "87",
+        }
+
+        class FakeProductDb:
+            backend = "sqlite"
+
+            def search_products(self, filters, limit=100):
+                filters = dict(filters or {})
+                if filters.get("product_name_contains") == "mini rodio" and filters.get("power_max_w") == "<=100":
+                    return [mini_rodio]
+                if filters.get("product_name_contains") == "mini rodio":
+                    return [mini_rodio]
+                return []
+
+        req = SearchRequest(
+            text="mini rodio 100W",
+            filters={},
+            limit=5,
+            include_similar=True,
+            allow_ai=True,
+            debug=True,
+        )
+
+        with patch.object(
+            main_mod, "llm_intent_to_filters_with_meta", side_effect=AssertionError("AI must not run for catalog lookup")
+        ), patch.object(main_mod, "llm_intent_to_filters", side_effect=AssertionError("AI must not run for catalog lookup")), patch.object(
+            main_mod, "PRODUCT_DB", FakeProductDb()
+        ), patch.object(main_mod, "DB", pd.DataFrame()), patch.object(
+            main_mod, "_search_rows_by_text_db", return_value=[]
+        ):
+            resp = main_mod.search(req)
+
+        self.assertEqual([hit.product_code for hit in resp.exact[:1]], ["MINIRODIO87"])
+        self.assertEqual((resp.backend_debug_filters or {}).get("filters", {}).get("product_name_contains"), "mini rodio")
+        self.assertEqual((resp.backend_debug_filters or {}).get("filters", {}).get("power_max_w"), "<=100")
+
     def test_text_relevance_matches_compact_order_code(self):
         from app import main as main_mod
 
