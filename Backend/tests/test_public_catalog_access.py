@@ -40,6 +40,32 @@ class PublicCatalogAccessTests(unittest.TestCase):
 
         cls.client_cm = TestClient(main.app)
         cls.client = cls.client_cm.__enter__()
+        cls.main = main
+
+        if getattr(main, "DB", None) is None or getattr(main.DB, "empty", True):
+            try:
+                import pandas as pd
+
+                main.DB = pd.DataFrame(
+                    [
+                        {
+                            "product_code": "D1",
+                            "product_name": "Demo Downlight",
+                            "manufacturer": "DISANO",
+                            "product_family": "downlight",
+                        },
+                        {
+                            "product_code": "P1",
+                            "product_name": "Demo Panel",
+                            "manufacturer": "DISANO",
+                            "product_family": "panel",
+                        },
+                    ]
+                )
+                main.ALLOWED_FAMILIES = ["downlight", "panel"]
+                main.ALLOWED_FAMILIES_NORM = {"downlight", "panel"}
+            except Exception as e:  # pragma: no cover - env-dependent
+                raise unittest.SkipTest(f"Skipping public catalog access test (catalog seed failed): {e}")
 
     @classmethod
     def tearDownClass(cls):
