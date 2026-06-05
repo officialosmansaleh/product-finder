@@ -369,7 +369,11 @@ def text_to_filters(text: str) -> Dict[str, Any]:
 
     fam = _infer_family(text)
     if fam:
-        hard["product_family"] = fam
+        t_norm = _norm_text(text)
+        if fam == "ceiling/wall" and re.search(r"\b(?:surface[\s-]?(?:mount(?:ing|ed)?|mounted)|surface)\b", t_norm):
+            hard["product_family"] = ["ceiling/wall", "wall"]
+        else:
+            hard["product_family"] = fam
 
     ip = _parse_ip_expr(text)
     if ip:

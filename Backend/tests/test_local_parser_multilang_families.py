@@ -69,7 +69,7 @@ class LocalParserMultilangFamilyTests(unittest.TestCase):
     def test_surface_mounting_is_ceiling_wall_not_recessed(self):
         for query in ("surface mounting", "surface mounted", "surface mounting downlight"):
             parsed = local_text_to_filters(query)
-            self.assertEqual(parsed.get("product_family"), "ceiling/wall", msg=f"Expected ceiling/wall, got: {parsed}")
+            self.assertEqual(parsed.get("product_family"), ["ceiling/wall", "wall"], msg=f"Expected ceiling/wall or wall, got: {parsed}")
             self.assertNotIn("etim_search_key", parsed, msg=f"Surface mounting must not be recessed: {parsed}")
 
     def test_multilingual_application_family_inference(self):
