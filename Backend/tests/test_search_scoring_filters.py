@@ -426,7 +426,7 @@ class SearchScoringFiltersTests(unittest.TestCase):
             resp = main_mod.search(req)
 
         self.assertIn("R1", {hit.product_code for hit in resp.exact})
-        self.assertEqual((resp.backend_debug_filters or {}).get("filters"), {})
+        self.assertEqual((resp.backend_debug_filters or {}).get("filters", {}).get("product_name_contains"), "rodio")
 
     def test_product_name_with_spec_does_not_call_ai(self):
         from app import main as main_mod
@@ -469,6 +469,96 @@ class SearchScoringFiltersTests(unittest.TestCase):
 
         self.assertIn("R100", {hit.product_code for hit in resp.exact})
         self.assertEqual((resp.backend_debug_filters or {}).get("filters", {}).get("product_name_contains"), "rodio")
+        self.assertEqual((resp.backend_debug_filters or {}).get("filters", {}).get("power_max_w"), "<=100")
+
+    def test_unit_only_lookup_does_not_call_ai_or_name_filter(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        fake_rows_df = pd.DataFrame(
+            [
+                {
+                    "product_code": "P100",
+                    "product_name": "Power Product",
+                    "manufacturer": "DISANO",
+                    "product_family": "downlight",
+                    "power_max_w": "100 W",
+                }
+            ]
+        )
+
+        req = SearchRequest(
+            text="100W",
+            filters={},
+            limit=5,
+            include_similar=True,
+            allow_ai=True,
+            debug=True,
+        )
+
+        with patch.object(
+            main_mod, "llm_intent_to_filters_with_meta", side_effect=AssertionError("AI must not run for unit lookup")
+        ), patch.object(main_mod, "llm_intent_to_filters", side_effect=AssertionError("AI must not run for unit lookup")), patch.object(
+            main_mod, "PRODUCT_DB", None
+        ), patch.object(main_mod, "DB", fake_rows_df):
+            resp = main_mod.search(req)
+
+        self.assertIn("P100", {hit.product_code for hit in resp.exact})
+        self.assertEqual((resp.backend_debug_filters or {}).get("filters", {}).get("power_max_w"), "<=100")
+        self.assertNotIn("product_name_contains", (resp.backend_debug_filters or {}).get("filters", {}))
+
+    def test_name_seed_is_not_hidden_by_large_spec_seed(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        rodio = {
+            "product_code": "RODIO50",
+            "product_name": "Rodio LED",
+            "manufacturer": "DISANO",
+            "product_family": "floodlight",
+            "power_max_w": "50 W",
+            "power_max_value": "50",
+        }
+        generic_power_rows = [
+            {
+                "product_code": f"P{i:03d}",
+                "product_name": f"Generic Power {i}",
+                "manufacturer": "DISANO",
+                "product_family": "downlight",
+                "power_max_w": "50 W",
+                "power_max_value": "50",
+            }
+            for i in range(600)
+        ]
+
+        class FakeProductDb:
+            backend = "sqlite"
+
+            def search_products(self, filters, limit=100):
+                filters = dict(filters or {})
+                if filters.get("product_name_contains") == "rodio" and filters.get("power_max_w") == "<=100":
+                    return [rodio]
+                if filters.get("product_name_contains") == "rodio":
+                    return [rodio]
+                if filters.get("power_max_w") == "<=100":
+                    return generic_power_rows[:limit]
+                return []
+
+        req = SearchRequest(
+            text="Rodio 100W",
+            filters={},
+            limit=5,
+            include_similar=True,
+            allow_ai=True,
+            debug=True,
+        )
+
+        with patch.object(main_mod, "PRODUCT_DB", FakeProductDb()), patch.object(
+            main_mod, "DB", pd.DataFrame()
+        ), patch.object(main_mod, "_search_rows_by_text_db", return_value=[]):
+            resp = main_mod.search(req)
+
+        self.assertEqual([hit.product_code for hit in resp.exact[:1]], ["RODIO50"])
 
     def test_text_relevance_matches_compact_order_code(self):
         from app import main as main_mod

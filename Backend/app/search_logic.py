@@ -126,6 +126,27 @@ def _should_call_ai_for_search_text(text: str, parsed_filters: Dict[str, Any], u
     return True
 
 
+def _with_short_catalog_name_filter(text: str, filters: Dict[str, Any], allowed_families: List[str]) -> Dict[str, Any]:
+    out = dict(filters or {})
+    if _name_filter_values(out):
+        return out
+    if out:
+        return out
+    if not _looks_like_short_catalog_lookup(text):
+        return out
+    tokens = [tok for tok in re.findall(r"[a-z0-9][a-z0-9._-]*", str(text or "").strip().lower()) if tok]
+    if len(tokens) != 1:
+        return out
+    token = tokens[0].strip(".,;:/\\-_()[]{}<>\"'`")
+    if len(token) < 3 or any(ch.isdigit() for ch in token):
+        return out
+    family_norms = {_family_norm(fam) for fam in (allowed_families or []) if str(fam).strip()}
+    if _family_norm(token) in family_norms:
+        return out
+    out["product_name_contains"] = token
+    return out
+
+
 def _drop_technical_only_name_filters(filters: Dict[str, Any]) -> Dict[str, Any]:
     out = dict(filters or {})
     spec_keys = set(out) - NON_NAME_SPEC_EXEMPT_KEYS
@@ -170,18 +191,19 @@ def _drop_unmatched_name_filters(
     name_filters = _name_filter_values(out)
     if not name_filters:
         return out
-    spec_keys = set(out) - NON_NAME_SPEC_EXEMPT_KEYS
-    if not spec_keys:
-        return out
-
-    has_name_match = True
+    has_name_match = False
     if product_db:
         try:
             rows = product_db.search_products(map_filters_to_sql(name_filters), limit=1)
             has_name_match = bool(rows)
         except Exception:
             has_name_match = True
-    elif db_dataframe is not None and not getattr(db_dataframe, "empty", True) and "product_name" in db_dataframe.columns:
+    if (
+        not has_name_match
+        and db_dataframe is not None
+        and not getattr(db_dataframe, "empty", True)
+        and "product_name" in db_dataframe.columns
+    ):
         try:
             series = db_dataframe["product_name"].fillna("").astype(str).str.lower()
             has_name_match = False
@@ -409,6 +431,7 @@ def handle_search(
         parsed["product_family"] = "downlight"
 
     user_filters = pre_ai_user_filters
+    parsed = _with_short_catalog_name_filter(req.text or "", parsed, allowed_families)
     parsed = _drop_technical_only_name_filters(parsed)
     user_filters = _drop_technical_only_name_filters(user_filters)
     if not str(req.text or "").strip() and not user_filters:
@@ -617,6 +640,8 @@ def handle_search(
                 for row in exact_seed
                 if str((row or {}).get("product_code", "")).strip()
             }
+            combined_seed = product_db.search_products(sql_filters, limit=candidate_limit) if sql_filters else []
+
             name_seed_filters: Dict[str, Any] = {}
             for key in ("product_name_contains", "product_name_short", "name_prefix"):
                 if key in filters:
@@ -640,7 +665,7 @@ def handle_search(
             spec_seed = product_db.search_products(spec_seed_sql, limit=candidate_limit) if spec_seed_sql else []
             text_seed = search_rows_by_text_db(req.text or "", limit=candidate_limit)
             broad_rows = product_db.search_products({}, limit=candidate_limit)
-            rows = dedupe_rows_by_product_code(exact_seed + spec_seed + family_seed + name_seed + text_seed + broad_rows)[:candidate_limit]
+            rows = dedupe_rows_by_product_code(exact_seed + combined_seed + name_seed + family_seed + text_seed + spec_seed + broad_rows)[:candidate_limit]
         except Exception as e:
             print(f"Product database search failed: {e}")
             used_product_db = False

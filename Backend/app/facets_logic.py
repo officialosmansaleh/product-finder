@@ -6,7 +6,12 @@ import pandas as pd
 import re
 
 from app.schema import FacetsResponse, FacetValue, SearchRequest
-from app.search_logic import _drop_technical_only_name_filters, _drop_unmatched_name_filters, _should_call_ai_for_search_text
+from app.search_logic import (
+    _drop_technical_only_name_filters,
+    _drop_unmatched_name_filters,
+    _should_call_ai_for_search_text,
+    _with_short_catalog_name_filter,
+)
 
 
 def handle_facets(
@@ -76,6 +81,7 @@ def handle_facets(
             parsed[k] = v
 
     user_filters = pre_ai_user_filters
+    parsed = _with_short_catalog_name_filter(req.text or "", parsed, allowed_families)
     parsed = _drop_technical_only_name_filters(parsed)
     user_filters = _drop_technical_only_name_filters(user_filters)
     filters = {**parsed, **user_filters}
