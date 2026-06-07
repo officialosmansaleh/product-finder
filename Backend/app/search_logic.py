@@ -871,6 +871,7 @@ def handle_search(
                 "website_url": website_url,
                 "datasheet_url": datasheet_url,
                 "image_preview_url": f"/preview-image?product_code={quote_plus(product_code)}&manufacturer={quote_plus(manufacturer)}&website_url={quote_plus(website_url)}",
+                "photometric_curve_url": f"/photometric-curve?product_code={quote_plus(product_code)}&manufacturer={quote_plus(manufacturer)}&language=it",
             },
             debug_filters=({
                 "filters": filters,
@@ -934,6 +935,7 @@ def handle_search(
                 "website_url": website_url,
                 "datasheet_url": datasheet_url,
                 "image_preview_url": f"/preview-image?product_code={quote_plus(product_code)}&manufacturer={quote_plus(manufacturer)}&website_url={quote_plus(website_url)}",
+                "photometric_curve_url": f"/photometric-curve?product_code={quote_plus(product_code)}&manufacturer={quote_plus(manufacturer)}&language=it",
             },
             debug_filters=({
                 "filters": filters,

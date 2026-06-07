@@ -189,6 +189,7 @@
     total_items:"Total items",
     popup_blocked:"Popup blocked. Enable popups for PDF export.",
     datasheet:"Datasheet",
+    photometric_curve:"Photometric curve",
     website:"Website",
     compare:"Compare",
     alternatives:"Alternatives",
@@ -366,6 +367,7 @@
     total_items:"Totale articoli",
     popup_blocked:"Popup bloccato. Abilita i popup per esportare il PDF.",
     datasheet:"Scheda tecnica",
+    photometric_curve:"Curva fotometrica",
     website:"Sito web",
     compare:"Confronta",
     alternatives:"Alternative",
@@ -3595,6 +3597,7 @@ function renderHits(containerId, hits, kind){
     const websiteUrl = p.website_url || `https://www.disano.it/it/search/?q=${encodeURIComponent(orderCode)}`;
     const imageUrl = p.image_preview_url || `/preview-image?product_code=${encodeURIComponent(orderCode)}&manufacturer=${encodeURIComponent(manufacturer)}&website_url=${encodeURIComponent(websiteUrl)}`;
     const fullImageUrl = `/full-image?product_code=${encodeURIComponent(orderCode)}&manufacturer=${encodeURIComponent(manufacturer)}&website_url=${encodeURIComponent(websiteUrl)}`;
+    const curveUrl = buildPhotometricCurveUrl(orderCode, manufacturer, currentLang);
     const isFosnova = /fosnova/i.test(manufacturer);
     const mfrLogoUrl = isFosnova
       ? LOCAL_MANUFACTURER_LOGOS.fosnova
@@ -3606,6 +3609,10 @@ function renderHits(containerId, hits, kind){
         <div class="hitBody">
           <div class="hitMedia">
             <img class="hitImg" src="${escapeHtml(imageUrl)}" data-full-img="${escapeHtml(fullImageUrl)}" alt="${escapeHtml(orderCode)}" loading="lazy" decoding="async" />
+            <button class="curvePreview" type="button" title="${escapeHtml(t("photometric_curve"))}" aria-label="${escapeHtml(t("photometric_curve"))}">
+              <img class="curveImg" src="${escapeHtml(curveUrl)}" data-full-img="${escapeHtml(curveUrl)}" alt="${escapeHtml(t("photometric_curve"))} ${escapeHtml(orderCode)}" loading="lazy" decoding="async" />
+              <span>${escapeHtml(t("photometric_curve"))}</span>
+            </button>
             <a class="mfrLogoLink" href="${websiteUrl}" target="_blank" rel="noopener noreferrer" title="Go to website">
               <img class="mfrLogo" src="${mfrLogoUrl}" alt="${mfrAlt}" loading="lazy" decoding="async" width="72" height="18" />
               <span class="mfrLogoFallback" aria-hidden="true">${escapeHtml(mfrAlt)}</span>
@@ -3650,6 +3657,16 @@ function renderHits(containerId, hits, kind){
       img.style.background = "#f8fafc";
     }, { once: true });
   });
+  Array.from(box.querySelectorAll("img.curveImg")).forEach(img => {
+    img.addEventListener("error", ()=>{
+      const preview = img.closest(".curvePreview");
+      if (preview) preview.remove();
+    }, { once: true });
+    img.addEventListener("load", ()=>{
+      const preview = img.closest(".curvePreview");
+      if (preview) preview.classList.add("loaded");
+    }, { once: true });
+  });
   Array.from(box.querySelectorAll("img.mfrLogo")).forEach(img => {
     img.addEventListener("error", ()=>{
       const link = img.closest(".mfrLogoLink");
@@ -3664,6 +3681,13 @@ function buildDatasheetUrl(code, lang){
   const cfg = DATASHEET_LANGS[String(lang || "").toLowerCase()] || DATASHEET_LANGS.en;
   const q = encodeURIComponent(c);
   return `https://www.disano.it/download/mediafiles/-${cfg.media}_${q}.pdf/${cfg.prefix}_${q}.pdf`;
+}
+
+function buildPhotometricCurveUrl(code, manufacturer, lang){
+  const c = String(code || "").trim();
+  if (!c) return "";
+  const l = DATASHEET_LANGS[String(lang || "").toLowerCase()] ? String(lang || "").toLowerCase() : "it";
+  return `/photometric-curve?product_code=${encodeURIComponent(c)}&manufacturer=${encodeURIComponent(String(manufacturer || ""))}&language=${encodeURIComponent(l)}`;
 }
 
 document.addEventListener("click", (ev)=>{
@@ -3782,6 +3806,15 @@ document.addEventListener("click", (ev)=>{
     const src = hitImage.dataset.fullImg || hitImage.currentSrc || hitImage.src;
     if (!src || src.startsWith("data:image/svg+xml")) return;
     openImageLightbox(src, hitImage.alt || "Product preview");
+    return;
+  }
+
+  const curvePreview = t.closest(".curvePreview");
+  if (curvePreview){
+    const img = curvePreview.querySelector("img.curveImg");
+    const src = img?.dataset?.fullImg || img?.currentSrc || img?.src || "";
+    if (!src) return;
+    openImageLightbox(src, img?.alt || t("photometric_curve"));
     return;
   }
 

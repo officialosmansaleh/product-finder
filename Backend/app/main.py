@@ -191,6 +191,7 @@ AUTH_EXEMPT_PATHS = {
     "/codes/suggest",
     "/preview-image",
     "/full-image",
+    "/photometric-curve",
 }
 AUTH_EXEMPT_PREFIXES = ("/auth", "/frontend", "/docs", "/redoc", "/debug")
 APP_STARTED_AT = time.time()
@@ -203,6 +204,7 @@ ACCESS_MATRIX = [
     {"path": "/codes/suggest", "method": "GET", "access": "public", "purpose": "Code suggestions"},
     {"path": "/preview-image", "method": "GET", "access": "public", "purpose": "Catalog previews with rate limiting"},
     {"path": "/full-image", "method": "GET", "access": "public", "purpose": "Full product images with rate limiting"},
+    {"path": "/photometric-curve", "method": "GET", "access": "public", "purpose": "Photometric curve previews extracted from datasheets"},
     {"path": "/feedback/search", "method": "POST", "access": "authenticated", "purpose": "Save corrected search examples for training data"},
     {"path": "/auth/*", "method": "POST/GET", "access": "public", "purpose": "Authentication and consent flows"},
     {"path": "/compare-products", "method": "POST", "access": "authenticated", "purpose": "Product comparison"},
@@ -457,6 +459,7 @@ PRODUCT_DB: Optional[Any] = None
 ALLOWED_FAMILIES: List[str] = []
 ALLOWED_FAMILIES_NORM: set[str] = set()
 IMAGE_CACHE: Dict[str, str] = {}
+PHOTOMETRIC_CURVE_CACHE: Dict[str, Dict[str, Any]] = {}
 PIM_CODES_CACHE: Dict[str, Any] = {"path": "", "mtime": 0.0, "rows": []}
 
 # ------------------------------------------------------------
@@ -950,6 +953,111 @@ def _build_datasheet_url(product_code: str, manufacturer: str, language: str = "
     media_id, prefix = DATASHEET_LANGUAGE_MAP.get(str(language or "").strip().lower(), DATASHEET_LANGUAGE_MAP["en"])
     code_q = quote_plus(code)
     return f"https://www.disano.it/download/mediafiles/-{media_id}_{code_q}.pdf/{prefix}_{code_q}.pdf"
+
+
+def _build_photometric_curve_url(product_code: str, manufacturer: str, language: str = "it") -> str:
+    code_q = quote_plus(str(product_code or "").strip())
+    mfg_q = quote_plus(str(manufacturer or "").strip())
+    lang_q = quote_plus(str(language or "it").strip().lower() or "it")
+    return f"/photometric-curve?product_code={code_q}&manufacturer={mfg_q}&language={lang_q}"
+
+
+def _extract_photometric_curve_from_datasheet(product_code: str, manufacturer: str, language: str = "it") -> Optional[Dict[str, Any]]:
+    code = str(product_code or "").strip()
+    if not code:
+        return None
+    lang = str(language or "it").strip().lower() or "it"
+    cache_key = f"{lang}:{code}"
+    cached = PHOTOMETRIC_CURVE_CACHE.get(cache_key)
+    if cached:
+        cached_status = str(cached.get("status") or "hit")
+        cached_at = float(cached.get("cached_at") or 0.0)
+        negative_ttl = cfg_int("main.photometric_curve_negative_ttl_sec", 6 * 60 * 60)
+        if cached_status == "miss" and (time.time() - cached_at) <= negative_ttl:
+            return None
+        if cached_status == "miss":
+            PHOTOMETRIC_CURVE_CACHE.pop(cache_key, None)
+        else:
+            cached.pop("status", None)
+            cached.pop("cached_at", None)
+            return cached
+
+    datasheet_url = _build_datasheet_url(code, manufacturer, lang)
+    try:
+        with safe_open_url(
+            datasheet_url,
+            timeout=cfg_int("main.http_timeout_datasheet_sec", 12),
+            allowed_hosts=PUBLIC_FETCH_HOSTS,
+            headers={"User-Agent": "Mozilla/5.0"},
+        ) as resp:
+            raw = resp.read(cfg_int("main.photometric_curve_pdf_max_bytes", 8 * 1024 * 1024) + 1)
+    except Exception:
+        PHOTOMETRIC_CURVE_CACHE[cache_key] = {"status": "miss", "cached_at": time.time()}
+        return None
+    if not raw or len(raw) > cfg_int("main.photometric_curve_pdf_max_bytes", 8 * 1024 * 1024) or not looks_like_pdf(raw):
+        return None
+
+    try:
+        import fitz  # type: ignore
+    except Exception:
+        return None
+
+    best: Optional[Dict[str, Any]] = None
+    best_score = -1.0
+    try:
+        with fitz.open(stream=raw, filetype="pdf") as doc:
+            max_pages = min(doc.page_count, cfg_int("main.photometric_curve_max_pages", 6))
+            for page_index in range(max_pages):
+                page = doc[page_index]
+                page_text = (page.get_text("text") or "").lower()
+                has_photometric_text = any(
+                    token in page_text
+                    for token in ("dati fotometrici", "fotometric", "photometric", "cd/klm", "cd/klm")
+                )
+                page_dict = page.get_text("dict") or {}
+                for block in page_dict.get("blocks", []):
+                    if block.get("type") != 1:
+                        continue
+                    img_bytes = block.get("image") or b""
+                    if not isinstance(img_bytes, bytes) or not looks_like_supported_image(img_bytes):
+                        continue
+                    px_w = float(block.get("width") or 0)
+                    px_h = float(block.get("height") or 0)
+                    if px_w < 350 or px_h < 350:
+                        continue
+                    ratio = px_w / max(px_h, 1.0)
+                    if ratio < 0.65 or ratio > 1.55:
+                        continue
+                    bbox = block.get("bbox") or (0, 0, 0, 0)
+                    try:
+                        x0, y0, x1, y1 = [float(v) for v in bbox]
+                    except Exception:
+                        x0 = y0 = x1 = y1 = 0.0
+                    bbox_area = max(0.0, x1 - x0) * max(0.0, y1 - y0)
+                    score = bbox_area / 100.0
+                    if has_photometric_text:
+                        score += 10000.0
+                    if px_w >= 900 and px_h >= 900:
+                        score += 1000.0
+                    if x0 < page.rect.width * 0.45:
+                        score += 250.0
+                    if page_index == 0 and not has_photometric_text:
+                        score -= 5000.0
+                    if score > best_score:
+                        ext = str(block.get("ext") or "png").lower()
+                        media_type = "image/jpeg" if ext in {"jpg", "jpeg"} else "image/webp" if ext == "webp" else "image/png"
+                        best = {"content": img_bytes, "media_type": media_type}
+                        best_score = score
+    except Exception:
+        return None
+
+    if not best or best_score < 10000.0:
+        PHOTOMETRIC_CURVE_CACHE[cache_key] = {"status": "miss", "cached_at": time.time()}
+        return None
+    best["status"] = "hit"
+    best["cached_at"] = time.time()
+    PHOTOMETRIC_CURVE_CACHE[cache_key] = best
+    return {"content": best["content"], "media_type": best["media_type"]}
 
 
 def _normalize_image_url(raw: str) -> Optional[str]:
@@ -3145,6 +3253,25 @@ def full_image(
 
     # Final fallback: reuse preview endpoint behavior (still 200/204 and cached).
     return preview_image(request=request, product_code=code, manufacturer=mfg, website_url=url)
+
+
+@app.get("/photometric-curve")
+def photometric_curve(
+    request: FastAPIRequest,
+    product_code: str = Query("", description="Order code"),
+    manufacturer: str = Query("", description="Manufacturer"),
+    language: str = Query("it", description="Datasheet language"),
+):
+    preview_limit, preview_window = security.preview_limit()
+    security.enforce_rate_limit(request, bucket="photometric-curve", limit=preview_limit, window_sec=preview_window)
+    curve = _extract_photometric_curve_from_datasheet(product_code, manufacturer, language)
+    if not curve:
+        return Response(content=b"", media_type="application/octet-stream", status_code=204)
+    return Response(
+        content=curve["content"],
+        media_type=curve["media_type"],
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @app.post("/compare-codes")
