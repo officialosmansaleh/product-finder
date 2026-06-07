@@ -3264,7 +3264,16 @@ def photometric_curve(
 ):
     preview_limit, preview_window = security.preview_limit()
     security.enforce_rate_limit(request, bucket="photometric-curve", limit=preview_limit, window_sec=preview_window)
-    curve = _extract_photometric_curve_from_datasheet(product_code, manufacturer, language)
+    requested_lang = str(language or "it").strip().lower() or "it"
+    curve = None
+    tried: set[str] = set()
+    for lang in [requested_lang, "it", "en"]:
+        if lang in tried:
+            continue
+        tried.add(lang)
+        curve = _extract_photometric_curve_from_datasheet(product_code, manufacturer, lang)
+        if curve:
+            break
     if not curve:
         return Response(content=b"", media_type="application/octet-stream", status_code=204)
     return Response(
