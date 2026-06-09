@@ -12,7 +12,8 @@ if _BACKEND_DIR not in sys.path:
     sys.path.insert(0, _BACKEND_DIR)
 
 from app.database import ProductDatabase
-from app.pim_loader import _extract_first_number, _extract_ugr_op, _extract_ugr_value
+from app.pim_loader import _extract_first_number, _extract_ugr_op, _extract_ugr_value, load_products
+from app.scoring import score_product
 
 
 class PimLoaderUgrTests(unittest.TestCase):
@@ -114,6 +115,102 @@ class PimLoaderUgrTests(unittest.TestCase):
                 self.assertEqual(codes, {"B1", "C1"})
             finally:
                 db.close()
+
+    def test_pim_switch_table_expands_power_lumen_and_cct_capability(self):
+        description = """Rubin switch table
+|***
+Code;Wtot;LED(mA);K - Lumen Output - CRI - °
+22163710-00 / 22163730-00;9;250;3000K - 1080lm - CRI>80 - 42°
+22163710-00 / 22163730-00;12;300;3000K - 1425lm - CRI>80 - 42°
+22163710-00 / 22163730-00;9;250;4000K - 1136lm - CRI>80 - 42°
+22163710-00 / 22163730-00;12;300;4000K - 1536lm - CRI>80 - 42°
+***|"""
+        pim = pd.DataFrame([
+            {
+                "Order code": "22163710-00",
+                "<Name>": "Rubin",
+                "Short product code": "221637",
+                "Product description": description,
+                "Total system power": "12 W",
+                "Luminous efficacy": "100 lm/W",
+                "CCT": "3000 K",
+                "Manufacturer": "Disano",
+            }
+        ])
+        family_map = pd.DataFrame([
+            {"Short product code": "221637", "Product name": "Rubin", "family": "downlight"}
+        ])
+
+        with tempfile.TemporaryDirectory() as td:
+            pim_path = os.path.join(td, "pim.xlsx")
+            family_path = os.path.join(td, "family.xlsx")
+            pim.to_excel(pim_path, index=False)
+            family_map.to_excel(family_path, index=False)
+
+            loaded = load_products(pim_path, family_map_path=family_path, verbose=False)
+            row = loaded.iloc[0].to_dict()
+            self.assertEqual(row["power_max_w"], "9-12 W")
+            self.assertEqual(row["lumen_output"], "1080-1536 lm")
+            self.assertEqual(row["cct_k"], "3000K / 4000K")
+            self.assertEqual(row["switch_power_min_value"], 9)
+            self.assertEqual(row["switch_power_max_value"], 12)
+            self.assertEqual(row["switch_lumen_min_value"], 1080)
+            self.assertEqual(row["switch_lumen_max_value"], 1536)
+            self.assertEqual(row["switch_cct_options"], "3000,4000")
+
+    def test_sqlite_switch_capability_filters_match_any_valid_setting(self):
+        df = pd.DataFrame([
+            {
+                "product_code": "SW1",
+                "product_name": "Switch",
+                "product_family": "downlight",
+                "power_max_w": "9-12 W",
+                "power_max_value": "12",
+                "lumen_output": "1080-1536 lm",
+                "lumen_output_value": "1536",
+                "cct_k": "3000K / 4000K",
+                "switch_power_min_value": "9",
+                "switch_power_max_value": "12",
+                "switch_lumen_min_value": "1080",
+                "switch_lumen_max_value": "1536",
+                "switch_cct_options": "3000,4000",
+            }
+        ])
+
+        with tempfile.TemporaryDirectory() as td:
+            db_path = os.path.join(td, "products.db")
+            db = ProductDatabase(db_path=db_path, database_url="")
+            try:
+                self.assertEqual(db.init_db("switch-release.xlsx", df=df), 1)
+                self.assertEqual({r["product_code"] for r in db.search_products({"power_max_w": "<=10"})}, {"SW1"})
+                self.assertEqual({r["product_code"] for r in db.search_products({"lumen_output": ">=1500"})}, {"SW1"})
+                self.assertEqual({r["product_code"] for r in db.search_products({"cct_k": "4000"})}, {"SW1"})
+            finally:
+                db.close()
+
+    def test_scoring_switch_capability_matches_any_valid_setting(self):
+        product = {
+            "product_code": "SW1",
+            "product_name": "Switch",
+            "power_max_w": "9-12 W",
+            "lumen_output": "1080-1536 lm",
+            "cct_k": "3000K / 4000K",
+            "switch_power_min_value": "9",
+            "switch_power_max_value": "12",
+            "switch_lumen_min_value": "1080",
+            "switch_lumen_max_value": "1536",
+            "switch_cct_options": "3000,4000",
+        }
+
+        score, matched, deviations, missing = score_product(
+            product,
+            {"power_max_w": "<=10", "lumen_output": ">=1500", "cct_k": "4000"},
+            {},
+        )
+        self.assertEqual(score, 1.0)
+        self.assertIn("power_max_w", matched)
+        self.assertEqual(deviations, [])
+        self.assertEqual(missing, [])
 
 
 if __name__ == "__main__":

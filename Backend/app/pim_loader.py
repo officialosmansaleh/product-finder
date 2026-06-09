@@ -1,8 +1,9 @@
 # app/pim_loader.py
+import json
 import re
 import unicodedata
 from dataclasses import dataclass
-from typing import Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional
 import pandas as pd
 import os
 
@@ -540,16 +541,29 @@ def _normalize_cct_value(value) -> str:
     text = str(value or "").strip()
     if not text or text.lower() in {"nan", "none"}:
         return ""
-    m = re.search(r"(\d{3,5})", text.replace(" ", ""))
-    if not m:
+    nums = re.findall(r"(\d{3,5})\s*K?", text.replace(" ", ""), flags=re.IGNORECASE)
+    if not nums:
         return text
-    return f"{int(m.group(1))}K"
+    unique = []
+    for num in nums:
+        cct = int(num)
+        if cct not in unique:
+            unique.append(cct)
+    return " / ".join(f"{cct}K" for cct in unique)
 
 
 def _normalize_numeric_measure(value, unit: str = "") -> str:
     text = str(value or "").strip()
     if not text or text.lower() in {"nan", "none"}:
         return ""
+    compact = text.replace(",", ".")
+    m_range = re.search(r"(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)", compact)
+    if m_range:
+        lo = float(m_range.group(1))
+        hi = float(m_range.group(2))
+        if lo > hi:
+            lo, hi = hi, lo
+        return f"{_format_number(lo)}-{_format_number(hi)} {unit}".strip()
     num = _extract_first_number(text)
     if num is None:
         return text
@@ -558,6 +572,173 @@ def _normalize_numeric_measure(value, unit: str = "") -> str:
     else:
         num_text = f"{float(num):.2f}".rstrip("0").rstrip(".")
     return f"{num_text} {unit}".strip()
+
+
+def _format_number(value: float) -> str:
+    try:
+        num = float(value)
+    except Exception:
+        return str(value or "").strip()
+    if abs(num - round(num)) <= 1e-9:
+        return str(int(round(num)))
+    return f"{num:.2f}".rstrip("0").rstrip(".")
+
+
+def _format_range(values: List[float], unit: str = "") -> str:
+    nums = sorted({float(v) for v in values if v is not None and not pd.isna(v)})
+    if not nums:
+        return ""
+    if len(nums) == 1:
+        text = _format_number(nums[0])
+    else:
+        text = f"{_format_number(nums[0])}-{_format_number(nums[-1])}"
+    return f"{text} {unit}".strip()
+
+
+def _normalize_product_code_token(value: Any) -> str:
+    return re.sub(r"[^0-9A-Za-z]", "", str(value or "")).lower()
+
+
+def _split_codes_cell(value: Any) -> List[str]:
+    text = str(value or "").strip()
+    if not text:
+        return []
+    parts = re.split(r"\s*(?:/|,|\bor\b|\be\b|\band\b)\s*", text, flags=re.IGNORECASE)
+    out: List[str] = []
+    for part in parts:
+        clean = part.strip()
+        if clean and re.search(r"\d", clean):
+            out.append(clean)
+    return out
+
+
+def _parse_switch_table_options(description: Any, product_code: Any) -> List[Dict[str, Any]]:
+    text = str(description or "")
+    if not text or "|***" not in text or "***|" not in text:
+        return []
+    wanted_code = _normalize_product_code_token(product_code)
+    if not wanted_code:
+        return []
+
+    options: List[Dict[str, Any]] = []
+    seen: set[tuple[Any, ...]] = set()
+    blocks = re.findall(r"\|\*\*\*(.*?)\*\*\|", text, flags=re.DOTALL)
+    for block in blocks:
+        raw_lines = [ln.strip() for ln in str(block or "").splitlines() if ln.strip()]
+        lines = [ln for ln in raw_lines if set(ln.replace(";", "").strip()) not in (set(), {" "})]
+        if len(lines) < 2:
+            continue
+        headers = [h.strip() for h in lines[0].split(";")]
+        norm_headers = [_norm(h) for h in headers]
+
+        code_idx = next((i for i, h in enumerate(norm_headers) if h in {"code", "codice"} or "order code" in h), 0)
+        power_idx = next(
+            (
+                i
+                for i, h in enumerate(norm_headers)
+                if re.search(r"\b(?:wtot|totw|w tot|tot w|total system power|power|potenza|w)\b", h)
+                and "power supply" not in h
+            ),
+            None,
+        )
+        current_idx = next((i for i, h in enumerate(norm_headers) if "led ma" in h or "settaggio" in h or "current" in h), None)
+        phot_idx = next(
+            (
+                i
+                for i, h in enumerate(norm_headers)
+                if ("k" in h and ("lumen" in h or "lm" in h)) or "lumen output" in h or "olm" in h
+            ),
+            None,
+        )
+
+        for row_line in lines[1:]:
+            cells = [c.strip() for c in row_line.split(";")]
+            if not any(cells):
+                continue
+            codes = _split_codes_cell(cells[code_idx] if code_idx < len(cells) else "")
+            if codes and wanted_code not in {_normalize_product_code_token(c) for c in codes}:
+                continue
+
+            power = _extract_first_number(cells[power_idx]) if power_idx is not None and power_idx < len(cells) else None
+            current_ma = _extract_first_number(cells[current_idx]) if current_idx is not None and current_idx < len(cells) else None
+            phot_text = cells[phot_idx] if phot_idx is not None and phot_idx < len(cells) else " ".join(cells)
+            cct_match = re.search(r"(\d{3,5})\s*K", phot_text, flags=re.IGNORECASE)
+            lumen_match = re.search(r"(\d[\d\s'.,]*)\s*(?:lm|lumen)\b", phot_text, flags=re.IGNORECASE)
+            cri_match = re.search(r"CRI\s*[>=<]*\s*(\d{2,3})", phot_text, flags=re.IGNORECASE)
+            beam_match = re.search(r"(\d+(?:[.,]\d+)?)\s*[°º]\s*$", phot_text)
+
+            if power is None and not cct_match and not lumen_match:
+                continue
+            option = {
+                "power_w": power,
+                "current_ma": current_ma,
+                "cct_k": int(cct_match.group(1)) if cct_match else None,
+                "lumen_output": _extract_first_number(lumen_match.group(1)) if lumen_match else None,
+                "cri": int(cri_match.group(1)) if cri_match else None,
+                "beam_angle_deg": _extract_first_number(beam_match.group(1)) if beam_match else None,
+            }
+            key = tuple(option.get(k) for k in ("power_w", "current_ma", "cct_k", "lumen_output", "cri", "beam_angle_deg"))
+            if key in seen:
+                continue
+            seen.add(key)
+            options.append({k: v for k, v in option.items() if v is not None})
+    return options
+
+
+def _apply_switch_options(out: pd.DataFrame, source_df: pd.DataFrame) -> pd.DataFrame:
+    desc_col = None
+    for col in source_df.columns:
+        if _norm(col) == "product description":
+            desc_col = col
+            break
+    if not desc_col or "product_code" not in out.columns:
+        return out
+    for display_col in ("power_min_w", "power_max_w", "lumen_output", "cct_k"):
+        if display_col in out.columns:
+            out[display_col] = out[display_col].astype("object")
+
+    switch_options: List[str] = []
+    switch_power_min: List[Optional[float]] = []
+    switch_power_max: List[Optional[float]] = []
+    switch_lumen_min: List[Optional[float]] = []
+    switch_lumen_max: List[Optional[float]] = []
+    switch_cct_options: List[str] = []
+
+    descriptions = source_df.loc[out.index, desc_col] if len(source_df) >= len(out) else source_df[desc_col]
+    for idx, row in out.iterrows():
+        desc = descriptions.loc[idx] if idx in descriptions.index else ""
+        opts = _parse_switch_table_options(desc, row.get("product_code"))
+        powers = [float(o["power_w"]) for o in opts if o.get("power_w") is not None]
+        lumens = [float(o["lumen_output"]) for o in opts if o.get("lumen_output") is not None]
+        ccts = sorted({int(o["cct_k"]) for o in opts if o.get("cct_k") is not None})
+
+        switch_options.append(json.dumps(opts, ensure_ascii=True, separators=(",", ":")) if opts else "")
+        switch_power_min.append(min(powers) if powers else None)
+        switch_power_max.append(max(powers) if powers else None)
+        switch_lumen_min.append(min(lumens) if lumens else None)
+        switch_lumen_max.append(max(lumens) if lumens else None)
+        switch_cct_options.append(",".join(str(c) for c in ccts))
+
+        if not opts:
+            continue
+        if powers:
+            if "power_min_w" in out.columns:
+                out.at[idx, "power_min_w"] = _format_range([min(powers)], "W")
+            if "power_max_w" in out.columns:
+                out.at[idx, "power_max_w"] = _format_range(powers, "W")
+        if lumens and "lumen_output" in out.columns:
+            out.at[idx, "lumen_output"] = _format_range(lumens, "lm")
+        if ccts and "cct_k" in out.columns:
+            out.at[idx, "cct_k"] = " / ".join(f"{c}K" for c in ccts)
+
+    out["switch_options"] = switch_options
+    out["switch_power_min_value"] = switch_power_min
+    out["switch_power_max_value"] = switch_power_max
+    out["switch_lumen_min_value"] = switch_lumen_min
+    out["switch_lumen_max_value"] = switch_lumen_max
+    out["switch_cct_options"] = switch_cct_options
+    out["has_switch_options"] = ["yes" if value else "" for value in switch_options]
+    return out
 
 def load_family_map(path: str) -> dict:
     """Load family mapping from Excel file"""
@@ -716,7 +897,9 @@ def load_products(
     out["product_name"] = out["product_name"].astype(str).fillna("").str.strip()
 
     # Remove rows without code
-    out = out[out["product_code"] != ""].reset_index(drop=True)
+    nonempty_code_mask = out["product_code"] != ""
+    source_aligned = df.loc[nonempty_code_mask].reset_index(drop=True)
+    out = out.loc[nonempty_code_mask].reset_index(drop=True)
 
     def _num(s: pd.Series) -> pd.Series:
         x = s.astype(str).str.extract(r"(-?\d+(?:\.\d+)?)")[0]
@@ -734,6 +917,9 @@ def load_products(
         eff = _num(out["efficacy_lm_w"])      # "96 lm/W" -> 96
         pwr = _num(out["power_max_w"])        # "15 W" -> 15
         out["lumen_output"] = eff * pwr       # lm
+
+    # ---- Extract DIP-switch / power-switch option tables from Product description ----
+    out = _apply_switch_options(out, source_aligned)
 
     # ---- Apply family mapping from Excel table when available ----
     explicit_family_map = str(family_map_path or "").strip()
@@ -973,12 +1159,21 @@ def load_products(
     # lumen_output: could be string/float -> numeric
     if "lumen_output" in out.columns:
         out["lumen_output_value"] = out["lumen_output"].apply(_extract_first_number)
+        if "switch_lumen_max_value" in out.columns:
+            switch_max = pd.to_numeric(out["switch_lumen_max_value"], errors="coerce")
+            out.loc[switch_max.notna(), "lumen_output_value"] = switch_max[switch_max.notna()]
 
     # power: "33 W" -> 33
     if "power_max_w" in out.columns:
         out["power_max_value"] = out["power_max_w"].apply(_extract_first_number)
+        if "switch_power_max_value" in out.columns:
+            switch_max = pd.to_numeric(out["switch_power_max_value"], errors="coerce")
+            out.loc[switch_max.notna(), "power_max_value"] = switch_max[switch_max.notna()]
     if "power_min_w" in out.columns:
         out["power_min_value"] = out["power_min_w"].apply(_extract_first_number)
+        if "switch_power_min_value" in out.columns:
+            switch_min = pd.to_numeric(out["switch_power_min_value"], errors="coerce")
+            out.loc[switch_min.notna(), "power_min_value"] = switch_min[switch_min.notna()]
 
     # lifetime: "50000 hr" -> 50000
     if "lifetime_hours" in out.columns:

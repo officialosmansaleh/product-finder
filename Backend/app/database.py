@@ -909,6 +909,36 @@ class ProductDatabase:
                     return default_op, float(m.group(1))
                 return None, None
 
+            def _range_capability_fragment(min_col: str, max_col: str, fallback_col: str, v: Any, default_op: str = ">="):
+                op, num = _parse_numeric_filter(v, default_op=default_op)
+                if op is None or num is None:
+                    return (None, [])
+                min_expr = numeric_expr(min_col)
+                max_expr = numeric_expr(max_col)
+                fallback_expr = numeric_expr(fallback_col)
+                has_range = f'("{min_col}" IS NOT NULL AND TRIM(CAST("{min_col}" AS TEXT)) <> \'\' AND "{max_col}" IS NOT NULL AND TRIM(CAST("{max_col}" AS TEXT)) <> \'\')'
+                fallback = f'({fallback_expr} {{op}} {ph})'
+                if op == "range":
+                    lo, hi = num
+                    frag = (
+                        f'(({has_range} AND {max_expr} >= {ph} AND {min_expr} <= {ph}) '
+                        f'OR ({fallback_expr} >= {ph} AND {fallback_expr} <= {ph}))'
+                    )
+                    return (frag, [lo, hi, lo, hi])
+                if op in {">=", ">"}:
+                    frag = f'(({has_range} AND {max_expr} {op} {ph}) OR {fallback.format(op=op)})'
+                    return (frag, [num, num])
+                if op in {"<=", "<"}:
+                    frag = f'(({has_range} AND {min_expr} {op} {ph}) OR {fallback.format(op=op)})'
+                    return (frag, [num, num])
+                if op == "=":
+                    frag = (
+                        f'(({has_range} AND {min_expr} <= {ph} AND {max_expr} >= {ph}) '
+                        f'OR {fallback.format(op="=")})'
+                    )
+                    return (frag, [num, num, num])
+                return (None, [])
+
             numeric_cols = {
                 "ugr_value",
                 "efficacy_value",
@@ -986,7 +1016,13 @@ class ProductDatabase:
                 m = re.search(r"(\d+)", str(value))
                 if not m:
                     return (None, [])
-                return (numeric_expr("cct_k") + " = " + ph, [int(m.group(1))])
+                wanted = int(m.group(1))
+                if "switch_cct_options" in table_columns:
+                    return (
+                        f'({numeric_expr("cct_k")} = {ph} OR ("," || COALESCE("switch_cct_options", "") || ",") LIKE {ph})',
+                        [wanted, f"%,{wanted},%"],
+                    )
+                return (numeric_expr("cct_k") + " = " + ph, [wanted])
 
             if key in {"ugr", "cri", "warranty_years", "lifetime_hours", "led_rated_life_h", "lumen_maintenance_pct"}:
                 col_map = {
@@ -1019,6 +1055,10 @@ class ProductDatabase:
                 col = numeric_companion.get(key, key)
                 if col not in table_columns:
                     col = key
+                if key == "power_max_w" and {"switch_power_min_value", "switch_power_max_value"}.issubset(table_columns):
+                    return _range_capability_fragment("switch_power_min_value", "switch_power_max_value", col, value, default_op=">=")
+                if key == "lumen_output" and {"switch_lumen_min_value", "switch_lumen_max_value"}.issubset(table_columns):
+                    return _range_capability_fragment("switch_lumen_min_value", "switch_lumen_max_value", col, value, default_op=">=")
                 return build_numeric_fragment(col, value, default_op=">=")
 
             return (f'LOWER("{key}") LIKE {ph}', [f"%{str(value).lower()}%"])

@@ -3207,6 +3207,10 @@
       if (!displayValue) return;
       pills.push(`<span class="pill">${escapeHtml(displayLabel)}: ${escapeHtml(displayValue)}</span>`);
     };
+    const switchCount = parseSwitchOptionCount(p.switch_options);
+    if (p.has_switch_options || switchCount){
+      pills.push(`<span class="pill">Switch${switchCount ? `: ${switchCount}` : ""}</span>`);
+    }
     add("IP", p.ip_rating, "ip_rating");
     add("IK", p.ik_rating, "ik_rating");
     add("CCT", p.cct_k, "cct_k");
@@ -3265,6 +3269,16 @@
     ["led_rated_life_h", "LED life h"],
     ["lumen_maintenance_pct", "Lumen maint."],
   ];
+
+  function parseSwitchOptionCount(raw){
+    if (!raw) return 0;
+    try {
+      const parsed = JSON.parse(String(raw));
+      return Array.isArray(parsed) ? parsed.length : 0;
+    } catch (_e) {
+      return 0;
+    }
+  }
 
   function specValueForKey(preview, key){
     const p = preview || {};

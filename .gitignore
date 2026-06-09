@@ -3,5 +3,6 @@ data/
 !Backend/data/
 Backend/data/*
 !Backend/data/PIM_20260427.xlsx
+!Backend/data/PIM_20260608.xlsx
 !Backend/data/family_map.xlsx
 handover_package/

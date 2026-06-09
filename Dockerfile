@@ -17,6 +17,7 @@ COPY Backend/config ./config
 COPY Backend/frontend ./frontend
 RUN mkdir -p /app/data
 COPY Backend/data/PIM_20260427.xlsx ./data/PIM_20260427.xlsx
+COPY Backend/data/PIM_20260608.xlsx ./data/PIM_20260608.xlsx
 COPY Backend/data/family_map.xlsx ./data/family_map.xlsx
 COPY Backend/.env.example ./.env.example
 

@@ -89,6 +89,19 @@ def _num_from_any(x: Any) -> float | None:
         return None
 
 
+def _nums_from_any(x: Any) -> List[float]:
+    s = _norm_str(x).lower().replace(",", ".")
+    if not s:
+        return []
+    out: List[float] = []
+    for m in re.finditer(r"-?\d+(?:\.\d+)?", s):
+        try:
+            out.append(float(m.group(0)))
+        except Exception:
+            continue
+    return out
+
+
 def _norm_shape_value(x: Any) -> str:
     s = _norm_str(x).lower()
     if not s:
@@ -240,6 +253,44 @@ def _match_numeric(got: Any, wanted: Any, rel_tol: float = 0.0) -> tuple[bool, s
     eq_tol = max(tol, 1e-9)
     return (abs(g - val) <= eq_tol, f"wanted = {val} (+/-{eq_tol}), got {g}")
 
+
+def _match_numeric_capability_range(
+    got: Any,
+    wanted: Any,
+    min_value: Any,
+    max_value: Any,
+    *,
+    rel_tol: float = 0.0,
+) -> tuple[bool, str]:
+    lo = _num_from_any(min_value)
+    hi = _num_from_any(max_value)
+    if lo is None or hi is None:
+        return _match_numeric(got, wanted, rel_tol=rel_tol)
+    if lo > hi:
+        lo, hi = hi, lo
+
+    parsed = _parse_cmp_expr(wanted)
+    if not parsed:
+        return _match_numeric(got, wanted, rel_tol=rel_tol)
+    op, val = parsed
+    if op == "range":
+        req_lo, req_hi = val  # type: ignore
+        tol_lo = abs(float(req_lo)) * rel_tol
+        tol_hi = abs(float(req_hi)) * rel_tol
+        ok = hi >= float(req_lo) - tol_lo and lo <= float(req_hi) + tol_hi
+        return (ok, f"wanted overlap {req_lo}-{req_hi}, got capability {lo}-{hi}")
+    tol = abs(float(val)) * rel_tol
+    if op == ">=":
+        return (hi >= float(val) - tol, f"wanted >= {val}, got capability {lo}-{hi}")
+    if op == ">":
+        return (hi > float(val) - tol, f"wanted > {val}, got capability {lo}-{hi}")
+    if op == "<=":
+        return (lo <= float(val) + tol, f"wanted <= {val}, got capability {lo}-{hi}")
+    if op == "<":
+        return (lo < float(val) + tol, f"wanted < {val}, got capability {lo}-{hi}")
+    ok = lo <= float(val) + tol and hi >= float(val) - tol
+    return (ok, f"wanted = {val}, got capability {lo}-{hi}")
+
 def _match_ip(got: Any, wanted: Any) -> tuple[bool, str]:
     g = _parse_ip(got)
     if g is None:
@@ -286,8 +337,9 @@ def _match_ik(got: Any, wanted: Any) -> tuple[bool, str]:
         return (g < w, f"wanted <IK{w:02d}, got IK{g:02d}")
     return (g == w, f"wanted IK{w:02d}, got IK{g:02d}")
 
-def _match_value(key: str, got: Any, wanted: Any) -> tuple[bool, str]:
+def _match_value(key: str, got: Any, wanted: Any, prod: Dict[str, Any] | None = None) -> tuple[bool, str]:
     k = (key or "").strip()
+    prod = prod or {}
 
     if k in {"product_name_short", "name_prefix"}:
         g_s = _product_name_prefix(got)
@@ -338,15 +390,36 @@ def _match_value(key: str, got: Any, wanted: Any) -> tuple[bool, str]:
                 elif op == "=":
                     wanted = f"<={num}"
         tol = DIMENSION_TOLERANCE if k in DIMENSION_KEYS else 0.0
+        if k == "power_max_w":
+            return _match_numeric_capability_range(
+                got,
+                wanted,
+                prod.get("switch_power_min_value"),
+                prod.get("switch_power_max_value"),
+                rel_tol=tol,
+            )
+        if k == "lumen_output":
+            return _match_numeric_capability_range(
+                got,
+                wanted,
+                prod.get("switch_lumen_min_value"),
+                prod.get("switch_lumen_max_value"),
+                rel_tol=tol,
+            )
         return _match_numeric(got, wanted, rel_tol=tol)
 
     # cct: compare numeric part
     if k == "cct_k":
-        g = _num_from_any(got)
+        switch_ccts = {
+            int(m.group(0))
+            for m in re.finditer(r"\d{3,5}", _norm_str(prod.get("switch_cct_options")))
+        }
+        got_ccts = set(int(n) for n in _nums_from_any(got))
         w = _num_from_any(wanted)
-        if g is None or w is None:
+        available = switch_ccts or got_ccts
+        if not available or w is None:
             return (False, f"cct missing/unparsable wanted='{wanted}' got='{got}'")
-        return (int(g) == int(w), f"wanted {int(w)}K got {int(g)}K")
+        return (int(w) in available, f"wanted {int(w)}K got options {sorted(available)}K")
 
     if k == "control_protocol":
         g_s = _norm_str(got).lower()
@@ -398,18 +471,18 @@ def _match_value(key: str, got: Any, wanted: Any) -> tuple[bool, str]:
         return (True, f"{k} contains")
     return (False, f"{k} mismatch: wanted='{wanted}' got='{got}'")
 
-def _match_with_multivalue(key: str, got: Any, wanted: Any) -> tuple[bool, str]:
+def _match_with_multivalue(key: str, got: Any, wanted: Any, prod: Dict[str, Any] | None = None) -> tuple[bool, str]:
     if isinstance(wanted, list):
         reasons: List[str] = []
         for one in wanted:
-            ok, why = _match_value(key, got, one)
+            ok, why = _match_value(key, got, one, prod)
             if ok:
                 return (True, why)
             reasons.append(why)
         if not reasons:
             return (False, f"{key} no values")
         return (False, " | ".join(reasons[:3]))
-    return _match_value(key, got, wanted)
+    return _match_value(key, got, wanted, prod)
 
 # ------------------------------------------------------------
 # Main scoring
@@ -437,7 +510,7 @@ def score_product(
             deviations.append(f"hard missing: {k}")
             return 0.0, matched, deviations, missing
 
-        ok, why = _match_with_multivalue(k, got, wanted)
+        ok, why = _match_with_multivalue(k, got, wanted, prod)
         if not ok:
             deviations.append(f"hard mismatch: {why}")
             return 0.0, matched, deviations, missing
@@ -459,7 +532,7 @@ def score_product(
             missing.append(k)
             continue
 
-        ok, why = _match_with_multivalue(k, got, wanted)
+        ok, why = _match_with_multivalue(k, got, wanted, prod)
         if ok:
             matched[k] = got
         else:
