@@ -84,6 +84,20 @@ def _is_accessories_family(value: Any) -> bool:
     return str(value or "").strip().lower() == "accessories"
 
 
+def _compact_code_for_match(value: Any) -> str:
+    return re.sub(r"[^0-9a-z]", "", str(value or "").lower())
+
+
+def _is_exact_code_query_match(row: Dict[str, Any], text: Any) -> bool:
+    q = _compact_code_for_match(text)
+    if not q:
+        return False
+    return q in {
+        _compact_code_for_match((row or {}).get("product_code")),
+        _compact_code_for_match((row or {}).get("short_product_code")),
+    }
+
+
 def _is_panel_product_name(value: Any) -> bool:
     return bool(re.match(r"^\s*panel\s*tech\b|^\s*paneltech\b", str(value or "").strip().lower()))
 
@@ -714,6 +728,7 @@ def handle_search(
         rows = [
             r for r in rows
             if not _is_accessories_family((r or {}).get("product_family"))
+            or _is_exact_code_query_match(r, req.text or "")
         ]
     if (
         str(filters.get("product_family") or "").strip().lower() == "downlight"

@@ -1,8 +1,26 @@
 from __future__ import annotations
 
+import math
+import numbers
 from typing import Any, Callable, Dict, List, Optional
 
 from fastapi import HTTPException
+
+
+def _json_safe_value(value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, numbers.Real):
+        try:
+            if not math.isfinite(float(value)):
+                return None
+        except Exception:
+            return None
+    if isinstance(value, dict):
+        return {k: _json_safe_value(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_value(v) for v in value]
+    return value
 
 
 def handle_compare_products(
@@ -57,15 +75,15 @@ def handle_compare_products(
                 "slot": idx,
                 "requested_code": requested,
                 "product_code": code,
-                "product_name": row.get("product_name"),
+                "product_name": _json_safe_value(row.get("product_name")),
                 "manufacturer": manufacturer,
-                "housing_color": row.get("housing_color"),
-                "beam_angle_deg": row.get("beam_angle_deg"),
-                "warranty_years": row.get("warranty_years"),
-                "lifetime_hours": row.get("lifetime_hours"),
-                "led_rated_life_h": row.get("led_rated_life_h"),
-                "lumen_maintenance_pct": row.get("lumen_maintenance_pct"),
-                "failure_rate_pct": row.get("failure_rate_pct"),
+                "housing_color": _json_safe_value(row.get("housing_color")),
+                "beam_angle_deg": _json_safe_value(row.get("beam_angle_deg")),
+                "warranty_years": _json_safe_value(row.get("warranty_years")),
+                "lifetime_hours": _json_safe_value(row.get("lifetime_hours")),
+                "led_rated_life_h": _json_safe_value(row.get("led_rated_life_h")),
+                "lumen_maintenance_pct": _json_safe_value(row.get("lumen_maintenance_pct")),
+                "failure_rate_pct": _json_safe_value(row.get("failure_rate_pct")),
                 "datasheet_url": build_datasheet_url(code, manufacturer),
                 "image_preview_url": (
                     f"/preview-image?product_code={quote_plus(code)}"
@@ -89,7 +107,7 @@ def handle_compare_products(
             has_missing = any(x == "" for x in norm_vals)
             if len(normalized) <= 1 and not has_missing:
                 continue
-            differences.append({"field": field, "values": vals})
+            differences.append({"field": field, "values": _json_safe_value(vals)})
 
     return {
         "codes": codes,
@@ -206,15 +224,15 @@ def handle_compare_spec_products(
                 "slot": idx,
                 "requested_code": requested,
                 "product_code": code,
-                "product_name": row.get("product_name"),
+                "product_name": _json_safe_value(row.get("product_name")),
                 "manufacturer": manufacturer,
-                "housing_color": row.get("housing_color"),
-                "beam_angle_deg": row.get("beam_angle_deg"),
-                "warranty_years": row.get("warranty_years"),
-                "lifetime_hours": row.get("lifetime_hours"),
-                "led_rated_life_h": row.get("led_rated_life_h"),
-                "lumen_maintenance_pct": row.get("lumen_maintenance_pct"),
-                "failure_rate_pct": row.get("failure_rate_pct"),
+                "housing_color": _json_safe_value(row.get("housing_color")),
+                "beam_angle_deg": _json_safe_value(row.get("beam_angle_deg")),
+                "warranty_years": _json_safe_value(row.get("warranty_years")),
+                "lifetime_hours": _json_safe_value(row.get("lifetime_hours")),
+                "led_rated_life_h": _json_safe_value(row.get("led_rated_life_h")),
+                "lumen_maintenance_pct": _json_safe_value(row.get("lumen_maintenance_pct")),
+                "failure_rate_pct": _json_safe_value(row.get("failure_rate_pct")),
                 "datasheet_url": build_datasheet_url(code, manufacturer),
                 "image_preview_url": (
                     f"/preview-image?product_code={quote_plus(code)}"
@@ -319,7 +337,7 @@ def handle_compare_spec_products(
             ideal_s = str(ideal_v or "").strip()
             if ideal_s and actual_vals and all(ideal_satisfied(field, ideal_v, actual_v) for actual_v in actual_vals):
                 continue
-            differences.append({"field": field, "values": vals})
+            differences.append({"field": field, "values": _json_safe_value(vals)})
 
     return {
         "found": found_meta,

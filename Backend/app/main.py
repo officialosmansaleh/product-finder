@@ -1338,7 +1338,16 @@ def _search_rows_by_text_db(text: str, limit: int = 3000) -> List[Dict[str, Any]
         if out:
             query_tokens = [tok for tok in re.split(r"\s+", q_l) if tok]
             if len(query_tokens) == 1 and len(_compact_for_match(query_tokens[0])) >= 3:
-                token_out = [r for r in out if _row_has_single_token_text_match(r, q_l)]
+                token_out = [
+                    r
+                    for r in out
+                    if _row_has_single_token_text_match(r, q_l)
+                    or q_compact
+                    in {
+                        _compact_for_match((r or {}).get("product_code")),
+                        _compact_for_match((r or {}).get("short_product_code")),
+                    }
+                ]
                 if token_out:
                     return token_out
             return out
