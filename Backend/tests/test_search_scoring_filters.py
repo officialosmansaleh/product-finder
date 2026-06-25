@@ -683,6 +683,72 @@ class SearchScoringFiltersTests(unittest.TestCase):
 
         self.assertGreater(main_mod._text_relevance(row, "2215031300"), 0)
 
+    def test_db_text_search_keeps_compact_order_code_match(self):
+        from app import main as main_mod
+
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        conn.execute(
+            """
+            CREATE TABLE products (
+                product_code TEXT,
+                short_product_code TEXT,
+                product_name TEXT,
+                etim_search_key TEXT
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO products VALUES (?, ?, ?, ?)",
+            ("22485117-00", None, "Strip 120LED - IP65 - CRI 80 - 24V - 100lm-W", ""),
+        )
+
+        class FakeProductDb:
+            def __init__(self):
+                self.conn = conn
+
+            def connect(self):
+                return None
+
+        with patch.object(main_mod, "PRODUCT_DB", FakeProductDb()):
+            rows = main_mod._search_rows_by_text_db("2248511700", limit=10)
+
+        self.assertEqual([row.get("product_code") for row in rows], ["22485117-00"])
+
+    def test_exact_code_search_keeps_accessory_family_match(self):
+        from app import main as main_mod
+        from app.schema import SearchRequest
+
+        accessory_row = {
+            "product_code": "22485117-00",
+            "short_product_code": "",
+            "product_name": "Strip 120LED - IP65 - CRI 80 - 24V - 100lm-W",
+            "manufacturer": "Fosnova",
+            "product_family": "Accessories",
+        }
+
+        class FakeProductDb:
+            def search_products(self, filters, limit=100):
+                return []
+
+        req = SearchRequest(
+            text="2248511700",
+            filters={},
+            limit=5,
+            include_similar=True,
+            allow_ai=False,
+            debug=False,
+        )
+
+        with patch.object(main_mod, "local_text_to_filters", return_value={}), patch.object(
+            main_mod, "llm_intent_to_filters", return_value={}
+        ), patch.object(main_mod, "PRODUCT_DB", FakeProductDb()), patch.object(
+            main_mod, "DB", pd.DataFrame()
+        ), patch.object(main_mod, "_search_rows_by_text_db", return_value=[accessory_row]):
+            resp = main_mod.search(req)
+
+        self.assertIn("22485117-00", {hit.product_code for hit in resp.exact})
+
     def test_code_search_similar_stays_on_anchored_product_line(self):
         from app import main as main_mod
         from app.schema import SearchRequest
