@@ -1661,6 +1661,17 @@
     return Array.from(set).some(v => String(v || "").trim() === wantedValue);
   }
 
+  function isAiFilterIgnored(key, value){
+    const wantedKey = String(key || "").trim();
+    const wantedValue = String(value || "").trim();
+    if (!wantedKey) return false;
+    return ignoredAIFilterPairs.some(item => {
+      const ignoredKey = String(item?.k || "").trim();
+      const ignoredValue = String(item?.v || "").trim();
+      return ignoredKey === wantedKey && (!ignoredValue || ignoredValue === wantedValue);
+    });
+  }
+
   function getAiFilterValue(key){
     const wanted = String(key || "").trim();
     if (!wanted) return null;
@@ -1671,6 +1682,7 @@
     for (const item of items){
       if (String(item?.key || "").trim() !== wanted) continue;
       const value = String(item?.value || "").trim();
+      if (isAiFilterIgnored(wanted, value)) continue;
       if (value) return value;
     }
     return null;
@@ -2344,6 +2356,7 @@
       const val = String(it?.value || "").trim();
       const sig = normChipSig(key, val);
       const isImport = String(it?.source || "").trim().toLowerCase() === "import";
+      if (isAiFilterIgnored(key, val)) return false;
       if (!key || !val || aiSeen.has(sig) || (!isImport && selectedSig.has(sig))) return false;
       aiSeen.add(sig);
       return true;
@@ -3479,6 +3492,7 @@ function buildSearchCompareSpec(rawFilters, queryText){
     const key = String(item?.key || "").trim();
     const value = String(item?.value || "").trim();
     if (!key || !value) continue;
+    if (isAiFilterIgnored(key, value)) continue;
     if (String(item?.source || "").trim().toLowerCase() === "import" && !isFilterValueSelected(key, value)) continue;
     if (!(key in spec)) spec[key] = value;
   }
@@ -3756,6 +3770,11 @@ document.addEventListener("click", (ev)=>{
       const exists = ignoredAIFilterPairs.some(x => String(x.k) === key && String(x.v) === value);
       if (!exists) ignoredAIFilterPairs.push({ k: key, v: value });
     }
+    lastUnderstoodFilterItems = (lastUnderstoodFilterItems || []).filter(it => {
+      return !(String(it?.key || "").trim() === key && isAiFilterIgnored(key, String(it?.value || "").trim()));
+    });
+    lastUnderstoodFilterChips = [];
+    renderSelected();
     runSearch();
     return;
   }
