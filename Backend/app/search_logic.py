@@ -644,6 +644,8 @@ def handle_search(
         max(limit * cfg_int("main.search_candidate_multiplier", 30), cfg_int("main.search_candidate_min", 500)),
         cfg_int("main.search_candidate_max", 10000),
     )
+    if name_search_mode:
+        candidate_limit = min(candidate_limit, max(limit * 5, cfg_int("main.search_candidate_min", 500)))
     if needs_global_sort:
         candidate_limit = cfg_int("main.search_candidate_max", 10000)
     rows: List[Dict[str, Any]] = []
@@ -701,7 +703,7 @@ def handle_search(
                     anchor_family_spec_sql = map_filters_to_sql({**spec_seed_filters, **anchor_family_filters})
                     anchor_family_spec_seed = product_db.search_products(anchor_family_spec_sql, limit=candidate_limit)
             text_seed = search_rows_by_text_db(req.text or "", limit=candidate_limit)
-            broad_rows = product_db.search_products({}, limit=candidate_limit)
+            broad_rows = [] if name_search_mode and (combined_seed or name_seed or text_seed) else product_db.search_products({}, limit=candidate_limit)
             rows = dedupe_rows_by_product_code(
                 exact_seed
                 + combined_seed

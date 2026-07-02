@@ -4081,8 +4081,12 @@ document.addEventListener("keydown", (ev)=>{
       lastUnderstoodFilterChips = [];
       lastUnderstoodFilterItems = [];
       lastImportedFilterItems = [];
+      allExactResults = [];
+      allSimilarResults = [];
+      currentPage = 1;
       renderSelected();
       renderMetrics(NaN, 0, 0, Object.keys(payload.filters || {}).length);
+      renderPage();
       showRecovery([]);
     }finally{
       saveFinderState();
