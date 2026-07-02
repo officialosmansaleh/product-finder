@@ -105,10 +105,13 @@ def handle_facets(
 
     facet_value_limit = max(30, cfg_int("main.facets_value_limit", 200))
     name_facet_value_limit = max(facet_value_limit, cfg_int("main.facets_name_value_limit", 5000))
-    narrowed = pd.DataFrame()
+    base_df = db_dataframe.copy() if db_dataframe is not None else pd.DataFrame()
+    use_local_facets_first = not sql_filters or not product_db
+    narrowed = df_filtered_subset(base_df, filters) if not base_df.empty and use_local_facets_first else pd.DataFrame()
+    narrowed = narrowed if narrowed is not None else pd.DataFrame()
     product_name_short_prefill: List[FacetValue] = []
 
-    if product_db:
+    if narrowed.empty and product_db:
         try:
             facets_sql_limit = cfg_int("main.facets_sql_limit", 10000)
             rows = product_db.search_products(sql_filters, limit=facets_sql_limit) if sql_filters else product_db.search_products({}, limit=facets_sql_limit)
@@ -116,13 +119,10 @@ def handle_facets(
             product_name_short_prefill = product_name_short_from_rows(rows, limit=name_facet_value_limit)
         except Exception as e:
             print(f"Product database facets failed: {e}")
+            narrowed = df_filtered_subset(base_df, filters) if not base_df.empty else pd.DataFrame()
+            narrowed = narrowed if narrowed is not None else pd.DataFrame()
 
-    if narrowed.empty:
-        base = db_dataframe.copy() if db_dataframe is not None else pd.DataFrame()
-        narrowed = df_filtered_subset(base, filters)
-        narrowed = narrowed if narrowed is not None else pd.DataFrame()
-
-    all_df = db_dataframe.copy() if db_dataframe is not None else pd.DataFrame()
+    all_df = base_df.copy() if not base_df.empty else pd.DataFrame()
     if all_df.empty and product_db:
         try:
             facets_all_limit = cfg_int("main.facets_all_sql_limit", 50000)
