@@ -1,8 +1,26 @@
 from __future__ import annotations
 
+import math
+import numbers
 from typing import Any, Callable, Dict, List
 
 from fastapi import HTTPException
+
+
+def _json_safe_value(value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, numbers.Real):
+        try:
+            if not math.isfinite(float(value)):
+                return None
+        except Exception:
+            return None
+    if isinstance(value, dict):
+        return {k: _json_safe_value(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_value(v) for v in value]
+    return value
 
 
 def handle_alternatives_from_spec(
@@ -73,11 +91,11 @@ def handle_alternatives_from_spec(
         scored.append(
             {
                 "product_code": product_code,
-                "product_name": candidate.get("product_name"),
+                "product_name": _json_safe_value(candidate.get("product_name")),
                 "manufacturer": manufacturer,
-                "product_family": candidate.get("product_family"),
+                "product_family": _json_safe_value(candidate.get("product_family")),
                 "score": round(float(score), 4),
-                "price": candidate.get("price") if include_price else None,
+                "price": _json_safe_value(candidate.get("price")) if include_price else None,
                 "datasheet_url": build_datasheet_url(product_code, manufacturer),
                 "image_preview_url": f"/preview-image?product_code={quote_plus(product_code)}&manufacturer={quote_plus(manufacturer)}&website_url={quote_plus(website_url)}",
             }
@@ -177,11 +195,11 @@ def handle_alternatives(
         scored.append(
             {
                 "product_code": product_code,
-                "product_name": candidate.get("product_name"),
+                "product_name": _json_safe_value(candidate.get("product_name")),
                 "manufacturer": manufacturer,
-                "product_family": candidate.get("product_family"),
+                "product_family": _json_safe_value(candidate.get("product_family")),
                 "score": round(float(score), 4),
-                "price": candidate.get("price") if include_price else None,
+                "price": _json_safe_value(candidate.get("price")) if include_price else None,
                 "datasheet_url": build_datasheet_url(product_code, manufacturer),
                 "image_preview_url": f"/preview-image?product_code={quote_plus(product_code)}&manufacturer={quote_plus(manufacturer)}&website_url={quote_plus(website_url)}",
             }
@@ -191,7 +209,7 @@ def handle_alternatives(
     if min_score is not None:
         scored = [x for x in scored if float(x.get("score") or 0.0) >= min_score]
     top = scored[:limit] if limit is not None else scored
-    base_public = row_to_public_dict(base)
+    base_public = _json_safe_value(row_to_public_dict(base))
     if not include_price:
         base_public.pop("price", None)
     base_code_out = str(base_public.get("product_code") or base_code).strip()
